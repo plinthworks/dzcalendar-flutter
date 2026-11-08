@@ -35,6 +35,25 @@ export 'src/project/segment.dart'
     show AllDaySegment, DateIndex, Segment, TimedSegment, segmentAllDay, segmentTimed, splitByWeek;
 export 'src/project/time_axis.dart'
     show AxisBand, AxisMode, AxisPrefer, AxisTick, ColumnAxis, FromPosition, TickNote, buildColumnAxis;
+export 'src/rrule/expand.dart'
+    show ExpandResult, expandDates, expandZoned, firstStartDate, firstStartZoned, lastStartDate, lastStartZoned;
+export 'src/rrule/iterate.dart' show IterationState, iterateDates, iterateZoned;
+export 'src/rrule/rule.dart'
+    show
+        ByDay,
+        ExDate,
+        ExDay,
+        ExInstant,
+        Frequency,
+        ParsedRRule,
+        RDate,
+        RDay,
+        RRule,
+        RRuleProblem,
+        RRuleSet,
+        RZoned,
+        parseRRule,
+        serializeRRule;
 export 'src/store/instance.dart' show EventInstance, InstanceOrigin;
 export 'src/time/duration.dart' show IsoDuration;
 export 'src/views/views.dart'

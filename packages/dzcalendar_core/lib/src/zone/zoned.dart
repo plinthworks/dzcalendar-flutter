@@ -18,6 +18,29 @@ ZoneId normalizedZone(ZoneId zone) =>
 final class ZonedDateTime implements Comparable<ZonedDateTime> {
   ZonedDateTime._(this.instant, this.zone, this.offsetMs);
 
+  /// [wall] in [zone]: the reading whose offset is [preferOffsetMs] when the
+  /// time has one (Temporal's `offset: 'prefer'` — a repeated 02:30 keeps the
+  /// pass it was on), else as [how] says. The one place a wall time and an
+  /// offset preference meet (parsing, recurrence). Null only for
+  /// [Disambiguation.reject] on a time that is repeated or skipped.
+  static ZonedDateTime? fromWall(
+    PlainDateTime wall,
+    ZoneId zone, {
+    int? preferOffsetMs,
+    Disambiguation how = Disambiguation.compatible,
+  }) {
+    final rules = rulesFor(zone);
+    if (preferOffsetMs != null) {
+      for (final at in possibleInstants(wall.wallMs, rules)) {
+        if (rules.offsetAt(at) == preferOffsetMs) {
+          return ZonedDateTime._(Instant.fromEpochMilliseconds(at), normalizedZone(zone), preferOffsetMs);
+        }
+      }
+    }
+    final ms = resolveWallMs(wall.wallMs, rules, how);
+    return ms == null ? null : ZonedDateTime(Instant.fromEpochMilliseconds(ms), zone);
+  }
+
   /// Throws [ArgumentError] when [zone] names no zone. The zone is kept as
   /// [ZoneRules.normalize] writes it.
   factory ZonedDateTime(Instant instant, ZoneId zone) =>

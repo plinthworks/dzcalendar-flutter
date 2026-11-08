@@ -2,8 +2,17 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19, Dart/Flutter port — 19b done (2026-11-08)**, committed
-  ("Phase 19b"). **Next: 19c** — recurrence (rrule parse/expand, series),
+- **Phase 19c in progress (2026-11-08).** 19c-1 committed ("Phase 19c-1"):
+  the RRULE engine (`lib/src/rrule/`: parse, serialize, iterate, expand,
+  first/last start), the 102 `rrule-expand` cases pass, `rrule_test.dart`
+  (19, from the TS) passes; the store's persistent structures (AVL, ordered
+  map, interval tree) and span algebra (`intervals.dart`) are written,
+  untested yet. `ZonedDateTime.fromWall` (an offset preference: the one
+  helper the 19b review asked for). **Next: 19c-2** — series
+  (`occurrenceLength` needs `until` with days, materialize, keys), the
+  store, commands, history, series editing; `series-edit` cases; then the
+  reviews of the whole of 19c.
+- **19b done (2026-11-08)**, committed ("Phase 19b"). **19c** — recurrence (rrule parse/expand, series),
   the store (persistent interval indexes, revisions, `eventEquals` is there),
   commands with `EventPatch` (decision 10), the undo history; the
   `rrule-expand` and `series-edit` cases. Read the notes for 19c below first.

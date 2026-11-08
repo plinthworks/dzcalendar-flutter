@@ -14,6 +14,19 @@ typedef Json = Map<String, Object?>;
 
 String? _str(Object? x) => x?.toString();
 
+const defaultLimit = 10000;
+
+/// A zoned string as Temporal.ZonedDateTime.from reads it, through the port's own parser.
+ZonedDateTime _zoned(String text) {
+  final r = normalizeEvent(
+    EventInput(start: text),
+    NormalizeContext(displayZone: 'UTC', newId: createIdGenerator('z')),
+  );
+  final e = r.value?.event;
+  if (e is! TimedEvent || r.problems.isNotEmpty) throw StateError('not a plain zoned string: $text ${r.problems}');
+  return e.start;
+}
+
 WallPolicy _policy(Object? p) => switch (p) {
   'compatible' => WallPolicy.compatible,
   'earlier' => WallPolicy.earlier,
@@ -23,7 +36,62 @@ WallPolicy _policy(Object? p) => switch (p) {
   _ => throw ArgumentError.value(p, 'policy'),
 };
 
+final _dateOnly = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
 final Map<String, Object? Function(Json)> _adapters = {
+  'rrule-expand': (input) {
+    final parsed = parseRRule(input['rrule']! as String);
+    final rule = parsed.rule;
+    if (rule == null) return {'problem': parsed.problem!.code};
+    final dtstart = input['dtstart']! as String;
+    final window = input['window'] as Json?;
+    final limit = input['limit'] as int? ?? defaultLimit;
+    final exdates = (input['exdates'] as List?)?.cast<String>() ?? const [];
+    final rdates = (input['rdates'] as List?)?.cast<String>() ?? const [];
+    final withProblems = input['withProblems'] == true;
+    Object out(List<String> starts, List<RRuleProblem> problems) => withProblems
+        ? {
+            'starts': starts,
+            'problems': [for (final p in problems) p.code],
+          }
+        : starts;
+    if (_dateOnly.hasMatch(dtstart)) {
+      final start = PlainDate.parse(dtstart);
+      final set = RRuleSet(
+        [rule],
+        exdates: [for (final x in exdates) ExDate.date(PlainDate.parse(x))],
+        rdates: [for (final x in rdates) RDate.date(PlainDate.parse(x))],
+      );
+      final r = window == null
+          ? expandDates(start, set, start, start.addYears(200), limit)
+          : expandDates(
+              start,
+              set,
+              PlainDate.parse(window['from']! as String),
+              PlainDate.parse(window['to']! as String),
+              limit,
+            );
+      return out([for (final d in r.starts) '$d'], r.problems);
+    }
+    final start = _zoned(dtstart);
+    final set = RRuleSet(
+      [rule],
+      exdates: [
+        for (final x in exdates) x.contains('T') ? ExDate.instant(Instant.parse(x)) : ExDate.date(PlainDate.parse(x)),
+      ],
+      rdates: [for (final x in rdates) RDate.zoned(_zoned(x))],
+    );
+    final r = window == null
+        ? expandZoned(start, set, start.instant, start.instant.addMs(365 * 400 * 86400000), limit)
+        : expandZoned(
+            start,
+            set,
+            Instant.parse(window['from']! as String),
+            Instant.parse(window['to']! as String),
+            limit,
+          );
+    return out([for (final z in r.starts) '${z.instant}'], r.problems);
+  },
   'time-axis': (input) {
     final axis = buildColumnAxis(
       PlainDate.parse(input['date']! as String),
@@ -169,7 +237,6 @@ final Map<String, Object? Function(Json)> _adapters = {
 
 /// Where each suite not yet ported will be (ROADMAP.md, Phase 19).
 const _pending = {
-  'rrule-expand': '19c',
   'series-edit': '19c',
   'slots': '19d',
   'ical-parse': '19d',
