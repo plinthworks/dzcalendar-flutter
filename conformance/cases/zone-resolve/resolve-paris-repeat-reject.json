@@ -1,0 +1,19 @@
+{
+  "id": "resolve-paris-repeat-reject",
+  "suite": "zone-resolve",
+  "description": "reject refuses an ambiguous time",
+  "refs": [],
+  "input": {
+    "date": "2026-10-25",
+    "time": "02:30",
+    "zone": "Europe/Paris",
+    "policy": "reject"
+  },
+  "expected": {
+    "instant": null,
+    "other": null,
+    "exists": true,
+    "ambiguous": true,
+    "offsetMatched": null
+  }
+}

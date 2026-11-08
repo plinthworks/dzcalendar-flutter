@@ -1,0 +1,21 @@
+{
+  "id": "resolve-paris-repeat-prefer-basic-offset",
+  "suite": "zone-resolve",
+  "description": "preferOffset written +0100 picks the second reading",
+  "refs": [],
+  "input": {
+    "date": "2026-10-25",
+    "time": "02:30",
+    "zone": "Europe/Paris",
+    "policy": {
+      "preferOffset": "+0100"
+    }
+  },
+  "expected": {
+    "instant": "2026-10-25T01:30:00Z",
+    "other": "2026-10-25T00:30:00Z",
+    "exists": true,
+    "ambiguous": true,
+    "offsetMatched": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "rrule-monthly-second-to-last-monday",
+  "suite": "rrule-expand",
+  "description": "Monthly on the second-to-last Monday, 6 times",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-21T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;COUNT=6;BYDAY=-2MO",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-21T13:00:00Z",
+    "2026-10-19T13:00:00Z",
+    "2026-11-23T14:00:00Z",
+    "2026-12-21T14:00:00Z",
+    "2027-01-18T14:00:00Z",
+    "2027-02-15T14:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

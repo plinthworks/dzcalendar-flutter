@@ -1,0 +1,23 @@
+{
+  "id": "normalize-p1d-is-a-wall-day",
+  "suite": "normalize",
+  "description": "P1D across spring forward ends at the same wall time, 23 h later",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-03-28T09:00[Europe/Paris]",
+      "duration": "P1D"
+    },
+    "context": {
+      "displayZone": "Europe/Paris"
+    }
+  },
+  "expected": {
+    "ok": true,
+    "allDay": false,
+    "start": "2026-03-28T09:00:00+01:00[Europe/Paris]",
+    "end": "2026-03-29T09:00:00+02:00[Europe/Paris]",
+    "warnings": [],
+    "zoneGuessed": false
+  }
+}

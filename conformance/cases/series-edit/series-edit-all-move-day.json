@@ -1,0 +1,42 @@
+{
+  "id": "series-edit-all-move-day",
+  "suite": "series-edit",
+  "description": "Moving the third occurrence to a Wednesday moves them all to Wednesdays",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Weekly",
+      "start": "2026-10-05T09:00[Europe/Paris]",
+      "end": "2026-10-05T10:00[Europe/Paris]",
+      "rrule": "FREQ=WEEKLY;COUNT=6"
+    },
+    "ops": [
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2026-10-19T09:00:00+02:00[Europe/Paris]",
+        "scope": "all",
+        "start": "2026-10-21T09:00"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Weekly|2026-10-07T09:00:00+02:00[Europe/Paris]|2026-10-07T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Weekly|2026-10-14T09:00:00+02:00[Europe/Paris]|2026-10-14T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Weekly|2026-10-21T09:00:00+02:00[Europe/Paris]|2026-10-21T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Weekly|2026-10-28T09:00:00+01:00[Europe/Paris]|2026-10-28T10:00:00+01:00[Europe/Paris]",
+      "occurrence|Weekly|2026-11-04T09:00:00+01:00[Europe/Paris]|2026-11-04T10:00:00+01:00[Europe/Paris]",
+      "occurrence|Weekly|2026-11-11T09:00:00+01:00[Europe/Paris]|2026-11-11T10:00:00+01:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=WEEKLY;COUNT=6"
+    ]
+  }
+}

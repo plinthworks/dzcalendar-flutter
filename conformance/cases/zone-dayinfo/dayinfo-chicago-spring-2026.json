@@ -1,0 +1,27 @@
+{
+  "id": "dayinfo-chicago-spring-2026",
+  "suite": "zone-dayinfo",
+  "description": "Chicago, 8 March 2026",
+  "refs": [],
+  "input": {
+    "date": "2026-03-08",
+    "zone": "America/Chicago"
+  },
+  "expected": {
+    "start": "2026-03-08T06:00:00Z",
+    "end": "2026-03-09T05:00:00Z",
+    "lengthMinutes": 1380,
+    "kind": "short",
+    "transitions": [
+      {
+        "at": "2026-03-08T08:00:00Z",
+        "offsetBefore": "-06:00",
+        "offsetAfter": "-05:00",
+        "deltaMinutes": 60,
+        "wallBefore": "2026-03-08T02:00:00",
+        "wallAfter": "2026-03-08T03:00:00",
+        "kind": "gap"
+      }
+    ]
+  }
+}

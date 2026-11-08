@@ -1,0 +1,21 @@
+{
+  "id": "normalize-end-before-start",
+  "suite": "normalize",
+  "description": "An end before the start, compared as instants",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-05-01T10:00[Europe/Paris]",
+      "end": "2026-05-01T08:59[Europe/London]"
+    },
+    "context": {
+      "displayZone": "Europe/Paris"
+    }
+  },
+  "expected": {
+    "ok": false,
+    "errors": [
+      "end-before-start"
+    ]
+  }
+}

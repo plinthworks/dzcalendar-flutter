@@ -1,0 +1,49 @@
+{
+  "id": "slots-bad-window",
+  "suite": "slots",
+  "description": "A window that is not a time is skipped with a warning; the others still count.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "12:00"
+        },
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "25:00",
+          "to": "26:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 60
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T08:00+03:00/2026-10-21T09:00+03:00",
+      "2026-10-21T09:00+03:00/2026-10-21T10:00+03:00",
+      "2026-10-21T10:00+03:00/2026-10-21T11:00+03:00",
+      "2026-10-21T11:00+03:00/2026-10-21T12:00+03:00"
+    ],
+    "problems": [
+      "invalid-availability"
+    ]
+  }
+}

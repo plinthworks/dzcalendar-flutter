@@ -1,0 +1,14 @@
+{
+  "id": "rrule-hand-bad-weekno-monthly",
+  "suite": "rrule-expand",
+  "description": "Refused: BYWEEKNO outside YEARLY",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=MONTHLY;BYWEEKNO=3",
+    "limit": 40
+  },
+  "expected": {
+    "problem": "invalid-rrule"
+  }
+}

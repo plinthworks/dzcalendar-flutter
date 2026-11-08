@@ -1,0 +1,18 @@
+{
+  "id": "rrule-yearly-last-day-march-two-hours",
+  "suite": "rrule-expand",
+  "description": "The last day of March at 08:00 and 20:00",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-03-31T08:00:00+02:00[Europe/Paris]",
+    "rrule": "FREQ=YEARLY;BYMONTH=3;BYMONTHDAY=-1;BYHOUR=8,20;COUNT=4",
+    "limit": 40
+  },
+  "expected": [
+    "2026-03-31T06:00:00Z",
+    "2026-03-31T18:00:00Z",
+    "2027-03-31T06:00:00Z",
+    "2027-03-31T18:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

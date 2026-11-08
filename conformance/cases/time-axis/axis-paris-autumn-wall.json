@@ -1,0 +1,23 @@
+{
+  "id": "axis-paris-autumn-wall",
+  "suite": "time-axis",
+  "description": "Wall axis, fall back: a repeat band where both passes share positions",
+  "refs": [
+    "FC#5973"
+  ],
+  "input": {
+    "date": "2026-10-25",
+    "zone": "Europe/Paris",
+    "mode": "wall"
+  },
+  "expected": {
+    "length": 1440,
+    "bands": [
+      [
+        "repeat",
+        120,
+        180
+      ]
+    ]
+  }
+}

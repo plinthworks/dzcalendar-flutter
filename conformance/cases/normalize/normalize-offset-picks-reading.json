@@ -1,0 +1,22 @@
+{
+  "id": "normalize-offset-picks-reading",
+  "suite": "normalize",
+  "description": "An offset in the string picks the second 02:30",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-10-25T02:30+01:00[Europe/Paris]"
+    },
+    "context": {
+      "displayZone": "Europe/Paris"
+    }
+  },
+  "expected": {
+    "ok": true,
+    "allDay": false,
+    "start": "2026-10-25T02:30:00+01:00[Europe/Paris]",
+    "end": "2026-10-25T03:30:00+01:00[Europe/Paris]",
+    "warnings": [],
+    "zoneGuessed": false
+  }
+}

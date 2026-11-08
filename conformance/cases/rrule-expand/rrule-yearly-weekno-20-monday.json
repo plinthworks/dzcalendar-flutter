@@ -1,0 +1,18 @@
+{
+  "id": "rrule-yearly-weekno-20-monday",
+  "suite": "rrule-expand",
+  "description": "Monday of week 20 (week 1 has 4 days)",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-05-11T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO;COUNT=4",
+    "limit": 40
+  },
+  "expected": [
+    "2026-05-11T13:00:00Z",
+    "2027-05-17T13:00:00Z",
+    "2028-05-15T13:00:00Z",
+    "2029-05-14T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

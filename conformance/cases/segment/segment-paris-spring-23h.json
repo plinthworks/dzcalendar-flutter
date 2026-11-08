@@ -1,0 +1,24 @@
+{
+  "id": "segment-paris-spring-23h",
+  "suite": "segment",
+  "description": "A day-long event on the 23-hour Sunday in Paris is 23 hours long",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-03-29T00:00+01:00[Europe/Paris]",
+      "end": "2026-03-30T00:00+02:00[Europe/Paris]"
+    },
+    "zone": "Europe/Paris",
+    "firstDate": "2026-03-29",
+    "days": 1,
+    "cutAtRepeat": false
+  },
+  "expected": [
+    [
+      0,
+      0,
+      "2026-03-28T23:00:00Z",
+      "2026-03-29T22:00:00Z"
+    ]
+  ]
+}

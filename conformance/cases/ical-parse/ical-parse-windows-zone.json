@@ -1,0 +1,28 @@
+{
+  "id": "ical-parse-windows-zone",
+  "suite": "ical-parse",
+  "description": "A Windows zone name is read through the CLDR table",
+  "refs": [],
+  "input": {
+    "lines": [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      "UID:w",
+      "DTSTART;TZID=India Standard Time:20261021T100000",
+      "DURATION:PT1H",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ]
+  },
+  "expected": {
+    "events": [
+      {
+        "start": "2026-10-21T10:00:00[Asia/Kolkata]",
+        "id": "w",
+        "duration": "PT1H"
+      }
+    ],
+    "problems": []
+  }
+}

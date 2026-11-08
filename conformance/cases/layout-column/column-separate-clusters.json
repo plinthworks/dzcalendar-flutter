@@ -1,0 +1,39 @@
+{
+  "id": "column-separate-clusters",
+  "suite": "layout-column",
+  "description": "Events that do not overlap are separate clusters, each full width",
+  "refs": [],
+  "input": {
+    "items": [
+      {
+        "key": "a",
+        "start": 0,
+        "end": 60,
+        "order": 0
+      },
+      {
+        "key": "b",
+        "start": 60,
+        "end": 120,
+        "order": 1
+      }
+    ],
+    "minVisual": 15
+  },
+  "expected": [
+    [
+      "a",
+      0,
+      1,
+      0,
+      1
+    ],
+    [
+      "b",
+      0,
+      1,
+      0,
+      1
+    ]
+  ]
+}

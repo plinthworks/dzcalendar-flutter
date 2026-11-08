@@ -1,0 +1,30 @@
+{
+  "id": "slots-paris-gap-end",
+  "suite": "slots",
+  "description": "Paris, 29 March 2026: a window closing at 02:30, a time the clocks skip, closes at the jump (02:00 becomes 03:00): 01:00–01:30 and 01:30–03:00, thirty real minutes; no slot at 03:00.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Europe/Paris",
+      "weekly": [
+        {
+          "days": [
+            7
+          ],
+          "from": "01:00",
+          "to": "02:30"
+        }
+      ]
+    },
+    "from": "2026-03-29T00:00+01:00[Europe/Paris]",
+    "to": "2026-03-30T00:00+02:00[Europe/Paris]",
+    "duration": 30
+  },
+  "expected": {
+    "slots": [
+      "2026-03-29T01:00+01:00/2026-03-29T01:30+01:00",
+      "2026-03-29T01:30+01:00/2026-03-29T03:00+02:00"
+    ],
+    "problems": []
+  }
+}

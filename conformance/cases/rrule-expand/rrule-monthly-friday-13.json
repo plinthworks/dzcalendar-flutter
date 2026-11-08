@@ -1,0 +1,19 @@
+{
+  "id": "rrule-monthly-friday-13",
+  "suite": "rrule-expand",
+  "description": "Every Friday the 13th",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-02-13T09:00:00-05:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;BYDAY=FR;BYMONTHDAY=13;COUNT=5",
+    "limit": 40
+  },
+  "expected": [
+    "2026-02-13T14:00:00Z",
+    "2026-03-13T13:00:00Z",
+    "2026-11-13T14:00:00Z",
+    "2027-08-13T13:00:00Z",
+    "2028-10-13T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

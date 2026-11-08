@@ -1,0 +1,39 @@
+{
+  "id": "series-edit-following-breaks-interval-phase",
+  "suite": "series-edit",
+  "description": "A cut that would move an every-other-week rule off its weeks is refused",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Weekly",
+      "start": "2026-10-05T09:00[Europe/Paris]",
+      "end": "2026-10-05T10:00[Europe/Paris]",
+      "rrule": [
+        "FREQ=WEEKLY;BYDAY=MO;COUNT=6",
+        "FREQ=WEEKLY;INTERVAL=2;BYDAY=FR;COUNT=4"
+      ]
+    },
+    "ops": [
+      {
+        "type": "event.update",
+        "id": "w",
+        "key": "2026-10-12T09:00:00+02:00[Europe/Paris]",
+        "scope": "following",
+        "patch": {
+          "title": "X"
+        }
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "error": [
+      "invalid-edit"
+    ]
+  }
+}

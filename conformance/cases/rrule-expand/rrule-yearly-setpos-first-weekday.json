@@ -1,0 +1,20 @@
+{
+  "id": "rrule-yearly-setpos-first-weekday",
+  "suite": "rrule-expand",
+  "description": "The first weekday of each year",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-01-01T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=YEARLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=1;COUNT=6",
+    "limit": 40
+  },
+  "expected": [
+    "2026-01-01T09:00:00Z",
+    "2027-01-01T09:00:00Z",
+    "2028-01-03T09:00:00Z",
+    "2029-01-01T09:00:00Z",
+    "2030-01-01T09:00:00Z",
+    "2031-01-01T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

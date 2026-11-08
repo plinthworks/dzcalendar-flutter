@@ -1,0 +1,41 @@
+{
+  "id": "series-edit-allday-following",
+  "suite": "series-edit",
+  "description": "All-day following, moved a day later: 2 + 2",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Day",
+      "start": "2026-10-05",
+      "end": "2026-10-06",
+      "rrule": "FREQ=WEEKLY;COUNT=4"
+    },
+    "ops": [
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2026-10-19",
+        "scope": "following",
+        "start": "2026-10-20"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Day|2026-10-05|2026-10-06",
+      "occurrence|Day|2026-10-12|2026-10-13",
+      "occurrence|Day|2026-10-20|2026-10-21",
+      "occurrence|Day|2026-10-27|2026-10-28"
+    ],
+    "series": [
+      "FREQ=WEEKLY;COUNT=2",
+      "FREQ=WEEKLY;COUNT=2"
+    ]
+  }
+}

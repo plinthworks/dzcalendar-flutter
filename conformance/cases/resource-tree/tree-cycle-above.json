@@ -1,0 +1,32 @@
+{
+  "id": "tree-cycle-above",
+  "suite": "resource-tree",
+  "description": "e hangs under a, and a and b point at each other: the cycle is broken at its first member in input order (a becomes a root), not at e.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "e",
+        "parentId": "a"
+      },
+      {
+        "id": "a",
+        "parentId": "b"
+      },
+      {
+        "id": "b",
+        "parentId": "a"
+      }
+    ]
+  },
+  "expected": {
+    "rows": [
+      "0:a",
+      "1:e",
+      "1:b"
+    ],
+    "problems": [
+      "resource-cycle@resources[1].parentId"
+    ]
+  }
+}

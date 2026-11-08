@@ -1,0 +1,23 @@
+{
+  "id": "normalize-default-event-zone",
+  "suite": "normalize",
+  "description": "defaultEventZone comes before the display zone, and is not a guess",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-05-01T09:00"
+    },
+    "context": {
+      "displayZone": "Europe/Paris",
+      "defaultEventZone": "Asia/Tokyo"
+    }
+  },
+  "expected": {
+    "ok": true,
+    "allDay": false,
+    "start": "2026-05-01T09:00:00+09:00[Asia/Tokyo]",
+    "end": "2026-05-01T10:00:00+09:00[Asia/Tokyo]",
+    "warnings": [],
+    "zoneGuessed": false
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "rrule-yearly-weekno-minus-1",
+  "suite": "rrule-expand",
+  "description": "The last week of the year, Friday",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-12-25T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=YEARLY;BYWEEKNO=-1;BYDAY=FR;COUNT=5",
+    "limit": 40
+  },
+  "expected": [
+    "2027-01-01T09:00:00Z",
+    "2027-12-31T09:00:00Z",
+    "2028-12-29T09:00:00Z",
+    "2029-12-28T09:00:00Z",
+    "2030-12-27T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

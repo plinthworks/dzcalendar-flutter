@@ -1,0 +1,40 @@
+{
+  "id": "tree-order-field",
+  "suite": "resource-tree",
+  "description": "Siblings by `order` (lowest first), those without after, as given; children right under their parent, depth first.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "c"
+      },
+      {
+        "id": "a",
+        "order": 2
+      },
+      {
+        "id": "b",
+        "order": 1
+      },
+      {
+        "id": "d",
+        "parentId": "b"
+      },
+      {
+        "id": "e",
+        "parentId": "b",
+        "order": 0
+      }
+    ]
+  },
+  "expected": {
+    "rows": [
+      "0:b",
+      "1:e",
+      "1:d",
+      "0:a",
+      "0:c"
+    ],
+    "problems": []
+  }
+}

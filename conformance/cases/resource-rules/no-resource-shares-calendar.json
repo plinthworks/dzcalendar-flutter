@@ -1,0 +1,48 @@
+{
+  "id": "no-resource-shares-calendar",
+  "suite": "resource-rules",
+  "description": "An event on no resource shares the calendar with every event: it meets x1.",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "resources": [
+      {
+        "id": "r1"
+      }
+    ],
+    "events": [
+      {
+        "id": "x1",
+        "start": "2026-10-21T10:00[Europe/Paris]",
+        "duration": {
+          "hours": 1
+        },
+        "resourceId": "r1"
+      },
+      {
+        "id": "mover",
+        "start": "2026-10-21T15:00[Europe/Paris]",
+        "duration": {
+          "minutes": 30
+        }
+      }
+    ],
+    "move": {
+      "id": "mover",
+      "start": "2026-10-21T10:30[Europe/Paris]",
+      "end": "2026-10-21T11:00[Europe/Paris]",
+      "resourceIds": []
+    },
+    "rules": {
+      "overlap": false
+    }
+  },
+  "expected": {
+    "violations": [
+      [
+        "overlap",
+        "x1"
+      ]
+    ]
+  }
+}

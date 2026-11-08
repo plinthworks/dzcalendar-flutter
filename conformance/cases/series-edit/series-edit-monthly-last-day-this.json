@@ -1,0 +1,39 @@
+{
+  "id": "series-edit-monthly-last-day-this",
+  "suite": "series-edit",
+  "description": "The last day of each month, one of them moved a day earlier",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "M",
+      "start": "2026-10-31T09:00[Europe/Paris]",
+      "end": "2026-10-31T10:00[Europe/Paris]",
+      "rrule": "FREQ=MONTHLY;BYMONTHDAY=-1;COUNT=3"
+    },
+    "ops": [
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2026-11-30T09:00:00+01:00[Europe/Paris]",
+        "scope": "this",
+        "start": "2026-11-29T09:00"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|M|2026-10-31T09:00:00+01:00[Europe/Paris]|2026-10-31T10:00:00+01:00[Europe/Paris]",
+      "override|M|2026-11-29T09:00:00+01:00[Europe/Paris]|2026-11-29T10:00:00+01:00[Europe/Paris]",
+      "occurrence|M|2026-12-31T09:00:00+01:00[Europe/Paris]|2026-12-31T10:00:00+01:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=MONTHLY;COUNT=3;BYMONTHDAY=-1"
+    ]
+  }
+}

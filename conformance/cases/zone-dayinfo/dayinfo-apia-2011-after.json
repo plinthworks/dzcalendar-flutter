@@ -1,0 +1,27 @@
+{
+  "id": "dayinfo-apia-2011-after",
+  "suite": "zone-dayinfo",
+  "description": "Apia, 31 December 2011: begins on the jump and carries it",
+  "refs": [],
+  "input": {
+    "date": "2011-12-31",
+    "zone": "Pacific/Apia"
+  },
+  "expected": {
+    "start": "2011-12-30T10:00:00Z",
+    "end": "2011-12-31T10:00:00Z",
+    "lengthMinutes": 1440,
+    "kind": "normal",
+    "transitions": [
+      {
+        "at": "2011-12-30T10:00:00Z",
+        "offsetBefore": "-10:00",
+        "offsetAfter": "+14:00",
+        "deltaMinutes": 1440,
+        "wallBefore": "2011-12-30T00:00:00",
+        "wallAfter": "2011-12-31T00:00:00",
+        "kind": "gap"
+      }
+    ]
+  }
+}

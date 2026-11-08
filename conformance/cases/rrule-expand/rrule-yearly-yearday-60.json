@@ -1,0 +1,20 @@
+{
+  "id": "rrule-yearly-yearday-60",
+  "suite": "rrule-expand",
+  "description": "Day 60: 29 February or 1 March",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-03-01T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=YEARLY;BYYEARDAY=60;COUNT=6",
+    "limit": 40
+  },
+  "expected": [
+    "2026-03-01T09:00:00Z",
+    "2027-03-01T09:00:00Z",
+    "2028-02-29T09:00:00Z",
+    "2029-03-01T09:00:00Z",
+    "2030-03-01T09:00:00Z",
+    "2031-03-01T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

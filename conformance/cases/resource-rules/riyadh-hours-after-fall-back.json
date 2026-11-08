@@ -1,0 +1,49 @@
+{
+  "id": "riyadh-hours-after-fall-back",
+  "suite": "resource-rules",
+  "description": "Sunday 25 October 2026: Paris is back on UTC+1 from 03:00, so Riyadh's 12:00 is 10:00 in Paris. 09:30–10:00 fits.",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "resources": [
+      {
+        "id": "riyadh",
+        "timeZone": "Asia/Riyadh",
+        "businessHours": {
+          "daysOfWeek": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "start": "08:00",
+          "end": "12:00"
+        },
+        "eventConstraint": "businessHours"
+      }
+    ],
+    "events": [
+      {
+        "id": "m",
+        "start": "2026-10-21T08:00[Europe/Paris]",
+        "duration": {
+          "minutes": 30
+        },
+        "resourceId": "riyadh"
+      }
+    ],
+    "move": {
+      "id": "m",
+      "start": "2026-10-25T09:30[Europe/Paris]",
+      "end": "2026-10-25T10:00[Europe/Paris]",
+      "resourceIds": [
+        "riyadh"
+      ]
+    },
+    "rules": {}
+  },
+  "expected": {
+    "violations": []
+  }
+}

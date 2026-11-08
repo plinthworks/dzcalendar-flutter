@@ -1,0 +1,19 @@
+{
+  "id": "resolve-chicago-repeat-later",
+  "suite": "zone-resolve",
+  "description": "Chicago, 1 November 2026, the second 01:30 (CST)",
+  "refs": [],
+  "input": {
+    "date": "2026-11-01",
+    "time": "01:30",
+    "zone": "America/Chicago",
+    "policy": "later"
+  },
+  "expected": {
+    "instant": "2026-11-01T07:30:00Z",
+    "other": "2026-11-01T06:30:00Z",
+    "exists": true,
+    "ambiguous": true,
+    "offsetMatched": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "rrule-kolkata-daily",
+  "suite": "rrule-expand",
+  "description": "Kolkata, +05:30, daily",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-03-27T09:00:00+05:30[Asia/Kolkata]",
+    "rrule": "FREQ=DAILY;COUNT=4",
+    "limit": 40
+  },
+  "expected": [
+    "2026-03-27T03:30:00Z",
+    "2026-03-28T03:30:00Z",
+    "2026-03-29T03:30:00Z",
+    "2026-03-30T03:30:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

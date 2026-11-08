@@ -1,0 +1,35 @@
+{
+  "id": "slots-rule-exception",
+  "suite": "slots",
+  "description": "An exception closes the rule's 3 October too.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "rules": [
+        {
+          "rrule": "FREQ=MONTHLY;BYDAY=1SA",
+          "start": "2026-10-03",
+          "from": "09:00",
+          "to": "11:00"
+        }
+      ],
+      "exceptions": [
+        {
+          "date": "2026-10-03",
+          "closed": true
+        }
+      ]
+    },
+    "from": "2026-10-01T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-11-10T00:00+03:00[Asia/Riyadh]",
+    "duration": 60
+  },
+  "expected": {
+    "slots": [
+      "2026-11-07T09:00+03:00/2026-11-07T10:00+03:00",
+      "2026-11-07T10:00+03:00/2026-11-07T11:00+03:00"
+    ],
+    "problems": []
+  }
+}

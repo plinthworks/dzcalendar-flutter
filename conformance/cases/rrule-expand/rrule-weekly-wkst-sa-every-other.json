@@ -1,0 +1,23 @@
+{
+  "id": "rrule-weekly-wkst-sa-every-other",
+  "suite": "rrule-expand",
+  "description": "Friday to Sunday every other week, WKST=SA",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-04T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=WEEKLY;WKST=SA;BYDAY=FR,SA,SU;INTERVAL=2;COUNT=9",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-04T09:00:00Z",
+    "2026-09-12T09:00:00Z",
+    "2026-09-13T09:00:00Z",
+    "2026-09-18T09:00:00Z",
+    "2026-09-26T09:00:00Z",
+    "2026-09-27T09:00:00Z",
+    "2026-10-02T09:00:00Z",
+    "2026-10-10T09:00:00Z",
+    "2026-10-11T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

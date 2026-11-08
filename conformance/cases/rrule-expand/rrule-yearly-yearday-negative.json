@@ -1,0 +1,19 @@
+{
+  "id": "rrule-yearly-yearday-negative",
+  "suite": "rrule-expand",
+  "description": "The last day of each year",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-12-31T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=YEARLY;BYYEARDAY=-1;COUNT=5",
+    "limit": 40
+  },
+  "expected": [
+    "2026-12-31T09:00:00Z",
+    "2027-12-31T09:00:00Z",
+    "2028-12-31T09:00:00Z",
+    "2029-12-31T09:00:00Z",
+    "2030-12-31T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

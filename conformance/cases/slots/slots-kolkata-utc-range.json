@@ -1,0 +1,30 @@
+{
+  "id": "slots-kolkata-utc-range",
+  "suite": "slots",
+  "description": "A provider in Kolkata (+05:30), a range asked in UTC: the slots come in the provider's zone.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Kolkata",
+      "weekly": [
+        {
+          "days": [
+            3
+          ],
+          "from": "09:00",
+          "to": "11:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00:00Z",
+    "to": "2026-10-22T00:00:00Z",
+    "duration": 60
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T09:00+05:30/2026-10-21T10:00+05:30",
+      "2026-10-21T10:00+05:30/2026-10-21T11:00+05:30"
+    ],
+    "problems": []
+  }
+}

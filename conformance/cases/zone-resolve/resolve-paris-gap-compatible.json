@@ -1,0 +1,19 @@
+{
+  "id": "resolve-paris-gap-compatible",
+  "suite": "zone-resolve",
+  "description": "The skipped 02:30 moves forward to 03:30",
+  "refs": [],
+  "input": {
+    "date": "2026-03-29",
+    "time": "02:30",
+    "zone": "Europe/Paris",
+    "policy": "compatible"
+  },
+  "expected": {
+    "instant": "2026-03-29T01:30:00Z",
+    "other": null,
+    "exists": false,
+    "ambiguous": false,
+    "offsetMatched": null
+  }
+}

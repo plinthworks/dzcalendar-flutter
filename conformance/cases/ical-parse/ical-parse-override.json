@@ -1,0 +1,41 @@
+{
+  "id": "ical-parse-override",
+  "suite": "ical-parse",
+  "description": "RECURRENCE-ID makes an override of the series with the same UID",
+  "refs": [],
+  "input": {
+    "lines": [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      "UID:s",
+      "DTSTART;TZID=Europe/Paris:20261005T090000",
+      "RRULE:FREQ=DAILY;COUNT=3",
+      "END:VEVENT",
+      "BEGIN:VEVENT",
+      "UID:s",
+      "RECURRENCE-ID;TZID=Europe/Paris:20261006T090000",
+      "DTSTART;TZID=Europe/Paris:20261006T110000",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ]
+  },
+  "expected": {
+    "events": [
+      {
+        "start": "2026-10-05T09:00:00[Europe/Paris]",
+        "id": "s",
+        "duration": "PT0S",
+        "rrule": "FREQ=DAILY;COUNT=3"
+      },
+      {
+        "start": "2026-10-06T11:00:00[Europe/Paris]",
+        "id": "s@20261006T090000",
+        "seriesId": "s",
+        "recurrenceId": "2026-10-06T09:00:00[Europe/Paris]",
+        "duration": "PT0S"
+      }
+    ],
+    "problems": []
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "ical-parse-text-escapes",
+  "suite": "ical-parse",
+  "description": "Escaped commas, semicolons, backslashes and newlines; folded lines",
+  "refs": [],
+  "input": {
+    "lines": [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      "UID:t",
+      "DTSTART;VALUE=DATE:20261021",
+      "SUMMARY:Budget\\, Q4\\; fin",
+      "DESCRIPTION:Ligne 1\\nLigne 2 \\\\ f",
+      " in",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ]
+  },
+  "expected": {
+    "events": [
+      {
+        "start": "2026-10-21",
+        "id": "t",
+        "allDay": true,
+        "duration": "P1D",
+        "title": "Budget, Q4; fin",
+        "extendedProps": {
+          "description": "Ligne 1\nLigne 2 \\ fin"
+        }
+      }
+    ],
+    "problems": []
+  }
+}

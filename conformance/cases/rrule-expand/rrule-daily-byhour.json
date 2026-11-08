@@ -1,0 +1,23 @@
+{
+  "id": "rrule-daily-byhour",
+  "suite": "rrule-expand",
+  "description": "Daily at 9, 12 and 17",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+02:00[Europe/Paris]",
+    "rrule": "FREQ=DAILY;BYHOUR=9,12,17;COUNT=9",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-02T07:00:00Z",
+    "2026-09-02T10:00:00Z",
+    "2026-09-02T15:00:00Z",
+    "2026-09-03T07:00:00Z",
+    "2026-09-03T10:00:00Z",
+    "2026-09-03T15:00:00Z",
+    "2026-09-04T07:00:00Z",
+    "2026-09-04T10:00:00Z",
+    "2026-09-04T15:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

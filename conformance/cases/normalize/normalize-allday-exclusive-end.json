@@ -1,0 +1,22 @@
+{
+  "id": "normalize-allday-exclusive-end",
+  "suite": "normalize",
+  "description": "Two dates: an all-day event, end exclusive, no zone",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-05-01",
+      "end": "2026-05-04"
+    },
+    "context": {
+      "displayZone": "Europe/Paris"
+    }
+  },
+  "expected": {
+    "ok": true,
+    "allDay": true,
+    "start": "2026-05-01",
+    "end": "2026-05-04",
+    "warnings": []
+  }
+}

@@ -1,0 +1,8 @@
+name: dzcalendar_workspace
+publish_to: none
+environment:
+  sdk: ^3.9.0
+workspace:
+  - packages/dzcalendar_core
+dev_dependencies:
+  lints: ^5.0.0

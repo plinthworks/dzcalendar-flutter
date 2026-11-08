@@ -1,0 +1,24 @@
+{
+  "id": "rrule-yearly-every-3-years-yeardays",
+  "suite": "rrule-expand",
+  "description": "Every 3 years on days 1, 100, 200",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-01-01T09:00:00-05:00[America/New_York]",
+    "rrule": "FREQ=YEARLY;INTERVAL=3;COUNT=10;BYYEARDAY=1,100,200",
+    "limit": 40
+  },
+  "expected": [
+    "2026-01-01T14:00:00Z",
+    "2026-04-10T13:00:00Z",
+    "2026-07-19T13:00:00Z",
+    "2029-01-01T14:00:00Z",
+    "2029-04-10T13:00:00Z",
+    "2029-07-19T13:00:00Z",
+    "2032-01-01T14:00:00Z",
+    "2032-04-09T13:00:00Z",
+    "2032-07-18T13:00:00Z",
+    "2035-01-01T14:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

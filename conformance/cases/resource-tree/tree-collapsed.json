@@ -1,0 +1,46 @@
+{
+  "id": "tree-collapsed",
+  "suite": "resource-tree",
+  "description": "Only the listed resources are expanded: a collapsed one hides its subtree.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "card",
+        "unit": "North"
+      },
+      {
+        "id": "ali",
+        "parentId": "card"
+      },
+      {
+        "id": "sara",
+        "parentId": "card"
+      },
+      {
+        "id": "derm",
+        "unit": "South"
+      },
+      {
+        "id": "omar",
+        "parentId": "derm"
+      },
+      {
+        "id": "ent",
+        "unit": "North"
+      }
+    ],
+    "expanded": [
+      "derm"
+    ]
+  },
+  "expected": {
+    "rows": [
+      "0:card",
+      "0:derm",
+      "1:omar",
+      "0:ent"
+    ],
+    "problems": []
+  }
+}

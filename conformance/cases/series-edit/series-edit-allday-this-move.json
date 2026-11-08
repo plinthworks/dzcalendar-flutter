@@ -1,0 +1,40 @@
+{
+  "id": "series-edit-allday-this-move",
+  "suite": "series-edit",
+  "description": "Move one all-day occurrence to the next day",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Day",
+      "start": "2026-10-05",
+      "end": "2026-10-06",
+      "rrule": "FREQ=WEEKLY;COUNT=4"
+    },
+    "ops": [
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2026-10-12",
+        "scope": "this",
+        "start": "2026-10-13"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Day|2026-10-05|2026-10-06",
+      "override|Day|2026-10-13|2026-10-14",
+      "occurrence|Day|2026-10-19|2026-10-20",
+      "occurrence|Day|2026-10-26|2026-10-27"
+    ],
+    "series": [
+      "FREQ=WEEKLY;COUNT=4"
+    ]
+  }
+}

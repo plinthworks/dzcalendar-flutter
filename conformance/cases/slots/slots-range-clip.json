@@ -1,0 +1,33 @@
+{
+  "id": "slots-range-clip",
+  "suite": "slots",
+  "description": "From 09:30 to 11:30: only whole slots inside, on the opening's own hours (no 09:30 slot).",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "12:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T09:30+03:00[Asia/Riyadh]",
+    "to": "2026-10-21T11:30+03:00[Asia/Riyadh]",
+    "duration": 60
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T10:00+03:00/2026-10-21T11:00+03:00"
+    ],
+    "problems": []
+  }
+}

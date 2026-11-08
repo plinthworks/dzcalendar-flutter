@@ -1,0 +1,21 @@
+{
+  "id": "apia-2011-skipped-day",
+  "suite": "timeline-axis",
+  "description": "Apia, 30 December 2011 never happened (the zone jumped from -10:00 to +14:00): a day with no slot and no length.",
+  "refs": [
+    "ARCHITECTURE.md C.3"
+  ],
+  "input": {
+    "date": "2011-12-30",
+    "span": "day",
+    "zone": "Pacific/Apia",
+    "slot": 60
+  },
+  "expected": {
+    "slots": [],
+    "groups": [
+      0
+    ],
+    "lengthMinutes": 0
+  }
+}

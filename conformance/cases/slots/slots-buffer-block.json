@@ -1,0 +1,42 @@
+{
+  "id": "slots-buffer-block",
+  "suite": "slots",
+  "description": "A block keeps no buffer of its own: 08:30 fits (its end touches the block), 09:30 still needs 09:15–09:30.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "10:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 30,
+    "bufferBefore": 15,
+    "busy": [
+      {
+        "start": "2026-10-21T09:00+03:00[Asia/Riyadh]",
+        "end": "2026-10-21T09:30+03:00[Asia/Riyadh]",
+        "kind": "block"
+      }
+    ]
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T08:00+03:00/2026-10-21T08:30+03:00",
+      "2026-10-21T08:30+03:00/2026-10-21T09:00+03:00"
+    ],
+    "problems": []
+  }
+}

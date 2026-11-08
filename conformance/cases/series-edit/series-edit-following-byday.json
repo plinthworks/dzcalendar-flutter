@@ -1,0 +1,45 @@
+{
+  "id": "series-edit-following-byday",
+  "suite": "series-edit",
+  "description": "Following on Monday/Wednesday from the third: 2 + 4",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Weekly",
+      "start": "2026-10-05T09:00[Europe/Paris]",
+      "end": "2026-10-05T10:00[Europe/Paris]",
+      "rrule": "FREQ=WEEKLY;BYDAY=MO,WE;COUNT=6"
+    },
+    "ops": [
+      {
+        "type": "event.update",
+        "id": "w",
+        "key": "2026-10-12T09:00:00+02:00[Europe/Paris]",
+        "scope": "following",
+        "patch": {
+          "title": "Z"
+        }
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Weekly|2026-10-05T09:00:00+02:00[Europe/Paris]|2026-10-05T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Weekly|2026-10-07T09:00:00+02:00[Europe/Paris]|2026-10-07T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Z|2026-10-12T09:00:00+02:00[Europe/Paris]|2026-10-12T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Z|2026-10-14T09:00:00+02:00[Europe/Paris]|2026-10-14T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Z|2026-10-19T09:00:00+02:00[Europe/Paris]|2026-10-19T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Z|2026-10-21T09:00:00+02:00[Europe/Paris]|2026-10-21T10:00:00+02:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=WEEKLY;COUNT=2;BYDAY=MO,WE",
+      "FREQ=WEEKLY;COUNT=4;BYDAY=MO,WE"
+    ]
+  }
+}

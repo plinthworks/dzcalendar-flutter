@@ -1,0 +1,20 @@
+{
+  "id": "rrule-dst-lordhowe-daily-0215",
+  "suite": "rrule-expand",
+  "description": "Lord Howe 02:15 across its half-hour gap",
+  "refs": [
+    "FC#6729"
+  ],
+  "input": {
+    "dtstart": "2026-10-02T02:15:00+10:30[Australia/Lord_Howe]",
+    "rrule": "FREQ=DAILY;COUNT=4",
+    "limit": 40
+  },
+  "expected": [
+    "2026-10-01T15:45:00Z",
+    "2026-10-02T15:45:00Z",
+    "2026-10-03T15:45:00Z",
+    "2026-10-04T15:15:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

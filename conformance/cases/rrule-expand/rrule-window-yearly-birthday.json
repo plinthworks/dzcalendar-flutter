@@ -1,0 +1,19 @@
+{
+  "id": "rrule-window-yearly-birthday",
+  "suite": "rrule-expand",
+  "description": "A yearly birthday, seen in 2030",
+  "refs": [],
+  "input": {
+    "dtstart": "2000-03-14T00:00:00+01:00[Europe/Paris]",
+    "rrule": "FREQ=YEARLY",
+    "window": {
+      "from": "2029-12-31T23:00:00Z",
+      "to": "2030-12-31T23:00:00Z"
+    },
+    "limit": 40
+  },
+  "expected": [
+    "2030-03-13T23:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

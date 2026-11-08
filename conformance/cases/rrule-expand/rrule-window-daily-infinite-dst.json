@@ -1,0 +1,21 @@
+{
+  "id": "rrule-window-daily-infinite-dst",
+  "suite": "rrule-expand",
+  "description": "An endless daily rule over the week of fall back",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-01-01T09:00:00+01:00[Europe/Paris]",
+    "rrule": "FREQ=DAILY",
+    "window": {
+      "from": "2026-10-23T22:00:00Z",
+      "to": "2026-10-26T23:00:00Z"
+    },
+    "limit": 40
+  },
+  "expected": [
+    "2026-10-24T07:00:00Z",
+    "2026-10-25T08:00:00Z",
+    "2026-10-26T08:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

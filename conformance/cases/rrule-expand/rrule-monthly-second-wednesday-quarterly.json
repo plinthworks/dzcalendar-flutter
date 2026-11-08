@@ -1,0 +1,19 @@
+{
+  "id": "rrule-monthly-second-wednesday-quarterly",
+  "suite": "rrule-expand",
+  "description": "Second Wednesday, every three months",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-09T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=MONTHLY;BYDAY=2WE;INTERVAL=3;COUNT=5",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-09T09:00:00Z",
+    "2026-12-09T09:00:00Z",
+    "2027-03-10T09:00:00Z",
+    "2027-06-09T09:00:00Z",
+    "2027-09-08T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

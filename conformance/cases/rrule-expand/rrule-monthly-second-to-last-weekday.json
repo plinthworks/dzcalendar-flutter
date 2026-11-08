@@ -1,0 +1,21 @@
+{
+  "id": "rrule-monthly-second-to-last-weekday",
+  "suite": "rrule-expand",
+  "description": "The second-to-last weekday",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-29T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-2;COUNT=7",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-29T13:00:00Z",
+    "2026-10-29T13:00:00Z",
+    "2026-11-27T14:00:00Z",
+    "2026-12-30T14:00:00Z",
+    "2027-01-28T14:00:00Z",
+    "2027-02-25T14:00:00Z",
+    "2027-03-30T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

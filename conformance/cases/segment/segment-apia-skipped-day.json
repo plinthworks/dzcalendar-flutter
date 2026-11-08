@@ -1,0 +1,30 @@
+{
+  "id": "segment-apia-skipped-day",
+  "suite": "segment",
+  "description": "No slice on a day the zone skipped",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2011-12-29T20:00-10:00[Pacific/Apia]",
+      "end": "2011-12-31T04:00+14:00[Pacific/Apia]"
+    },
+    "zone": "Pacific/Apia",
+    "firstDate": "2011-12-29",
+    "days": 3,
+    "cutAtRepeat": false
+  },
+  "expected": [
+    [
+      0,
+      0,
+      "2011-12-30T06:00:00Z",
+      "2011-12-30T10:00:00Z"
+    ],
+    [
+      2,
+      0,
+      "2011-12-30T10:00:00Z",
+      "2011-12-30T14:00:00Z"
+    ]
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "dayinfo-havana-2023-no-midnight",
+  "suite": "zone-dayinfo",
+  "description": "Havana, 12 March 2023: the day begins at 01:00",
+  "refs": [],
+  "input": {
+    "date": "2023-03-12",
+    "zone": "America/Havana"
+  },
+  "expected": {
+    "start": "2023-03-12T05:00:00Z",
+    "end": "2023-03-13T04:00:00Z",
+    "lengthMinutes": 1380,
+    "kind": "short",
+    "transitions": [
+      {
+        "at": "2023-03-12T05:00:00Z",
+        "offsetBefore": "-05:00",
+        "offsetAfter": "-04:00",
+        "deltaMinutes": 60,
+        "wallBefore": "2023-03-12T00:00:00",
+        "wallAfter": "2023-03-12T01:00:00",
+        "kind": "gap"
+      }
+    ]
+  }
+}

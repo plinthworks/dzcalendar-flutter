@@ -1,0 +1,30 @@
+{
+  "id": "ical-parse-tzid-iana",
+  "suite": "ical-parse",
+  "description": "A TZID that is an IANA name is that zone: 09:00 in Chicago stays 09:00 in Chicago",
+  "refs": [
+    "#7456"
+  ],
+  "input": {
+    "lines": [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      "UID:a",
+      "DTSTART;TZID=America/Chicago:20261020T090000",
+      "DTEND;TZID=America/Chicago:20261020T100000",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ]
+  },
+  "expected": {
+    "events": [
+      {
+        "start": "2026-10-20T09:00:00[America/Chicago]",
+        "id": "a",
+        "end": "2026-10-20T10:00:00[America/Chicago]"
+      }
+    ],
+    "problems": []
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "segment-cut-at-repeat",
+  "suite": "segment",
+  "description": "On the wall axis a slice is cut where clocks fall back",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-10-25T02:50+02:00[Europe/Paris]",
+      "end": "2026-10-25T02:10+01:00[Europe/Paris]"
+    },
+    "zone": "Europe/Paris",
+    "firstDate": "2026-10-25",
+    "days": 1,
+    "cutAtRepeat": true
+  },
+  "expected": [
+    [
+      0,
+      0,
+      "2026-10-25T00:50:00Z",
+      "2026-10-25T01:00:00Z"
+    ],
+    [
+      0,
+      1,
+      "2026-10-25T01:00:00Z",
+      "2026-10-25T01:10:00Z"
+    ]
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "rrule-daily-byday-limit",
+  "suite": "rrule-expand",
+  "description": "Daily, limited to Monday, Wednesday, Friday",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=DAILY;BYDAY=MO,WE,FR;COUNT=7",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-02T09:00:00Z",
+    "2026-09-04T09:00:00Z",
+    "2026-09-07T09:00:00Z",
+    "2026-09-09T09:00:00Z",
+    "2026-09-11T09:00:00Z",
+    "2026-09-14T09:00:00Z",
+    "2026-09-16T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

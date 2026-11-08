@@ -1,0 +1,42 @@
+{
+  "id": "slots-busy-touching",
+  "suite": "slots",
+  "description": "A block ending at 09:00 does not take the slot starting at 09:00.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "12:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 60,
+    "busy": [
+      {
+        "start": "2026-10-21T08:00+03:00[Asia/Riyadh]",
+        "end": "2026-10-21T09:00+03:00[Asia/Riyadh]",
+        "kind": "block"
+      }
+    ]
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T09:00+03:00/2026-10-21T10:00+03:00",
+      "2026-10-21T10:00+03:00/2026-10-21T11:00+03:00",
+      "2026-10-21T11:00+03:00/2026-10-21T12:00+03:00"
+    ],
+    "problems": []
+  }
+}

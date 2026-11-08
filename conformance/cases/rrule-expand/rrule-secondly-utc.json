@@ -1,0 +1,19 @@
+{
+  "id": "rrule-secondly-utc",
+  "suite": "rrule-expand",
+  "description": "Every 10 seconds, 5 times",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=SECONDLY;INTERVAL=10;COUNT=5",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-02T09:00:00Z",
+    "2026-09-02T09:00:10Z",
+    "2026-09-02T09:00:20Z",
+    "2026-09-02T09:00:30Z",
+    "2026-09-02T09:00:40Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

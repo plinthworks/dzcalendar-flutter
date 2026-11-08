@@ -1,0 +1,18 @@
+{
+  "id": "rrule-monthly-first-friday-until",
+  "suite": "rrule-expand",
+  "description": "Monthly on the first Friday until 24 December",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-04T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;UNTIL=20261224T000000Z;BYDAY=1FR",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-04T13:00:00Z",
+    "2026-10-02T13:00:00Z",
+    "2026-11-06T14:00:00Z",
+    "2026-12-04T14:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

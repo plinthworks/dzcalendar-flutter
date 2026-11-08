@@ -1,0 +1,43 @@
+{
+  "id": "slots-daily-cap-block",
+  "suite": "slots",
+  "description": "A block does not count toward the cap: one booking a day, a block 08:00–09:00, the rest is offered.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "12:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 60,
+    "maxPerDay": 1,
+    "busy": [
+      {
+        "start": "2026-10-21T05:00:00Z",
+        "end": "2026-10-21T06:00:00Z",
+        "kind": "block"
+      }
+    ]
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T09:00+03:00/2026-10-21T10:00+03:00",
+      "2026-10-21T10:00+03:00/2026-10-21T11:00+03:00",
+      "2026-10-21T11:00+03:00/2026-10-21T12:00+03:00"
+    ],
+    "problems": []
+  }
+}

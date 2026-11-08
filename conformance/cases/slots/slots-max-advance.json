@@ -1,0 +1,36 @@
+{
+  "id": "slots-max-advance",
+  "suite": "slots",
+  "description": "Now Tuesday 09:30, one day ahead at most: starts until Wednesday 09:30.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "12:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 60,
+    "now": "2026-10-20T09:30+03:00[Asia/Riyadh]",
+    "maxAdvanceDays": 1
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T08:00+03:00/2026-10-21T09:00+03:00",
+      "2026-10-21T09:00+03:00/2026-10-21T10:00+03:00"
+    ],
+    "problems": []
+  }
+}

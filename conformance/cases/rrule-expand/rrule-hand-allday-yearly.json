@@ -1,0 +1,16 @@
+{
+  "id": "rrule-hand-allday-yearly",
+  "suite": "rrule-expand",
+  "description": "An all-day yearly date",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-12-25",
+    "rrule": "FREQ=YEARLY;COUNT=3",
+    "limit": 40
+  },
+  "expected": [
+    "2026-12-25",
+    "2027-12-25",
+    "2028-12-25"
+  ]
+}

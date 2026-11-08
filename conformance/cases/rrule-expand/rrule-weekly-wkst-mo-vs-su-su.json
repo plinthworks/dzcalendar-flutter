@@ -1,0 +1,18 @@
+{
+  "id": "rrule-weekly-wkst-mo-vs-su-su",
+  "suite": "rrule-expand",
+  "description": "Interval 2 with WKST=SU",
+  "refs": [],
+  "input": {
+    "dtstart": "2027-08-05T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=WEEKLY;INTERVAL=2;COUNT=4;BYDAY=TU,SU;WKST=SU",
+    "limit": 40
+  },
+  "expected": [
+    "2027-08-15T13:00:00Z",
+    "2027-08-17T13:00:00Z",
+    "2027-08-29T13:00:00Z",
+    "2027-08-31T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

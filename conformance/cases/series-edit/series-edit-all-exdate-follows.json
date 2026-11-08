@@ -1,0 +1,47 @@
+{
+  "id": "series-edit-all-exdate-follows",
+  "suite": "series-edit",
+  "description": "An excluded occurrence stays excluded when the series moves a day later",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Weekly",
+      "start": "2026-10-05T09:00[Europe/Paris]",
+      "end": "2026-10-05T10:00[Europe/Paris]",
+      "rrule": "FREQ=WEEKLY;COUNT=6"
+    },
+    "ops": [
+      {
+        "type": "event.delete",
+        "id": "w",
+        "key": "2026-10-19T09:00:00+02:00[Europe/Paris]",
+        "scope": "this"
+      },
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2026-10-05T09:00:00+02:00[Europe/Paris]",
+        "scope": "all",
+        "start": "2026-10-06T09:00"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Weekly|2026-10-06T09:00:00+02:00[Europe/Paris]|2026-10-06T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Weekly|2026-10-13T09:00:00+02:00[Europe/Paris]|2026-10-13T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Weekly|2026-10-27T09:00:00+01:00[Europe/Paris]|2026-10-27T10:00:00+01:00[Europe/Paris]",
+      "occurrence|Weekly|2026-11-03T09:00:00+01:00[Europe/Paris]|2026-11-03T10:00:00+01:00[Europe/Paris]",
+      "occurrence|Weekly|2026-11-10T09:00:00+01:00[Europe/Paris]|2026-11-10T10:00:00+01:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=WEEKLY;COUNT=6|EXDATE=2026-10-20T07:00:00Z"
+    ]
+  }
+}

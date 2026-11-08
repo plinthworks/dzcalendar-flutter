@@ -1,0 +1,28 @@
+{
+  "id": "ical-parse-utc-is-utc",
+  "suite": "ical-parse",
+  "description": "A UTC time with no calendar zone is in UTC",
+  "refs": [],
+  "input": {
+    "lines": [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      "UID:u",
+      "DTSTART:20261021T070000Z",
+      "DTEND:20261021T080000Z",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ]
+  },
+  "expected": {
+    "events": [
+      {
+        "start": "2026-10-21T07:00:00[UTC]",
+        "id": "u",
+        "end": "2026-10-21T08:00:00[UTC]"
+      }
+    ],
+    "problems": []
+  }
+}

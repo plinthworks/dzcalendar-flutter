@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.9.2
+      - run: dart pub get
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: dart analyze --fatal-infos
+      - run: dart test
+        working-directory: packages/dzcalendar_core
+
+  conformance-copy:
+    # The cases are the main repository's; the copy must be its current one.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: plinthworks/dzcalendar
+          path: main-repository
+          sparse-checkout: conformance/cases
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.9.2
+      - run: dart run tool/sync_conformance.dart --check --from main-repository

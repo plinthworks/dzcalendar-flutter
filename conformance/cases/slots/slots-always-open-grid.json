@@ -1,0 +1,36 @@
+{
+  "id": "slots-always-open-grid",
+  "suite": "slots",
+  "description": "Open around the clock: no opening start to count from, so slots fall on multiples of the step since the epoch (2026-10-21 00:00Z is 29 875 680 minutes in, 30 past a multiple of 50): the first is 00:20.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "UTC",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "from": "00:00",
+          "to": "24:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00:00Z",
+    "to": "2026-10-21T02:00:00Z",
+    "duration": 50
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T00:20+00:00/2026-10-21T01:10+00:00",
+      "2026-10-21T01:10+00:00/2026-10-21T02:00+00:00"
+    ],
+    "problems": []
+  }
+}

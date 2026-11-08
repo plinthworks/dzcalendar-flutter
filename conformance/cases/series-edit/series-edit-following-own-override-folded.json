@@ -1,0 +1,52 @@
+{
+  "id": "series-edit-following-own-override-folded",
+  "suite": "series-edit",
+  "description": "The cut occurrence's own override is folded into the new series",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Weekly",
+      "start": "2026-10-05T09:00[Europe/Paris]",
+      "end": "2026-10-05T10:00[Europe/Paris]",
+      "rrule": "FREQ=WEEKLY;COUNT=6"
+    },
+    "ops": [
+      {
+        "type": "event.update",
+        "id": "w",
+        "key": "2026-10-26T09:00:00+01:00[Europe/Paris]",
+        "scope": "this",
+        "patch": {
+          "title": "X"
+        }
+      },
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2026-10-26T09:00:00+01:00[Europe/Paris]",
+        "scope": "following",
+        "start": "2026-10-26T11:00"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Weekly|2026-10-05T09:00:00+02:00[Europe/Paris]|2026-10-05T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Weekly|2026-10-12T09:00:00+02:00[Europe/Paris]|2026-10-12T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Weekly|2026-10-19T09:00:00+02:00[Europe/Paris]|2026-10-19T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Weekly|2026-10-26T11:00:00+01:00[Europe/Paris]|2026-10-26T12:00:00+01:00[Europe/Paris]",
+      "occurrence|Weekly|2026-11-02T11:00:00+01:00[Europe/Paris]|2026-11-02T12:00:00+01:00[Europe/Paris]",
+      "occurrence|Weekly|2026-11-09T11:00:00+01:00[Europe/Paris]|2026-11-09T12:00:00+01:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=WEEKLY;COUNT=3",
+      "FREQ=WEEKLY;COUNT=3"
+    ]
+  }
+}

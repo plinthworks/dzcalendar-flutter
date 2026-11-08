@@ -1,0 +1,42 @@
+{
+  "id": "series-edit-all-title",
+  "suite": "series-edit",
+  "description": "Rename the whole series (series id, no key)",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Weekly",
+      "start": "2026-10-05T09:00[Europe/Paris]",
+      "end": "2026-10-05T10:00[Europe/Paris]",
+      "rrule": "FREQ=WEEKLY;COUNT=6"
+    },
+    "ops": [
+      {
+        "type": "event.update",
+        "id": "w",
+        "patch": {
+          "title": "Y"
+        }
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Y|2026-10-05T09:00:00+02:00[Europe/Paris]|2026-10-05T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Y|2026-10-12T09:00:00+02:00[Europe/Paris]|2026-10-12T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Y|2026-10-19T09:00:00+02:00[Europe/Paris]|2026-10-19T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Y|2026-10-26T09:00:00+01:00[Europe/Paris]|2026-10-26T10:00:00+01:00[Europe/Paris]",
+      "occurrence|Y|2026-11-02T09:00:00+01:00[Europe/Paris]|2026-11-02T10:00:00+01:00[Europe/Paris]",
+      "occurrence|Y|2026-11-09T09:00:00+01:00[Europe/Paris]|2026-11-09T10:00:00+01:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=WEEKLY;COUNT=6"
+    ]
+  }
+}

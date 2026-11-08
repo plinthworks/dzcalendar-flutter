@@ -1,0 +1,54 @@
+{
+  "id": "calendar-constraint-calendar-hours",
+  "suite": "resource-rules",
+  "description": "The calendar's constraint on a resource without hours of its own: the calendar's hours (09:00–17:00), so 08:30 is refused.",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "resources": [
+      {
+        "id": "paris"
+      }
+    ],
+    "events": [
+      {
+        "id": "m",
+        "start": "2026-10-21T15:00[Europe/Paris]",
+        "duration": {
+          "minutes": 30
+        },
+        "resourceId": "paris"
+      }
+    ],
+    "move": {
+      "id": "m",
+      "start": "2026-10-21T08:30[Europe/Paris]",
+      "end": "2026-10-21T09:00[Europe/Paris]",
+      "resourceIds": [
+        "paris"
+      ]
+    },
+    "rules": {
+      "constraint": "businessHours",
+      "businessHours": {
+        "daysOfWeek": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "start": "09:00",
+        "end": "17:00"
+      }
+    }
+  },
+  "expected": {
+    "violations": [
+      [
+        "constraint",
+        "paris"
+      ]
+    ]
+  }
+}

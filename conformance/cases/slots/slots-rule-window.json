@@ -1,0 +1,31 @@
+{
+  "id": "slots-rule-window",
+  "suite": "slots",
+  "description": "Open on the first Saturday of each month (RRULE): 3 October and 7 November 2026.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "rules": [
+        {
+          "rrule": "FREQ=MONTHLY;BYDAY=1SA",
+          "start": "2026-10-03",
+          "from": "09:00",
+          "to": "11:00"
+        }
+      ]
+    },
+    "from": "2026-10-01T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-11-10T00:00+03:00[Asia/Riyadh]",
+    "duration": 60
+  },
+  "expected": {
+    "slots": [
+      "2026-10-03T09:00+03:00/2026-10-03T10:00+03:00",
+      "2026-10-03T10:00+03:00/2026-10-03T11:00+03:00",
+      "2026-11-07T09:00+03:00/2026-11-07T10:00+03:00",
+      "2026-11-07T10:00+03:00/2026-11-07T11:00+03:00"
+    ],
+    "problems": []
+  }
+}

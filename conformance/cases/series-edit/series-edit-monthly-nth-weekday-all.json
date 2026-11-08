@@ -1,0 +1,39 @@
+{
+  "id": "series-edit-monthly-nth-weekday-all",
+  "suite": "series-edit",
+  "description": "The second Tuesday moved to a Thursday of the third week: the third Thursday",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "M",
+      "start": "2026-10-13T09:00[Europe/Paris]",
+      "end": "2026-10-13T10:00[Europe/Paris]",
+      "rrule": "FREQ=MONTHLY;BYDAY=2TU;COUNT=3"
+    },
+    "ops": [
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2026-10-13T09:00:00+02:00[Europe/Paris]",
+        "scope": "all",
+        "start": "2026-10-15T09:00"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|M|2026-10-15T09:00:00+02:00[Europe/Paris]|2026-10-15T10:00:00+02:00[Europe/Paris]",
+      "occurrence|M|2026-11-19T09:00:00+01:00[Europe/Paris]|2026-11-19T10:00:00+01:00[Europe/Paris]",
+      "occurrence|M|2026-12-17T09:00:00+01:00[Europe/Paris]|2026-12-17T10:00:00+01:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=MONTHLY;COUNT=3;BYDAY=3TH"
+    ]
+  }
+}

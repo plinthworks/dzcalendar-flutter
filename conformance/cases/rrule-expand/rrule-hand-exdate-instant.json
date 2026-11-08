@@ -1,0 +1,20 @@
+{
+  "id": "rrule-hand-exdate-instant",
+  "suite": "rrule-expand",
+  "description": "COUNT is counted before EXDATE removes",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-05-04T09:00:00+02:00[Europe/Paris]",
+    "rrule": "FREQ=DAILY;COUNT=5",
+    "exdates": [
+      "2026-05-06T07:00:00Z"
+    ],
+    "limit": 40
+  },
+  "expected": [
+    "2026-05-04T07:00:00Z",
+    "2026-05-05T07:00:00Z",
+    "2026-05-07T07:00:00Z",
+    "2026-05-08T07:00:00Z"
+  ]
+}

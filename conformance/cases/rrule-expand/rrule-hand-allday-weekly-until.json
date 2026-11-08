@@ -1,0 +1,17 @@
+{
+  "id": "rrule-hand-allday-weekly-until",
+  "suite": "rrule-expand",
+  "description": "Mondays and Fridays until a date (inclusive)",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-05-04",
+    "rrule": "FREQ=WEEKLY;BYDAY=MO,FR;UNTIL=20260515",
+    "limit": 40
+  },
+  "expected": [
+    "2026-05-04",
+    "2026-05-08",
+    "2026-05-11",
+    "2026-05-15"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "ical-parse-floating-default-zone",
+  "suite": "ical-parse",
+  "description": "A floating time is read in the zone the caller gives",
+  "refs": [],
+  "input": {
+    "lines": [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      "UID:f",
+      "DTSTART:20261025T023000",
+      "DTEND:20261025T033000",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ],
+    "defaultZone": "Europe/Paris"
+  },
+  "expected": {
+    "events": [
+      {
+        "start": "2026-10-25T02:30:00[Europe/Paris]",
+        "id": "f",
+        "end": "2026-10-25T03:30:00[Europe/Paris]"
+      }
+    ],
+    "problems": []
+  }
+}

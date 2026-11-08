@@ -1,0 +1,17 @@
+{
+  "id": "dayinfo-kolkata-no-dst",
+  "suite": "zone-dayinfo",
+  "description": "Kolkata, +05:30, never changes",
+  "refs": [],
+  "input": {
+    "date": "2026-03-29",
+    "zone": "Asia/Kolkata"
+  },
+  "expected": {
+    "start": "2026-03-28T18:30:00Z",
+    "end": "2026-03-29T18:30:00Z",
+    "lengthMinutes": 1440,
+    "kind": "normal",
+    "transitions": []
+  }
+}

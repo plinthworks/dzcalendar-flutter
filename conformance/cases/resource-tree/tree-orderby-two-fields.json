@@ -1,0 +1,34 @@
+{
+  "id": "tree-orderby-two-fields",
+  "suite": "resource-tree",
+  "description": "orderBy 'unit,title': the second field breaks ties of the first; text compares by code unit, locale-free.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "p",
+        "unit": "B",
+        "title": "b"
+      },
+      {
+        "id": "q",
+        "unit": "A",
+        "title": "z"
+      },
+      {
+        "id": "r",
+        "unit": "A",
+        "title": "a"
+      }
+    ],
+    "orderBy": "unit,title"
+  },
+  "expected": {
+    "rows": [
+      "0:r",
+      "0:q",
+      "0:p"
+    ],
+    "problems": []
+  }
+}

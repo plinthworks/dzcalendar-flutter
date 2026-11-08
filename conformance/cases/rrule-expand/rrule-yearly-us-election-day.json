@@ -1,0 +1,17 @@
+{
+  "id": "rrule-yearly-us-election-day",
+  "suite": "rrule-expand",
+  "description": "US election day: first Tuesday after a Monday in November, every 4 years",
+  "refs": [],
+  "input": {
+    "dtstart": "2028-11-07T09:00:00-05:00[America/New_York]",
+    "rrule": "FREQ=YEARLY;INTERVAL=4;BYMONTH=11;BYDAY=TU;BYMONTHDAY=2,3,4,5,6,7,8;COUNT=3",
+    "limit": 40
+  },
+  "expected": [
+    "2028-11-07T14:00:00Z",
+    "2032-11-02T13:00:00Z",
+    "2036-11-04T14:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

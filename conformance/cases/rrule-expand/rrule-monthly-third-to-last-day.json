@@ -1,0 +1,22 @@
+{
+  "id": "rrule-monthly-third-to-last-day",
+  "suite": "rrule-expand",
+  "description": "Monthly on the third-to-last day",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-28T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;BYMONTHDAY=-3;COUNT=8",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-28T13:00:00Z",
+    "2026-10-29T13:00:00Z",
+    "2026-11-28T14:00:00Z",
+    "2026-12-29T14:00:00Z",
+    "2027-01-29T14:00:00Z",
+    "2027-02-26T14:00:00Z",
+    "2027-03-29T13:00:00Z",
+    "2027-04-28T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

@@ -1,0 +1,38 @@
+{
+  "id": "series-edit-yearly-all",
+  "suite": "series-edit",
+  "description": "A yearly date moved a day later",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Y",
+      "start": "2026-10-20T09:00[Europe/Paris]",
+      "end": "2026-10-20T10:00[Europe/Paris]",
+      "rrule": "FREQ=YEARLY;COUNT=2"
+    },
+    "ops": [
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2026-10-20T09:00:00+02:00[Europe/Paris]",
+        "scope": "all",
+        "start": "2026-10-21T09:00"
+      }
+    ],
+    "window": {
+      "from": "2026-10-01",
+      "to": "2028-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Y|2026-10-21T09:00:00+02:00[Europe/Paris]|2026-10-21T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Y|2027-10-21T09:00:00+02:00[Europe/Paris]|2027-10-21T10:00:00+02:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=YEARLY;COUNT=2"
+    ]
+  }
+}

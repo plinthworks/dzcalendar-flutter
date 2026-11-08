@@ -1,0 +1,19 @@
+{
+  "id": "rrule-dst-chicago-yearly-nov-1",
+  "suite": "rrule-expand",
+  "description": "Yearly on 1 November 01:30 in Chicago",
+  "refs": [
+    "FC#6729"
+  ],
+  "input": {
+    "dtstart": "2026-11-01T01:30:00-05:00[America/Chicago]",
+    "rrule": "FREQ=YEARLY;COUNT=3",
+    "limit": 40
+  },
+  "expected": [
+    "2026-11-01T06:30:00Z",
+    "2027-11-01T06:30:00Z",
+    "2028-11-01T06:30:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

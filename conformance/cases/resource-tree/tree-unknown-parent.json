@@ -1,0 +1,22 @@
+{
+  "id": "tree-unknown-parent",
+  "suite": "resource-tree",
+  "description": "An unknown parent: the resource becomes a root, with a warning.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "a",
+        "parentId": "x"
+      }
+    ]
+  },
+  "expected": {
+    "rows": [
+      "0:a"
+    ],
+    "problems": [
+      "unknown-resource@resources[0].parentId"
+    ]
+  }
+}

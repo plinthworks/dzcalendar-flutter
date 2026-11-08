@@ -1,0 +1,20 @@
+{
+  "id": "rrule-yearly-weekno-1-52-thursday",
+  "suite": "rrule-expand",
+  "description": "Thursday of weeks 1 and 52",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-01-01T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=YEARLY;BYWEEKNO=1,52;BYDAY=TH;COUNT=6",
+    "limit": 40
+  },
+  "expected": [
+    "2026-01-01T09:00:00Z",
+    "2026-12-24T09:00:00Z",
+    "2027-01-07T09:00:00Z",
+    "2027-12-30T09:00:00Z",
+    "2028-01-06T09:00:00Z",
+    "2028-12-28T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

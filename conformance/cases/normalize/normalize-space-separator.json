@@ -1,0 +1,23 @@
+{
+  "id": "normalize-space-separator",
+  "suite": "normalize",
+  "description": "A space between date and time is a time",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-03-29 09:00",
+      "timeZone": "UTC"
+    },
+    "context": {
+      "displayZone": "Europe/Paris"
+    }
+  },
+  "expected": {
+    "ok": true,
+    "allDay": false,
+    "start": "2026-03-29T09:00:00+00:00[UTC]",
+    "end": "2026-03-29T10:00:00+00:00[UTC]",
+    "warnings": [],
+    "zoneGuessed": false
+  }
+}

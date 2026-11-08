@@ -1,0 +1,27 @@
+{
+  "id": "dayinfo-saopaulo-2018-no-midnight",
+  "suite": "zone-dayinfo",
+  "description": "São Paulo, 4 November 2018: midnight never happened, the day starts on its transition",
+  "refs": [],
+  "input": {
+    "date": "2018-11-04",
+    "zone": "America/Sao_Paulo"
+  },
+  "expected": {
+    "start": "2018-11-04T03:00:00Z",
+    "end": "2018-11-05T02:00:00Z",
+    "lengthMinutes": 1380,
+    "kind": "short",
+    "transitions": [
+      {
+        "at": "2018-11-04T03:00:00Z",
+        "offsetBefore": "-03:00",
+        "offsetAfter": "-02:00",
+        "deltaMinutes": 60,
+        "wallBefore": "2018-11-04T00:00:00",
+        "wallAfter": "2018-11-04T01:00:00",
+        "kind": "gap"
+      }
+    ]
+  }
+}

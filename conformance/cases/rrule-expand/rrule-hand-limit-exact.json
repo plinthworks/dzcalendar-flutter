@@ -1,0 +1,22 @@
+{
+  "id": "rrule-hand-limit-exact",
+  "suite": "rrule-expand",
+  "description": "Exactly the limit: nothing is cut, nothing reported",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=MINUTELY;COUNT=5",
+    "limit": 5,
+    "withProblems": true
+  },
+  "expected": {
+    "starts": [
+      "2026-09-02T09:00:00Z",
+      "2026-09-02T09:01:00Z",
+      "2026-09-02T09:02:00Z",
+      "2026-09-02T09:03:00Z",
+      "2026-09-02T09:04:00Z"
+    ],
+    "problems": []
+  }
+}

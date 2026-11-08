@@ -1,0 +1,30 @@
+{
+  "id": "tree-refused-entries",
+  "suite": "resource-tree",
+  "description": "A second resource with the same id, one without an id and one that is not an object are refused; problems point at the input's places.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "a"
+      },
+      {
+        "id": "a"
+      },
+      {
+        "title": "x"
+      },
+      null
+    ]
+  },
+  "expected": {
+    "rows": [
+      "0:a"
+    ],
+    "problems": [
+      "duplicate-id@resources[1].id",
+      "invalid-resource@resources[2].id",
+      "invalid-resource@resources[3]"
+    ]
+  }
+}

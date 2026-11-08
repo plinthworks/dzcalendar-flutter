@@ -1,0 +1,19 @@
+{
+  "id": "rrule-yearly-weekno-1-wkst-su",
+  "suite": "rrule-expand",
+  "description": "Week 1 with WKST=SU",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-01-01T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=YEARLY;BYWEEKNO=1;BYDAY=SU;WKST=SU;COUNT=5",
+    "limit": 40
+  },
+  "expected": [
+    "2026-01-04T09:00:00Z",
+    "2027-01-03T09:00:00Z",
+    "2028-01-02T09:00:00Z",
+    "2028-12-31T09:00:00Z",
+    "2029-12-30T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

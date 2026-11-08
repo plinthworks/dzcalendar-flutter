@@ -1,0 +1,14 @@
+{
+  "id": "rrule-hand-bad-rscale",
+  "suite": "rrule-expand",
+  "description": "Refused: an extension not supported (RSCALE)",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=DAILY;RSCALE=GREGORIAN",
+    "limit": 40
+  },
+  "expected": {
+    "problem": "invalid-rrule"
+  }
+}

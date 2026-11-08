@@ -1,0 +1,31 @@
+{
+  "id": "tree-orderby-descending",
+  "suite": "resource-tree",
+  "description": "orderBy '-title': a leading minus descends.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "x",
+        "title": "Zed"
+      },
+      {
+        "id": "y",
+        "title": "Amy"
+      },
+      {
+        "id": "z",
+        "title": "Moe"
+      }
+    ],
+    "orderBy": "-title"
+  },
+  "expected": {
+    "rows": [
+      "0:x",
+      "0:z",
+      "0:y"
+    ],
+    "problems": []
+  }
+}

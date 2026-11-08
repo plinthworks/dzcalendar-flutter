@@ -1,0 +1,19 @@
+{
+  "id": "rrule-dst-sydney-weekly",
+  "suite": "rrule-expand",
+  "description": "Sydney weekly across its spring forward",
+  "refs": [
+    "FC#6729"
+  ],
+  "input": {
+    "dtstart": "2026-09-27T10:00:00+10:00[Australia/Sydney]",
+    "rrule": "FREQ=WEEKLY;COUNT=3",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-27T00:00:00Z",
+    "2026-10-03T23:00:00Z",
+    "2026-10-10T23:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "rrule-hand-minutely-lordhowe-gap",
+  "suite": "rrule-expand",
+  "description": "Every 30 minutes across Lord Howe’s half-hour gap",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-10-04T01:30:00+10:30[Australia/Lord_Howe]",
+    "rrule": "FREQ=MINUTELY;INTERVAL=30;COUNT=3",
+    "limit": 40
+  },
+  "expected": [
+    "2026-10-03T15:00:00Z",
+    "2026-10-03T15:30:00Z",
+    "2026-10-03T16:00:00Z"
+  ]
+}

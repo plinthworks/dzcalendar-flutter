@@ -1,0 +1,17 @@
+{
+  "id": "rrule-hand-allday-last-day-of-month",
+  "suite": "rrule-expand",
+  "description": "The last day of each month",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-01-31",
+    "rrule": "FREQ=MONTHLY;BYMONTHDAY=-1;COUNT=4",
+    "limit": 40
+  },
+  "expected": [
+    "2026-01-31",
+    "2026-02-28",
+    "2026-03-31",
+    "2026-04-30"
+  ]
+}

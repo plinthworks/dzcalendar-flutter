@@ -1,0 +1,33 @@
+{
+  "id": "slots-lord-howe-autumn",
+  "suite": "slots",
+  "description": "Lord Howe, 5 April 2026: 02:00 goes back to 01:30 (+11:00 to +10:30). 01:00–03:00 holds 2 h 30; 01:30 is offered twice.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Australia/Lord_Howe",
+      "weekly": [
+        {
+          "days": [
+            7
+          ],
+          "from": "01:00",
+          "to": "03:00"
+        }
+      ]
+    },
+    "from": "2026-04-05T00:00+11:00[Australia/Lord_Howe]",
+    "to": "2026-04-06T00:00+10:30[Australia/Lord_Howe]",
+    "duration": 30
+  },
+  "expected": {
+    "slots": [
+      "2026-04-05T01:00+11:00/2026-04-05T01:30+11:00",
+      "2026-04-05T01:30+11:00/2026-04-05T01:30+10:30",
+      "2026-04-05T01:30+10:30/2026-04-05T02:00+10:30",
+      "2026-04-05T02:00+10:30/2026-04-05T02:30+10:30",
+      "2026-04-05T02:30+10:30/2026-04-05T03:00+10:30"
+    ],
+    "problems": []
+  }
+}

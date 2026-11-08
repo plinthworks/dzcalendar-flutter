@@ -1,0 +1,17 @@
+{
+  "id": "dayinfo-apia-2011-skipped",
+  "suite": "zone-dayinfo",
+  "description": "Apia, 30 December 2011: a day that does not exist, and owns no transition",
+  "refs": [],
+  "input": {
+    "date": "2011-12-30",
+    "zone": "Pacific/Apia"
+  },
+  "expected": {
+    "start": "2011-12-30T10:00:00Z",
+    "end": "2011-12-30T10:00:00Z",
+    "lengthMinutes": 0,
+    "kind": "skipped",
+    "transitions": []
+  }
+}

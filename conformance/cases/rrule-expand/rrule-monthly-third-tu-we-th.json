@@ -1,0 +1,20 @@
+{
+  "id": "rrule-monthly-third-tu-we-th",
+  "suite": "rrule-expand",
+  "description": "The third Tuesday, Wednesday or Thursday",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-03T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;COUNT=6;BYDAY=TU,WE,TH;BYSETPOS=3",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-03T13:00:00Z",
+    "2026-10-07T13:00:00Z",
+    "2026-11-05T14:00:00Z",
+    "2026-12-03T14:00:00Z",
+    "2027-01-07T14:00:00Z",
+    "2027-02-04T14:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

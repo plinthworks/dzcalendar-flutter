@@ -1,0 +1,24 @@
+{
+  "id": "rrule-hand-limit",
+  "suite": "rrule-expand",
+  "description": "An endless rule is cut at the limit",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=MINUTELY",
+    "limit": 5,
+    "withProblems": true
+  },
+  "expected": {
+    "starts": [
+      "2026-09-02T09:00:00Z",
+      "2026-09-02T09:01:00Z",
+      "2026-09-02T09:02:00Z",
+      "2026-09-02T09:03:00Z",
+      "2026-09-02T09:04:00Z"
+    ],
+    "problems": [
+      "too-many-occurrences"
+    ]
+  }
+}

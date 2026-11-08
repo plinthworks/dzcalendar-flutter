@@ -1,0 +1,21 @@
+{
+  "id": "axis-paris-autumn-elapsed",
+  "suite": "time-axis",
+  "description": "Elapsed axis, fall back: 25 hours tall, the second pass after the first",
+  "refs": [],
+  "input": {
+    "date": "2026-10-25",
+    "zone": "Europe/Paris",
+    "mode": "elapsed"
+  },
+  "expected": {
+    "length": 1500,
+    "bands": [
+      [
+        "repeat",
+        180,
+        240
+      ]
+    ]
+  }
+}

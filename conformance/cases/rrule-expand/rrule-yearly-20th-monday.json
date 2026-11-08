@@ -1,0 +1,18 @@
+{
+  "id": "rrule-yearly-20th-monday",
+  "suite": "rrule-expand",
+  "description": "The 20th Monday of the year",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-05-18T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=YEARLY;BYDAY=20MO;COUNT=4",
+    "limit": 40
+  },
+  "expected": [
+    "2026-05-18T13:00:00Z",
+    "2027-05-17T13:00:00Z",
+    "2028-05-15T13:00:00Z",
+    "2029-05-14T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "resolve-paris-repeat-later",
+  "suite": "zone-resolve",
+  "description": "The repeated 02:30, second reading",
+  "refs": [],
+  "input": {
+    "date": "2026-10-25",
+    "time": "02:30",
+    "zone": "Europe/Paris",
+    "policy": "later"
+  },
+  "expected": {
+    "instant": "2026-10-25T01:30:00Z",
+    "other": "2026-10-25T00:30:00Z",
+    "exists": true,
+    "ambiguous": true,
+    "offsetMatched": null
+  }
+}

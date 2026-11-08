@@ -1,0 +1,25 @@
+{
+  "id": "rrule-weekly-tu-th",
+  "suite": "rrule-expand",
+  "description": "Weekly on Tuesday and Thursday for five weeks",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-01T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=WEEKLY;UNTIL=20261007T000000Z;WKST=SU;BYDAY=TU,TH",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-01T13:00:00Z",
+    "2026-09-03T13:00:00Z",
+    "2026-09-08T13:00:00Z",
+    "2026-09-10T13:00:00Z",
+    "2026-09-15T13:00:00Z",
+    "2026-09-17T13:00:00Z",
+    "2026-09-22T13:00:00Z",
+    "2026-09-24T13:00:00Z",
+    "2026-09-29T13:00:00Z",
+    "2026-10-01T13:00:00Z",
+    "2026-10-06T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

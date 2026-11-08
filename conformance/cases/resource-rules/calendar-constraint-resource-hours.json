@@ -1,0 +1,66 @@
+{
+  "id": "calendar-constraint-resource-hours",
+  "suite": "resource-rules",
+  "description": "The calendar's constraint on a resource with its own hours: its hours win. 13:00 in Paris is inside the calendar's day but past Riyadh's 12:00.",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "resources": [
+      {
+        "id": "riyadh",
+        "timeZone": "Asia/Riyadh",
+        "businessHours": {
+          "daysOfWeek": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "start": "08:00",
+          "end": "12:00"
+        }
+      }
+    ],
+    "events": [
+      {
+        "id": "m",
+        "start": "2026-10-21T08:00[Europe/Paris]",
+        "duration": {
+          "minutes": 30
+        },
+        "resourceId": "riyadh"
+      }
+    ],
+    "move": {
+      "id": "m",
+      "start": "2026-10-21T13:00[Europe/Paris]",
+      "end": "2026-10-21T13:30[Europe/Paris]",
+      "resourceIds": [
+        "riyadh"
+      ]
+    },
+    "rules": {
+      "constraint": "businessHours",
+      "businessHours": {
+        "daysOfWeek": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "start": "09:00",
+        "end": "17:00"
+      }
+    }
+  },
+  "expected": {
+    "violations": [
+      [
+        "constraint",
+        "riyadh"
+      ]
+    ]
+  }
+}

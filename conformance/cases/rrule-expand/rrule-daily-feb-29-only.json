@@ -1,0 +1,17 @@
+{
+  "id": "rrule-daily-feb-29-only",
+  "suite": "rrule-expand",
+  "description": "Daily, but only 29 February",
+  "refs": [],
+  "input": {
+    "dtstart": "2024-02-29T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=DAILY;BYMONTH=2;BYMONTHDAY=29;COUNT=3",
+    "limit": 40
+  },
+  "expected": [
+    "2024-02-29T09:00:00Z",
+    "2028-02-29T09:00:00Z",
+    "2032-02-29T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

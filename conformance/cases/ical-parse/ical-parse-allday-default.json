@@ -1,0 +1,28 @@
+{
+  "id": "ical-parse-allday-default",
+  "suite": "ical-parse",
+  "description": "A DATE start with no end lasts one day",
+  "refs": [],
+  "input": {
+    "lines": [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      "UID:d",
+      "DTSTART;VALUE=DATE:20261031",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ]
+  },
+  "expected": {
+    "events": [
+      {
+        "start": "2026-10-31",
+        "id": "d",
+        "allDay": true,
+        "duration": "P1D"
+      }
+    ],
+    "problems": []
+  }
+}

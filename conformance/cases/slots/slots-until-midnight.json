@@ -1,0 +1,30 @@
+{
+  "id": "slots-until-midnight",
+  "suite": "slots",
+  "description": "An end of 24:00 is the next midnight.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            3
+          ],
+          "from": "20:00",
+          "to": "24:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 120
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T20:00+03:00/2026-10-21T22:00+03:00",
+      "2026-10-21T22:00+03:00/2026-10-22T00:00+03:00"
+    ],
+    "problems": []
+  }
+}

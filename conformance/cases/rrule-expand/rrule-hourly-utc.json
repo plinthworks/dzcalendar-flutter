@@ -1,0 +1,17 @@
+{
+  "id": "rrule-hourly-utc",
+  "suite": "rrule-expand",
+  "description": "Every 3 hours, UTC",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=HOURLY;INTERVAL=3;UNTIL=20260902T170000Z",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-02T09:00:00Z",
+    "2026-09-02T12:00:00Z",
+    "2026-09-02T15:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

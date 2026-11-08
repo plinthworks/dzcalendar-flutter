@@ -1,0 +1,26 @@
+{
+  "id": "rrule-weekly-byday-byhour",
+  "suite": "rrule-expand",
+  "description": "Weekdays at 8 and 18",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-07T08:00:00+02:00[Europe/Paris]",
+    "rrule": "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=8,18;COUNT=12",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-07T06:00:00Z",
+    "2026-09-07T16:00:00Z",
+    "2026-09-08T06:00:00Z",
+    "2026-09-08T16:00:00Z",
+    "2026-09-09T06:00:00Z",
+    "2026-09-09T16:00:00Z",
+    "2026-09-10T06:00:00Z",
+    "2026-09-10T16:00:00Z",
+    "2026-09-11T06:00:00Z",
+    "2026-09-11T16:00:00Z",
+    "2026-09-14T06:00:00Z",
+    "2026-09-14T16:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

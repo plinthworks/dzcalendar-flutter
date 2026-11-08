@@ -1,0 +1,24 @@
+{
+  "id": "rrule-monthly-first-friday-count",
+  "suite": "rrule-expand",
+  "description": "Monthly on the first Friday, ten times",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-04T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;COUNT=10;BYDAY=1FR",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-04T13:00:00Z",
+    "2026-10-02T13:00:00Z",
+    "2026-11-06T14:00:00Z",
+    "2026-12-04T14:00:00Z",
+    "2027-01-01T14:00:00Z",
+    "2027-02-05T14:00:00Z",
+    "2027-03-05T14:00:00Z",
+    "2027-04-02T13:00:00Z",
+    "2027-05-07T13:00:00Z",
+    "2027-06-04T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

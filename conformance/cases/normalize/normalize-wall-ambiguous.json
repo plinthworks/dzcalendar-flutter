@@ -1,0 +1,26 @@
+{
+  "id": "normalize-wall-ambiguous",
+  "suite": "normalize",
+  "description": "A repeated wall time without offset takes the first reading; one hour later is the second 02:30",
+  "refs": [
+    "FC#3887"
+  ],
+  "input": {
+    "event": {
+      "start": "2026-10-25T02:30[Europe/Paris]"
+    },
+    "context": {
+      "displayZone": "Europe/Paris"
+    }
+  },
+  "expected": {
+    "ok": true,
+    "allDay": false,
+    "start": "2026-10-25T02:30:00+02:00[Europe/Paris]",
+    "end": "2026-10-25T02:30:00+01:00[Europe/Paris]",
+    "warnings": [
+      "wall-time-ambiguous"
+    ],
+    "zoneGuessed": false
+  }
+}

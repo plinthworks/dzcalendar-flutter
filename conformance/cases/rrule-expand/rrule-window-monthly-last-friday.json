@@ -1,0 +1,30 @@
+{
+  "id": "rrule-window-monthly-last-friday",
+  "suite": "rrule-expand",
+  "description": "Last Friday of each month, seen in 2027",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-01-30T17:00:00-05:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;BYDAY=-1FR",
+    "window": {
+      "from": "2027-01-01T05:00:00Z",
+      "to": "2028-01-01T05:00:00Z"
+    },
+    "limit": 40
+  },
+  "expected": [
+    "2027-01-29T22:00:00Z",
+    "2027-02-26T22:00:00Z",
+    "2027-03-26T21:00:00Z",
+    "2027-04-30T21:00:00Z",
+    "2027-05-28T21:00:00Z",
+    "2027-06-25T21:00:00Z",
+    "2027-07-30T21:00:00Z",
+    "2027-08-27T21:00:00Z",
+    "2027-09-24T21:00:00Z",
+    "2027-10-29T21:00:00Z",
+    "2027-11-26T22:00:00Z",
+    "2027-12-31T22:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

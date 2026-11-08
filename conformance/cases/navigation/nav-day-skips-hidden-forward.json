@@ -1,0 +1,24 @@
+{
+  "id": "nav-day-skips-hidden-forward",
+  "suite": "navigation",
+  "description": "…and forward: Friday to Monday",
+  "refs": [],
+  "input": {
+    "anchor": "2026-10-16",
+    "view": "timeGridDay",
+    "firstDay": 1,
+    "dir": "next",
+    "overrides": {
+      "hiddenDays": [
+        6,
+        7
+      ]
+    }
+  },
+  "expected": {
+    "anchor": "2026-10-19",
+    "start": "2026-10-19",
+    "end": "2026-10-20",
+    "dates": 1
+  }
+}

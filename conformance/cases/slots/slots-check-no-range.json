@@ -1,0 +1,26 @@
+{
+  "id": "slots-check-no-range",
+  "suite": "slots",
+  "description": "checkSlot without from and to: the range is the slot itself.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            3
+          ],
+          "from": "08:00",
+          "to": "12:00"
+        }
+      ]
+    },
+    "duration": 60,
+    "check": "2026-10-21T10:00+03:00[Asia/Riyadh]"
+  },
+  "expected": {
+    "ok": true,
+    "slot": "2026-10-21T10:00+03:00/2026-10-21T11:00+03:00"
+  }
+}

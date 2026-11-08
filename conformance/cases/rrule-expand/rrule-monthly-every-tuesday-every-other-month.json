@@ -1,0 +1,32 @@
+{
+  "id": "rrule-monthly-every-tuesday-every-other-month",
+  "suite": "rrule-expand",
+  "description": "Every Tuesday, every other month",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-01T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;INTERVAL=2;BYDAY=TU;COUNT=18",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-01T13:00:00Z",
+    "2026-09-08T13:00:00Z",
+    "2026-09-15T13:00:00Z",
+    "2026-09-22T13:00:00Z",
+    "2026-09-29T13:00:00Z",
+    "2026-11-03T14:00:00Z",
+    "2026-11-10T14:00:00Z",
+    "2026-11-17T14:00:00Z",
+    "2026-11-24T14:00:00Z",
+    "2027-01-05T14:00:00Z",
+    "2027-01-12T14:00:00Z",
+    "2027-01-19T14:00:00Z",
+    "2027-01-26T14:00:00Z",
+    "2027-03-02T14:00:00Z",
+    "2027-03-09T14:00:00Z",
+    "2027-03-16T13:00:00Z",
+    "2027-03-23T13:00:00Z",
+    "2027-03-30T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

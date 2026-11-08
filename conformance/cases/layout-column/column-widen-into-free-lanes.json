@@ -1,0 +1,65 @@
+{
+  "id": "column-widen-into-free-lanes",
+  "suite": "layout-column",
+  "description": "Greedy lanes, then an item widens over lanes free for its whole span",
+  "refs": [],
+  "input": {
+    "items": [
+      {
+        "key": "long",
+        "start": 0,
+        "end": 120,
+        "order": 0
+      },
+      {
+        "key": "a",
+        "start": 0,
+        "end": 30,
+        "order": 1
+      },
+      {
+        "key": "b",
+        "start": 0,
+        "end": 30,
+        "order": 2
+      },
+      {
+        "key": "late",
+        "start": 60,
+        "end": 90,
+        "order": 3
+      }
+    ],
+    "minVisual": 15
+  },
+  "expected": [
+    [
+      "long",
+      0,
+      3,
+      0,
+      0.3333333333333333
+    ],
+    [
+      "a",
+      1,
+      3,
+      0.3333333333333333,
+      0.3333333333333333
+    ],
+    [
+      "b",
+      2,
+      3,
+      0.6666666666666666,
+      0.3333333333333333
+    ],
+    [
+      "late",
+      1,
+      3,
+      0.3333333333333333,
+      0.6666666666666666
+    ]
+  ]
+}

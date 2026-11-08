@@ -1,0 +1,19 @@
+{
+  "id": "rrule-hand-allday-exdate",
+  "suite": "rrule-expand",
+  "description": "An all-day series with a day excluded",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-05-01",
+    "rrule": "FREQ=DAILY;COUNT=4",
+    "exdates": [
+      "2026-05-02"
+    ],
+    "limit": 40
+  },
+  "expected": [
+    "2026-05-01",
+    "2026-05-03",
+    "2026-05-04"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "rrule-weekly-tu-th-every-other-count",
+  "suite": "rrule-expand",
+  "description": "Every other week on Tuesday and Thursday, 8 times",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-01T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=WEEKLY;INTERVAL=2;COUNT=8;WKST=SU;BYDAY=TU,TH",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-01T13:00:00Z",
+    "2026-09-03T13:00:00Z",
+    "2026-09-15T13:00:00Z",
+    "2026-09-17T13:00:00Z",
+    "2026-09-29T13:00:00Z",
+    "2026-10-01T13:00:00Z",
+    "2026-10-13T13:00:00Z",
+    "2026-10-15T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

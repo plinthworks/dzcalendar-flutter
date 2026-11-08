@@ -1,0 +1,39 @@
+{
+  "id": "series-edit-yearly-all-later",
+  "suite": "series-edit",
+  "description": "The 2027 occurrence moved two days later moves every year",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Y",
+      "start": "2026-10-20T09:00[Europe/Paris]",
+      "end": "2026-10-20T10:00[Europe/Paris]",
+      "rrule": "FREQ=YEARLY;COUNT=3"
+    },
+    "ops": [
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2027-10-20T09:00:00+02:00[Europe/Paris]",
+        "scope": "all",
+        "start": "2027-10-22T09:00"
+      }
+    ],
+    "window": {
+      "from": "2026-10-01",
+      "to": "2029-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Y|2026-10-22T09:00:00+02:00[Europe/Paris]|2026-10-22T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Y|2027-10-22T09:00:00+02:00[Europe/Paris]|2027-10-22T10:00:00+02:00[Europe/Paris]",
+      "occurrence|Y|2028-10-22T09:00:00+02:00[Europe/Paris]|2028-10-22T10:00:00+02:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=YEARLY;COUNT=3"
+    ]
+  }
+}

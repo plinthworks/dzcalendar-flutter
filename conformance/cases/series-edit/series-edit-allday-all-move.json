@@ -1,0 +1,40 @@
+{
+  "id": "series-edit-allday-all-move",
+  "suite": "series-edit",
+  "description": "All-day series moved two days later",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Day",
+      "start": "2026-10-05",
+      "end": "2026-10-06",
+      "rrule": "FREQ=WEEKLY;COUNT=4"
+    },
+    "ops": [
+      {
+        "type": "event.move",
+        "id": "w",
+        "key": "2026-10-05",
+        "scope": "all",
+        "start": "2026-10-07"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Day|2026-10-07|2026-10-08",
+      "occurrence|Day|2026-10-14|2026-10-15",
+      "occurrence|Day|2026-10-21|2026-10-22",
+      "occurrence|Day|2026-10-28|2026-10-29"
+    ],
+    "series": [
+      "FREQ=WEEKLY;COUNT=4"
+    ]
+  }
+}

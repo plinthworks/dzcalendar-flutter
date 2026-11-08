@@ -1,0 +1,17 @@
+{
+  "id": "rrule-yearly-weekno-53",
+  "suite": "rrule-expand",
+  "description": "Week 53, only in years that have one",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-12-28T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=YEARLY;BYWEEKNO=53;BYDAY=MO;COUNT=3",
+    "limit": 40
+  },
+  "expected": [
+    "2026-12-28T09:00:00Z",
+    "2032-12-27T09:00:00Z",
+    "2037-12-28T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

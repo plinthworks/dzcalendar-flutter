@@ -1,0 +1,24 @@
+{
+  "id": "nav-day-skips-hidden-back",
+  "suite": "navigation",
+  "description": "A one-day view goes back over a hidden weekend: Monday to Friday",
+  "refs": [],
+  "input": {
+    "anchor": "2026-10-19",
+    "view": "timeGridDay",
+    "firstDay": 1,
+    "dir": "prev",
+    "overrides": {
+      "hiddenDays": [
+        6,
+        7
+      ]
+    }
+  },
+  "expected": {
+    "anchor": "2026-10-16",
+    "start": "2026-10-16",
+    "end": "2026-10-17",
+    "dates": 1
+  }
+}

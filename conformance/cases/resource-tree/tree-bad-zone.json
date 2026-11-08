@@ -1,0 +1,22 @@
+{
+  "id": "tree-bad-zone",
+  "suite": "resource-tree",
+  "description": "A zone that does not exist is dropped with a warning; the resource stays.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "a",
+        "timeZone": "Mars/Olympus"
+      }
+    ]
+  },
+  "expected": {
+    "rows": [
+      "0:a"
+    ],
+    "problems": [
+      "unknown-zone@resources[0].timeZone"
+    ]
+  }
+}

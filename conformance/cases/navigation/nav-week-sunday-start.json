@@ -1,0 +1,18 @@
+{
+  "id": "nav-week-sunday-start",
+  "suite": "navigation",
+  "description": "A Sunday-first week",
+  "refs": [],
+  "input": {
+    "anchor": "2026-10-25",
+    "view": "timeGridWeek",
+    "firstDay": 7,
+    "dir": "next"
+  },
+  "expected": {
+    "anchor": "2026-11-01",
+    "start": "2026-11-01",
+    "end": "2026-11-08",
+    "dates": 7
+  }
+}

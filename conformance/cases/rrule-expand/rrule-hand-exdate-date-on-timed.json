@@ -1,0 +1,22 @@
+{
+  "id": "rrule-hand-exdate-date-on-timed",
+  "suite": "rrule-expand",
+  "description": "A date-only EXDATE removes that day’s occurrence of a timed series",
+  "refs": [
+    "FC#6105"
+  ],
+  "input": {
+    "dtstart": "2026-05-04T09:00:00+02:00[Europe/Paris]",
+    "rrule": "FREQ=DAILY;COUNT=5",
+    "exdates": [
+      "2026-05-06"
+    ],
+    "limit": 40
+  },
+  "expected": [
+    "2026-05-04T07:00:00Z",
+    "2026-05-05T07:00:00Z",
+    "2026-05-07T07:00:00Z",
+    "2026-05-08T07:00:00Z"
+  ]
+}

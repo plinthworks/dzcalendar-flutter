@@ -1,0 +1,23 @@
+{
+  "id": "nav-month-fit-weeks",
+  "suite": "navigation",
+  "description": "fixedWeekCount false: February 2026 from Sunday fits in four weeks",
+  "refs": [],
+  "input": {
+    "anchor": "2026-02-14",
+    "view": "dayGridMonth",
+    "firstDay": 7,
+    "dir": {
+      "to": "2026-02-14"
+    },
+    "overrides": {
+      "fixedWeekCount": false
+    }
+  },
+  "expected": {
+    "anchor": "2026-02-14",
+    "start": "2026-02-01",
+    "end": "2026-03-01",
+    "dates": 28
+  }
+}

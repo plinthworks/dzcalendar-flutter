@@ -1,0 +1,42 @@
+{
+  "id": "series-edit-dst-repeated-hour-this",
+  "suite": "series-edit",
+  "description": "Rename the 02:30 of the 25-hour night: its key is the first reading",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Daily",
+      "start": "2026-10-23T02:30[Europe/Paris]",
+      "end": "2026-10-23T03:00[Europe/Paris]",
+      "rrule": "FREQ=DAILY;COUNT=4"
+    },
+    "ops": [
+      {
+        "type": "event.update",
+        "id": "w",
+        "key": "2026-10-25T02:30:00+02:00[Europe/Paris]",
+        "scope": "this",
+        "patch": {
+          "title": "X"
+        }
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [
+      "occurrence|Daily|2026-10-23T02:30:00+02:00[Europe/Paris]|2026-10-23T03:00:00+02:00[Europe/Paris]",
+      "occurrence|Daily|2026-10-24T02:30:00+02:00[Europe/Paris]|2026-10-24T03:00:00+02:00[Europe/Paris]",
+      "override|X|2026-10-25T02:30:00+02:00[Europe/Paris]|2026-10-25T02:00:00+01:00[Europe/Paris]",
+      "occurrence|Daily|2026-10-26T02:30:00+01:00[Europe/Paris]|2026-10-26T03:00:00+01:00[Europe/Paris]"
+    ],
+    "series": [
+      "FREQ=DAILY;COUNT=4"
+    ]
+  }
+}

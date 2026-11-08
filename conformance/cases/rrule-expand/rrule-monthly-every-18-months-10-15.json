@@ -1,0 +1,24 @@
+{
+  "id": "rrule-monthly-every-18-months-10-15",
+  "suite": "rrule-expand",
+  "description": "Every 18 months on the 10th–15th",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-10T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;INTERVAL=18;COUNT=10;BYMONTHDAY=10,11,12,13,14,15",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-10T13:00:00Z",
+    "2026-09-11T13:00:00Z",
+    "2026-09-12T13:00:00Z",
+    "2026-09-13T13:00:00Z",
+    "2026-09-14T13:00:00Z",
+    "2026-09-15T13:00:00Z",
+    "2028-03-10T14:00:00Z",
+    "2028-03-11T14:00:00Z",
+    "2028-03-12T13:00:00Z",
+    "2028-03-13T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

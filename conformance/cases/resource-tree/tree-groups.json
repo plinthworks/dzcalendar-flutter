@@ -1,0 +1,48 @@
+{
+  "id": "tree-groups",
+  "suite": "resource-tree",
+  "description": "Roots grouped by a field, groups in the order their first resource comes; each root keeps its subtree.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "card",
+        "unit": "North"
+      },
+      {
+        "id": "ali",
+        "parentId": "card"
+      },
+      {
+        "id": "sara",
+        "parentId": "card"
+      },
+      {
+        "id": "derm",
+        "unit": "South"
+      },
+      {
+        "id": "omar",
+        "parentId": "derm"
+      },
+      {
+        "id": "ent",
+        "unit": "North"
+      }
+    ],
+    "groupBy": "unit"
+  },
+  "expected": {
+    "rows": [
+      "[North]",
+      "0:card",
+      "1:ali",
+      "1:sara",
+      "0:ent",
+      "[South]",
+      "0:derm",
+      "1:omar"
+    ],
+    "problems": []
+  }
+}

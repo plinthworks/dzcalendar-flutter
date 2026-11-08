@@ -1,0 +1,23 @@
+{
+  "id": "normalize-flight-two-zones",
+  "suite": "normalize",
+  "description": "Start and end in different zones",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-06-01T10:00[Europe/Paris]",
+      "end": "2026-06-02T05:00[Asia/Tokyo]"
+    },
+    "context": {
+      "displayZone": "Europe/Paris"
+    }
+  },
+  "expected": {
+    "ok": true,
+    "allDay": false,
+    "start": "2026-06-01T10:00:00+02:00[Europe/Paris]",
+    "end": "2026-06-02T05:00:00+09:00[Asia/Tokyo]",
+    "warnings": [],
+    "zoneGuessed": false
+  }
+}

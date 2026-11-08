@@ -1,0 +1,34 @@
+{
+  "id": "slots-check-notice",
+  "suite": "slots",
+  "description": "Too soon after now.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "12:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 60,
+    "now": "2026-10-21T08:30+03:00[Asia/Riyadh]",
+    "minNotice": 60,
+    "check": "2026-10-21T09:00+03:00[Asia/Riyadh]"
+  },
+  "expected": {
+    "ok": false,
+    "reason": "notice"
+  }
+}

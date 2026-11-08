@@ -1,0 +1,12 @@
+name: dzcalendar_core
+description: >-
+  DzCalendar's core in pure Dart: every event keeps its own time zone, and days
+  of 23 h, 25 h or 23 h 30 are what they are. Zone rules from IANA, bundled.
+version: 0.1.0-dev
+repository: https://github.com/plinthworks/dzcalendar-flutter
+environment:
+  sdk: ^3.9.0
+resolution: workspace
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

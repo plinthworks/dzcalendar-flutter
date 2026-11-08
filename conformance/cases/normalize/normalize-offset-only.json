@@ -1,0 +1,24 @@
+{
+  "id": "normalize-offset-only",
+  "suite": "normalize",
+  "description": "An instant with no zone: display zone, guessed, warned",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-05-01T07:00:00Z"
+    },
+    "context": {
+      "displayZone": "Europe/Paris"
+    }
+  },
+  "expected": {
+    "ok": true,
+    "allDay": false,
+    "start": "2026-05-01T09:00:00+02:00[Europe/Paris]",
+    "end": "2026-05-01T10:00:00+02:00[Europe/Paris]",
+    "warnings": [
+      "offset-only"
+    ],
+    "zoneGuessed": true
+  }
+}

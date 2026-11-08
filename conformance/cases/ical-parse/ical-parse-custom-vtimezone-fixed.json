@@ -1,0 +1,37 @@
+{
+  "id": "ical-parse-custom-vtimezone-fixed",
+  "suite": "ical-parse",
+  "description": "A VTIMEZONE no IANA zone matches is read as its fixed offset",
+  "refs": [],
+  "input": {
+    "lines": [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VTIMEZONE",
+      "TZID:Odd",
+      "BEGIN:STANDARD",
+      "DTSTART:19700101T000000",
+      "TZOFFSETFROM:+0517",
+      "TZOFFSETTO:+0517",
+      "END:STANDARD",
+      "END:VTIMEZONE",
+      "BEGIN:VEVENT",
+      "UID:o",
+      "DTSTART;TZID=Odd:20261021T090000",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ]
+  },
+  "expected": {
+    "events": [
+      {
+        "start": "2026-10-21T09:00:00+05:17[+05:17]",
+        "id": "o",
+        "duration": "PT0S"
+      }
+    ],
+    "problems": [
+      "zone-fixed-offset"
+    ]
+  }
+}

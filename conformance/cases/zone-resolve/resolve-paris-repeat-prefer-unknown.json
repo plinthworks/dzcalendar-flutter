@@ -1,0 +1,21 @@
+{
+  "id": "resolve-paris-repeat-prefer-unknown",
+  "suite": "zone-resolve",
+  "description": "An offset matching neither reading falls back to the first, and says so",
+  "refs": [],
+  "input": {
+    "date": "2026-10-25",
+    "time": "02:30",
+    "zone": "Europe/Paris",
+    "policy": {
+      "preferOffset": "+05:00"
+    }
+  },
+  "expected": {
+    "instant": "2026-10-25T00:30:00Z",
+    "other": "2026-10-25T01:30:00Z",
+    "exists": true,
+    "ambiguous": true,
+    "offsetMatched": false
+  }
+}

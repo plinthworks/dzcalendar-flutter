@@ -1,0 +1,16 @@
+{
+  "id": "rrule-hand-until-date-on-timed",
+  "suite": "rrule-expand",
+  "description": "UNTIL given as a date includes that whole day",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-05-04T09:00:00+02:00[Europe/Paris]",
+    "rrule": "FREQ=DAILY;UNTIL=20260506",
+    "limit": 40
+  },
+  "expected": [
+    "2026-05-04T07:00:00Z",
+    "2026-05-05T07:00:00Z",
+    "2026-05-06T07:00:00Z"
+  ]
+}

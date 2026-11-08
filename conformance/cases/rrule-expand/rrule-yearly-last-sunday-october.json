@@ -1,0 +1,19 @@
+{
+  "id": "rrule-yearly-last-sunday-october",
+  "suite": "rrule-expand",
+  "description": "The last Sunday of October (Europe’s fall back)",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-10-25T09:00:00+01:00[Europe/Paris]",
+    "rrule": "FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10;COUNT=5",
+    "limit": 40
+  },
+  "expected": [
+    "2026-10-25T08:00:00Z",
+    "2027-10-31T08:00:00Z",
+    "2028-10-29T08:00:00Z",
+    "2029-10-28T08:00:00Z",
+    "2030-10-27T08:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "rrule-yearly-last-day-of-feb",
+  "suite": "rrule-expand",
+  "description": "The last day of February",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-02-28T08:00:00+00:00[UTC]",
+    "rrule": "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1;COUNT=6",
+    "limit": 40
+  },
+  "expected": [
+    "2026-02-28T08:00:00Z",
+    "2027-02-28T08:00:00Z",
+    "2028-02-29T08:00:00Z",
+    "2029-02-28T08:00:00Z",
+    "2030-02-28T08:00:00Z",
+    "2031-02-28T08:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

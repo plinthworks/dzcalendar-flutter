@@ -1,0 +1,19 @@
+{
+  "id": "rrule-hand-rdate",
+  "suite": "rrule-expand",
+  "description": "An RDATE adds a start between two Mondays",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-05-04T09:00:00+02:00[Europe/Paris]",
+    "rrule": "FREQ=WEEKLY;COUNT=2",
+    "rdates": [
+      "2026-05-06T15:00:00+02:00[Europe/Paris]"
+    ],
+    "limit": 40
+  },
+  "expected": [
+    "2026-05-04T07:00:00Z",
+    "2026-05-06T13:00:00Z",
+    "2026-05-11T07:00:00Z"
+  ]
+}

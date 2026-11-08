@@ -1,0 +1,41 @@
+{
+  "id": "tree-orderby-numbers",
+  "suite": "resource-tree",
+  "description": "Numbers compare as numbers (9 before 10), read from extendedProps; a resource without the field goes last.",
+  "refs": [],
+  "input": {
+    "resources": [
+      {
+        "id": "w",
+        "extendedProps": {
+          "rank": 10
+        }
+      },
+      {
+        "id": "v",
+        "extendedProps": {
+          "rank": 9
+        }
+      },
+      {
+        "id": "u"
+      },
+      {
+        "id": "t",
+        "extendedProps": {
+          "rank": 2
+        }
+      }
+    ],
+    "orderBy": "rank"
+  },
+  "expected": {
+    "rows": [
+      "0:t",
+      "0:v",
+      "0:w",
+      "0:u"
+    ],
+    "problems": []
+  }
+}

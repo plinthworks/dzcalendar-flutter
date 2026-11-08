@@ -1,0 +1,27 @@
+{
+  "id": "rrule-window-weekly-infinite",
+  "suite": "rrule-expand",
+  "description": "An endless weekly rule, seen through October 2026",
+  "refs": [],
+  "input": {
+    "dtstart": "2025-01-06T09:00:00+01:00[Europe/Paris]",
+    "rrule": "FREQ=WEEKLY;BYDAY=MO,TH",
+    "window": {
+      "from": "2026-09-30T22:00:00Z",
+      "to": "2026-10-31T23:00:00Z"
+    },
+    "limit": 40
+  },
+  "expected": [
+    "2026-10-01T07:00:00Z",
+    "2026-10-05T07:00:00Z",
+    "2026-10-08T07:00:00Z",
+    "2026-10-12T07:00:00Z",
+    "2026-10-15T07:00:00Z",
+    "2026-10-19T07:00:00Z",
+    "2026-10-22T07:00:00Z",
+    "2026-10-26T08:00:00Z",
+    "2026-10-29T08:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

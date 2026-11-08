@@ -1,0 +1,32 @@
+{
+  "id": "slots-check-always-open-no-range",
+  "suite": "slots",
+  "description": "checkSlot without a range, around the clock: 00:20 is a slot, as findSlots offers it.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "UTC",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "from": "00:00",
+          "to": "24:00"
+        }
+      ]
+    },
+    "duration": 50,
+    "check": "2026-10-21T00:20:00Z"
+  },
+  "expected": {
+    "ok": true,
+    "slot": "2026-10-21T00:20+00:00/2026-10-21T01:10+00:00"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "slots-buffer-before",
+  "suite": "slots",
+  "description": "15 minutes before each appointment: the booking at 09:00 needs 08:45–09:00, so 08:30 is refused; 09:30 needs 09:15–09:30, inside the booking.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "10:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 30,
+    "bufferBefore": 15,
+    "busy": [
+      {
+        "start": "2026-10-21T09:00+03:00[Asia/Riyadh]",
+        "end": "2026-10-21T09:30+03:00[Asia/Riyadh]"
+      }
+    ]
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T08:00+03:00/2026-10-21T08:30+03:00"
+    ],
+    "problems": []
+  }
+}

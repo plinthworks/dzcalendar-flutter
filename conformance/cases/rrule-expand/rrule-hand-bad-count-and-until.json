@@ -1,0 +1,14 @@
+{
+  "id": "rrule-hand-bad-count-and-until",
+  "suite": "rrule-expand",
+  "description": "Refused: COUNT and UNTIL together",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=DAILY;COUNT=3;UNTIL=20260101",
+    "limit": 40
+  },
+  "expected": {
+    "problem": "invalid-rrule"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "rrule-dst-daily-paris-autumn",
+  "suite": "rrule-expand",
+  "description": "Daily 09:00 across fall back",
+  "refs": [
+    "FC#6729"
+  ],
+  "input": {
+    "dtstart": "2026-10-23T09:00:00+02:00[Europe/Paris]",
+    "rrule": "FREQ=DAILY;COUNT=5",
+    "limit": 40
+  },
+  "expected": [
+    "2026-10-23T07:00:00Z",
+    "2026-10-24T07:00:00Z",
+    "2026-10-25T08:00:00Z",
+    "2026-10-26T08:00:00Z",
+    "2026-10-27T08:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

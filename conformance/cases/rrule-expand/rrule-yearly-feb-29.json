@@ -1,0 +1,18 @@
+{
+  "id": "rrule-yearly-feb-29",
+  "suite": "rrule-expand",
+  "description": "29 February: only leap years",
+  "refs": [],
+  "input": {
+    "dtstart": "2024-02-29T08:00:00+00:00[UTC]",
+    "rrule": "FREQ=YEARLY;COUNT=4",
+    "limit": 40
+  },
+  "expected": [
+    "2024-02-29T08:00:00Z",
+    "2028-02-29T08:00:00Z",
+    "2032-02-29T08:00:00Z",
+    "2036-02-29T08:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

@@ -1,0 +1,32 @@
+{
+  "id": "slots-overnight",
+  "suite": "slots",
+  "description": "Wednesday 22:00 to 02:00: the window runs past midnight into Thursday.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            3
+          ],
+          "from": "22:00",
+          "to": "02:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-23T00:00+03:00[Asia/Riyadh]",
+    "duration": 60
+  },
+  "expected": {
+    "slots": [
+      "2026-10-21T22:00+03:00/2026-10-21T23:00+03:00",
+      "2026-10-21T23:00+03:00/2026-10-22T00:00+03:00",
+      "2026-10-22T00:00+03:00/2026-10-22T01:00+03:00",
+      "2026-10-22T01:00+03:00/2026-10-22T02:00+03:00"
+    ],
+    "problems": []
+  }
+}

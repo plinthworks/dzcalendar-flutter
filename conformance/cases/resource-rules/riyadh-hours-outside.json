@@ -1,0 +1,54 @@
+{
+  "id": "riyadh-hours-outside",
+  "suite": "resource-rules",
+  "description": "11:00 in Paris is 12:00 in Riyadh: the doctor's own hours are over.",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "resources": [
+      {
+        "id": "riyadh",
+        "timeZone": "Asia/Riyadh",
+        "businessHours": {
+          "daysOfWeek": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "start": "08:00",
+          "end": "12:00"
+        },
+        "eventConstraint": "businessHours"
+      }
+    ],
+    "events": [
+      {
+        "id": "m",
+        "start": "2026-10-21T08:00[Europe/Paris]",
+        "duration": {
+          "minutes": 30
+        },
+        "resourceId": "riyadh"
+      }
+    ],
+    "move": {
+      "id": "m",
+      "start": "2026-10-21T11:00[Europe/Paris]",
+      "end": "2026-10-21T11:30[Europe/Paris]",
+      "resourceIds": [
+        "riyadh"
+      ]
+    },
+    "rules": {}
+  },
+  "expected": {
+    "violations": [
+      [
+        "constraint",
+        "riyadh"
+      ]
+    ]
+  }
+}

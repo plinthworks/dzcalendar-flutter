@@ -1,0 +1,24 @@
+{
+  "id": "normalize-offset-mismatch",
+  "suite": "normalize",
+  "description": "An offset the zone never had is overruled by the zone; the wall time stands",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-07-01T09:00+05:00[Europe/Paris]"
+    },
+    "context": {
+      "displayZone": "Europe/Paris"
+    }
+  },
+  "expected": {
+    "ok": true,
+    "allDay": false,
+    "start": "2026-07-01T09:00:00+02:00[Europe/Paris]",
+    "end": "2026-07-01T10:00:00+02:00[Europe/Paris]",
+    "warnings": [
+      "offset-mismatch"
+    ],
+    "zoneGuessed": false
+  }
+}

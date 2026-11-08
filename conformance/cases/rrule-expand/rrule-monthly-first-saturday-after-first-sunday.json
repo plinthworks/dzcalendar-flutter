@@ -1,0 +1,24 @@
+{
+  "id": "rrule-monthly-first-saturday-after-first-sunday",
+  "suite": "rrule-expand",
+  "description": "The first Saturday after the first Sunday",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-13T09:00:00-04:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;BYDAY=SA;BYMONTHDAY=7,8,9,10,11,12,13;COUNT=10",
+    "limit": 40
+  },
+  "expected": [
+    "2026-10-10T13:00:00Z",
+    "2026-11-07T14:00:00Z",
+    "2026-12-12T14:00:00Z",
+    "2027-01-09T14:00:00Z",
+    "2027-02-13T14:00:00Z",
+    "2027-03-13T14:00:00Z",
+    "2027-04-10T13:00:00Z",
+    "2027-05-08T13:00:00Z",
+    "2027-06-12T13:00:00Z",
+    "2027-07-10T13:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

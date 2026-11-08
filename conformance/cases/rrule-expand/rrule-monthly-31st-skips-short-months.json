@@ -1,0 +1,21 @@
+{
+  "id": "rrule-monthly-31st-skips-short-months",
+  "suite": "rrule-expand",
+  "description": "The 31st: months without one are skipped",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-01-31T10:30:00-05:00[America/New_York]",
+    "rrule": "FREQ=MONTHLY;COUNT=7",
+    "limit": 40
+  },
+  "expected": [
+    "2026-01-31T15:30:00Z",
+    "2026-03-31T14:30:00Z",
+    "2026-05-31T14:30:00Z",
+    "2026-07-31T14:30:00Z",
+    "2026-08-31T14:30:00Z",
+    "2026-10-31T14:30:00Z",
+    "2026-12-31T15:30:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

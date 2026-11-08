@@ -1,0 +1,32 @@
+{
+  "id": "slots-check-misaligned",
+  "suite": "slots",
+  "description": "09:30 is open but not on the hour's grid.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "12:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 60,
+    "check": "2026-10-21T09:30+03:00[Asia/Riyadh]"
+  },
+  "expected": {
+    "ok": false,
+    "reason": "misaligned"
+  }
+}

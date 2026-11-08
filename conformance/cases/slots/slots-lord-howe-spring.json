@@ -1,0 +1,33 @@
+{
+  "id": "slots-lord-howe-spring",
+  "suite": "slots",
+  "description": "Lord Howe, 4 October 2026: 02:00 jumps to 02:30 (+10:30 to +11:00). 01:00–04:00 holds 2 h 30; the slot from 01:30 ends at 02:30.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Australia/Lord_Howe",
+      "weekly": [
+        {
+          "days": [
+            7
+          ],
+          "from": "01:00",
+          "to": "04:00"
+        }
+      ]
+    },
+    "from": "2026-10-04T00:00+10:30[Australia/Lord_Howe]",
+    "to": "2026-10-05T00:00+11:00[Australia/Lord_Howe]",
+    "duration": 30
+  },
+  "expected": {
+    "slots": [
+      "2026-10-04T01:00+10:30/2026-10-04T01:30+10:30",
+      "2026-10-04T01:30+10:30/2026-10-04T02:30+11:00",
+      "2026-10-04T02:30+11:00/2026-10-04T03:00+11:00",
+      "2026-10-04T03:00+11:00/2026-10-04T03:30+11:00",
+      "2026-10-04T03:30+11:00/2026-10-04T04:00+11:00"
+    ],
+    "problems": []
+  }
+}

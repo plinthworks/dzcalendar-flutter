@@ -1,0 +1,14 @@
+{
+  "id": "rrule-hand-bad-ordinal-daily",
+  "suite": "rrule-expand",
+  "description": "Refused: an ordinal BYDAY with DAILY",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=DAILY;BYDAY=1MO",
+    "limit": 40
+  },
+  "expected": {
+    "problem": "invalid-rrule"
+  }
+}

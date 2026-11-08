@@ -1,0 +1,21 @@
+{
+  "id": "axis-lordhowe-spring-wall",
+  "suite": "time-axis",
+  "description": "Lord Howe: a half-hour gap",
+  "refs": [],
+  "input": {
+    "date": "2026-10-04",
+    "zone": "Australia/Lord_Howe",
+    "mode": "wall"
+  },
+  "expected": {
+    "length": 1440,
+    "bands": [
+      [
+        "gap",
+        120,
+        150
+      ]
+    ]
+  }
+}

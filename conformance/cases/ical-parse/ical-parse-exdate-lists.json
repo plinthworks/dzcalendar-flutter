@@ -1,0 +1,36 @@
+{
+  "id": "ical-parse-exdate-lists",
+  "suite": "ical-parse",
+  "description": "EXDATE on several lines and in comma lists, each in its zone",
+  "refs": [],
+  "input": {
+    "lines": [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VEVENT",
+      "UID:x",
+      "DTSTART;TZID=Australia/Lord_Howe:20261001T090000",
+      "RRULE:FREQ=DAILY;COUNT=5",
+      "EXDATE;TZID=Australia/Lord_Howe:20261002T090000,20261003T090000",
+      "EXDATE:20261003T220000Z",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ]
+  },
+  "expected": {
+    "events": [
+      {
+        "start": "2026-10-01T09:00:00[Australia/Lord_Howe]",
+        "id": "x",
+        "duration": "PT0S",
+        "rrule": "FREQ=DAILY;COUNT=5",
+        "exdate": [
+          "2026-10-02T09:00:00[Australia/Lord_Howe]",
+          "2026-10-03T09:00:00[Australia/Lord_Howe]",
+          "2026-10-03T22:00:00[UTC]"
+        ]
+      }
+    ],
+    "problems": []
+  }
+}

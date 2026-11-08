@@ -1,0 +1,37 @@
+{
+  "id": "slots-paris-across-change",
+  "suite": "slots",
+  "description": "Paris 09:00 every day, across the change of 25 October: always 09:00 on the wall, the offset changes.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Europe/Paris",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "from": "09:00",
+          "to": "10:00"
+        }
+      ]
+    },
+    "from": "2026-10-24T00:00+02:00[Europe/Paris]",
+    "to": "2026-10-27T00:00+01:00[Europe/Paris]",
+    "duration": 60
+  },
+  "expected": {
+    "slots": [
+      "2026-10-24T09:00+02:00/2026-10-24T10:00+02:00",
+      "2026-10-25T09:00+01:00/2026-10-25T10:00+01:00",
+      "2026-10-26T09:00+01:00/2026-10-26T10:00+01:00"
+    ],
+    "problems": []
+  }
+}

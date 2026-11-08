@@ -1,0 +1,15 @@
+{
+  "id": "axis-apia-skipped",
+  "suite": "time-axis",
+  "description": "Apia: a skipped day has nothing to draw",
+  "refs": [],
+  "input": {
+    "date": "2011-12-30",
+    "zone": "Pacific/Apia",
+    "mode": "wall"
+  },
+  "expected": {
+    "length": 0,
+    "bands": []
+  }
+}

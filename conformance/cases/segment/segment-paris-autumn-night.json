@@ -1,0 +1,38 @@
+{
+  "id": "segment-paris-autumn-night",
+  "suite": "segment",
+  "description": "A night across the 25-hour Sunday: three slices, the middle one 25 hours",
+  "refs": [
+    "FC#7903"
+  ],
+  "input": {
+    "event": {
+      "start": "2026-10-24T20:00+02:00[Europe/Paris]",
+      "end": "2026-10-26T08:00+01:00[Europe/Paris]"
+    },
+    "zone": "Europe/Paris",
+    "firstDate": "2026-10-24",
+    "days": 3,
+    "cutAtRepeat": false
+  },
+  "expected": [
+    [
+      0,
+      0,
+      "2026-10-24T18:00:00Z",
+      "2026-10-24T22:00:00Z"
+    ],
+    [
+      1,
+      0,
+      "2026-10-24T22:00:00Z",
+      "2026-10-25T23:00:00Z"
+    ],
+    [
+      2,
+      0,
+      "2026-10-25T23:00:00Z",
+      "2026-10-26T07:00:00Z"
+    ]
+  ]
+}

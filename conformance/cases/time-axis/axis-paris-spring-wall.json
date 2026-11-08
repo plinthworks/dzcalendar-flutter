@@ -1,0 +1,21 @@
+{
+  "id": "axis-paris-spring-wall",
+  "suite": "time-axis",
+  "description": "Wall axis, spring forward: a gap band 02:00–03:00",
+  "refs": [],
+  "input": {
+    "date": "2026-03-29",
+    "zone": "Europe/Paris",
+    "mode": "wall"
+  },
+  "expected": {
+    "length": 1440,
+    "bands": [
+      [
+        "gap",
+        120,
+        180
+      ]
+    ]
+  }
+}

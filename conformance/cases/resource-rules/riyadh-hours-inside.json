@@ -1,0 +1,49 @@
+{
+  "id": "riyadh-hours-inside",
+  "suite": "resource-rules",
+  "description": "A doctor in Riyadh (UTC+3), open 08:00–12:00 there. On 21 October 2026 Paris is UTC+2: 10:00–10:30 in Paris is 11:00–11:30 in Riyadh, inside.",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "resources": [
+      {
+        "id": "riyadh",
+        "timeZone": "Asia/Riyadh",
+        "businessHours": {
+          "daysOfWeek": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "start": "08:00",
+          "end": "12:00"
+        },
+        "eventConstraint": "businessHours"
+      }
+    ],
+    "events": [
+      {
+        "id": "m",
+        "start": "2026-10-21T08:00[Europe/Paris]",
+        "duration": {
+          "minutes": 30
+        },
+        "resourceId": "riyadh"
+      }
+    ],
+    "move": {
+      "id": "m",
+      "start": "2026-10-21T10:00[Europe/Paris]",
+      "end": "2026-10-21T10:30[Europe/Paris]",
+      "resourceIds": [
+        "riyadh"
+      ]
+    },
+    "rules": {}
+  },
+  "expected": {
+    "violations": []
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "series-edit-delete-following-first",
+  "suite": "series-edit",
+  "description": "Delete following from the first: nothing left",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Weekly",
+      "start": "2026-10-05T09:00[Europe/Paris]",
+      "end": "2026-10-05T10:00[Europe/Paris]",
+      "rrule": "FREQ=WEEKLY;COUNT=6"
+    },
+    "ops": [
+      {
+        "type": "event.delete",
+        "id": "w",
+        "key": "2026-10-05T09:00:00+02:00[Europe/Paris]",
+        "scope": "following"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [],
+    "series": []
+  }
+}

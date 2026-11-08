@@ -1,0 +1,25 @@
+{
+  "id": "nav-workweek-hidden-weekend",
+  "suite": "navigation",
+  "description": "Hidden weekend: five dates in a week",
+  "refs": [],
+  "input": {
+    "anchor": "2026-10-21",
+    "view": "timeGridWeek",
+    "firstDay": 1,
+    "dir": "today",
+    "today": "2026-10-21",
+    "overrides": {
+      "hiddenDays": [
+        6,
+        7
+      ]
+    }
+  },
+  "expected": {
+    "anchor": "2026-10-21",
+    "start": "2026-10-19",
+    "end": "2026-10-26",
+    "dates": 5
+  }
+}

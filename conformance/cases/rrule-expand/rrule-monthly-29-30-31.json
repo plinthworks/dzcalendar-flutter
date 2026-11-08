@@ -1,0 +1,26 @@
+{
+  "id": "rrule-monthly-29-30-31",
+  "suite": "rrule-expand",
+  "description": "The 29th, 30th and 31st, when they exist",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-01-29T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=MONTHLY;BYMONTHDAY=29,30,31;COUNT=12",
+    "limit": 40
+  },
+  "expected": [
+    "2026-01-29T09:00:00Z",
+    "2026-01-30T09:00:00Z",
+    "2026-01-31T09:00:00Z",
+    "2026-03-29T09:00:00Z",
+    "2026-03-30T09:00:00Z",
+    "2026-03-31T09:00:00Z",
+    "2026-04-29T09:00:00Z",
+    "2026-04-30T09:00:00Z",
+    "2026-05-29T09:00:00Z",
+    "2026-05-30T09:00:00Z",
+    "2026-05-31T09:00:00Z",
+    "2026-06-29T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

@@ -1,0 +1,24 @@
+{
+  "id": "segment-end-at-midnight",
+  "suite": "segment",
+  "description": "An event ending exactly at midnight is not on the next day",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-05-01T22:00[UTC]",
+      "end": "2026-05-02T00:00[UTC]"
+    },
+    "zone": "UTC",
+    "firstDate": "2026-05-01",
+    "days": 2,
+    "cutAtRepeat": false
+  },
+  "expected": [
+    [
+      0,
+      0,
+      "2026-05-01T22:00:00Z",
+      "2026-05-02T00:00:00Z"
+    ]
+  ]
+}

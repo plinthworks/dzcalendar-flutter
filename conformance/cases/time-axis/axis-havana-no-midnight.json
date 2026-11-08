@@ -1,0 +1,21 @@
+{
+  "id": "axis-havana-no-midnight",
+  "suite": "time-axis",
+  "description": "Havana: the hour after midnight never happened",
+  "refs": [],
+  "input": {
+    "date": "2023-03-12",
+    "zone": "America/Havana",
+    "mode": "wall"
+  },
+  "expected": {
+    "length": 1440,
+    "bands": [
+      [
+        "gap",
+        0,
+        60
+      ]
+    ]
+  }
+}

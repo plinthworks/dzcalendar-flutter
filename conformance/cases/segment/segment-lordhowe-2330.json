@@ -1,0 +1,36 @@
+{
+  "id": "segment-lordhowe-2330",
+  "suite": "segment",
+  "description": "Lord Howe, 4 October 2026: a whole day is 23 h 30",
+  "refs": [],
+  "input": {
+    "event": {
+      "start": "2026-10-03T20:00+10:30[Australia/Lord_Howe]",
+      "end": "2026-10-05T04:00+11:00[Australia/Lord_Howe]"
+    },
+    "zone": "Australia/Lord_Howe",
+    "firstDate": "2026-10-03",
+    "days": 3,
+    "cutAtRepeat": false
+  },
+  "expected": [
+    [
+      0,
+      0,
+      "2026-10-03T09:30:00Z",
+      "2026-10-03T13:30:00Z"
+    ],
+    [
+      1,
+      0,
+      "2026-10-03T13:30:00Z",
+      "2026-10-04T13:00:00Z"
+    ],
+    [
+      2,
+      0,
+      "2026-10-04T13:00:00Z",
+      "2026-10-04T17:00:00Z"
+    ]
+  ]
+}

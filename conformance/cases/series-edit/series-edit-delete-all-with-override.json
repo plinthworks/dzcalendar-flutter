@@ -1,0 +1,41 @@
+{
+  "id": "series-edit-delete-all-with-override",
+  "suite": "series-edit",
+  "description": "Delete all: overrides go with the series",
+  "refs": [],
+  "input": {
+    "zone": "Europe/Paris",
+    "event": {
+      "id": "w",
+      "title": "Weekly",
+      "start": "2026-10-05T09:00[Europe/Paris]",
+      "end": "2026-10-05T10:00[Europe/Paris]",
+      "rrule": "FREQ=WEEKLY;COUNT=6"
+    },
+    "ops": [
+      {
+        "type": "event.update",
+        "id": "w",
+        "key": "2026-10-12T09:00:00+02:00[Europe/Paris]",
+        "scope": "this",
+        "patch": {
+          "title": "X"
+        }
+      },
+      {
+        "type": "event.delete",
+        "id": "w",
+        "key": "2026-10-19T09:00:00+02:00[Europe/Paris]",
+        "scope": "all"
+      }
+    ],
+    "window": {
+      "from": "2026-09-28",
+      "to": "2027-01-01"
+    }
+  },
+  "expected": {
+    "shown": [],
+    "series": []
+  }
+}

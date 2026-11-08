@@ -1,0 +1,29 @@
+{
+  "id": "dayinfo-paris-autumn-2026",
+  "suite": "zone-dayinfo",
+  "description": "Paris, 25 October 2026: 25 h, 03:00 falls back to 02:00",
+  "refs": [
+    "FC#5973"
+  ],
+  "input": {
+    "date": "2026-10-25",
+    "zone": "Europe/Paris"
+  },
+  "expected": {
+    "start": "2026-10-24T22:00:00Z",
+    "end": "2026-10-25T23:00:00Z",
+    "lengthMinutes": 1500,
+    "kind": "long",
+    "transitions": [
+      {
+        "at": "2026-10-25T01:00:00Z",
+        "offsetBefore": "+02:00",
+        "offsetAfter": "+01:00",
+        "deltaMinutes": -60,
+        "wallBefore": "2026-10-25T03:00:00",
+        "wallAfter": "2026-10-25T02:00:00",
+        "kind": "repeat"
+      }
+    ]
+  }
+}

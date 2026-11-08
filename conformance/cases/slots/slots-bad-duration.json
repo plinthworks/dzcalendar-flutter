@@ -1,0 +1,33 @@
+{
+  "id": "slots-bad-duration",
+  "suite": "slots",
+  "description": "A duration of 0: no slot, the query refused.",
+  "refs": [],
+  "input": {
+    "availability": {
+      "timeZone": "Asia/Riyadh",
+      "weekly": [
+        {
+          "days": [
+            7,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "08:00",
+          "to": "12:00"
+        }
+      ]
+    },
+    "from": "2026-10-21T00:00+03:00[Asia/Riyadh]",
+    "to": "2026-10-22T00:00+03:00[Asia/Riyadh]",
+    "duration": 0
+  },
+  "expected": {
+    "slots": [],
+    "problems": [
+      "invalid-slot-query"
+    ]
+  }
+}

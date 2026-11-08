@@ -1,0 +1,22 @@
+{
+  "id": "rrule-hourly-byminute-utc",
+  "suite": "rrule-expand",
+  "description": "Hourly at :15 and :45",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-02T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=HOURLY;BYMINUTE=15,45;COUNT=8",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-02T09:15:00Z",
+    "2026-09-02T09:45:00Z",
+    "2026-09-02T10:15:00Z",
+    "2026-09-02T10:45:00Z",
+    "2026-09-02T11:15:00Z",
+    "2026-09-02T11:45:00Z",
+    "2026-09-02T12:15:00Z",
+    "2026-09-02T12:45:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}

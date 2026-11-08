@@ -1,0 +1,22 @@
+{
+  "id": "rrule-monthly-first-and-last-weekday",
+  "suite": "rrule-expand",
+  "description": "First and last weekday of each month",
+  "refs": [],
+  "input": {
+    "dtstart": "2026-09-01T09:00:00+00:00[UTC]",
+    "rrule": "FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=1,-1;COUNT=8",
+    "limit": 40
+  },
+  "expected": [
+    "2026-09-01T09:00:00Z",
+    "2026-09-30T09:00:00Z",
+    "2026-10-01T09:00:00Z",
+    "2026-10-30T09:00:00Z",
+    "2026-11-02T09:00:00Z",
+    "2026-11-30T09:00:00Z",
+    "2026-12-01T09:00:00Z",
+    "2026-12-31T09:00:00Z"
+  ],
+  "source": "python-dateutil 2.9 (independent implementation)"
+}
