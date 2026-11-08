@@ -155,6 +155,27 @@ List<int>? _periodDays(RRule r, int s, int k) {
   }
 }
 
+/// The first period that can hold [fromDay] or later: every period before it
+/// ends before [fromDay] (a period gives only its own days), so a rule
+/// without COUNT may start there — a window years after DTSTART costs one
+/// division, not a walk. 0 with a COUNT (occurrences must be counted from
+/// the start) or without a [fromDay].
+int _firstPeriod(RRule r, int s, int? fromDay) {
+  if (fromDay == null || r.count != null || fromDay <= s) return 0;
+  final i = r.interval;
+  final k = switch (r.freq) {
+    Frequency.yearly => floorDiv(civilOf(fromDay).$1 - civilOf(s).$1, i),
+    Frequency.monthly => () {
+      final (y, m, _) = civilOf(s);
+      final (fy, fm, _) = civilOf(fromDay);
+      return floorDiv((fy * 12 + fm) - (y * 12 + m), i);
+    }(),
+    Frequency.weekly => floorDiv(fromDay - _startOfWeek(s, r.wkst), 7 * i),
+    _ => floorDiv(fromDay - s, i),
+  };
+  return k < 0 ? 0 : k;
+}
+
 /// The UTC day number of an instant.
 int _utcDayOf(Instant i) => floorDiv(i.epochMilliseconds, msPerDay);
 
@@ -171,7 +192,7 @@ Iterable<PlainDate> iterateDates(PlainDate start, RRule r, [int? fromDay]) sync*
   final scope = _nthScopeOf(r);
   var count = 0;
   var empty = 0;
-  for (var k = 0; ; k++) {
+  for (var k = _firstPeriod(r, s, fromDay); ; k++) {
     final days = _periodDays(r, s, k);
     if (days == null) return;
     final kept = _setPos([
@@ -233,7 +254,7 @@ Iterable<ZonedDateTime> iterateZoned(ZonedDateTime start, RRule r, [Instant? fro
   final startMs = start.epochMilliseconds;
   var count = 0;
   var empty = 0;
-  for (var k = 0; ; k++) {
+  for (var k = _firstPeriod(r, s, fromDay); ; k++) {
     final days = _periodDays(r, s, k);
     if (days == null) return;
     // Every day × time of the period, then BYSETPOS over that whole set.

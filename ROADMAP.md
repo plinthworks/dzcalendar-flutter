@@ -2,6 +2,17 @@
 
 ## Resume here (if a session is lost)
 
+- **Phase 19e in progress (2026-11-08)**, in two parts. **19e-1** (pure
+  Dart, in the core): the rrule jump to the window, lanes and "+N"
+  (`packLanes`, `computeOverflow`), windowing (`PrefixSums`,
+  `visibleRange`), the day-grid, time-grid (with available slots), list
+  and multi-month models, proposals (`proposeMove`, `proposeResize`,
+  selection, `commandFor`) and the keymap, formatting (`intl`), the
+  kernel. Done so far: the rrule jump (`_firstPeriod`: a rule without
+  COUNT starts at the window's period; fuzz-checked against a full walk on
+  600 rules, `rrule_jump_test.dart`) — a week over 500 open series from
+  2020: 55 → 7.8 ms in 2026, 155 → 6.1 ms in 2040. **19e-2**: the Flutter package (`dzcalendar`), widgets checked on
+  the iOS simulator and an Android emulator.
 - **Phase 19d done (2026-11-08)**, committed ("Phase 19d"); see its section
   below. **Next: 19e** — the Flutter widgets. Before them, in the core: the
   rrule "jump to the window" (long series are slow, and drag feedback
@@ -106,6 +117,21 @@
       the store exported as inputs (`toInput`, `eventInput`, `seriesInput`,
       `exportInputs`, public as in the TS); `CalEvent.movedToTime` /
       `movedToDays` for a drag's preview.
+  22. **The kernel in pure Dart (owner, 2026-11-08, for 19e)**:
+      `CalendarKernel` in `dzcalendar_core` (view, date, zone, locale,
+      options, store, history; testable without Flutter, the web's
+      semantics), wrapped by a `CalendarController` (`Listenable`) in the
+      Flutter package; Riverpod, Bloc… plug into that.
+  23. **19e's views (owner, 2026-11-08)**: month, week, day, mini-month,
+      list (agenda), and available slots shown in the time grid (the web's
+      `availableSlots`: what sehhaty's slot picker becomes).
+  24. **Formatting with `intl` 0.20.2's `DateFormat` (owner, 2026-11-08)**:
+      skeletons and the locale's CLDR data, functions the application can
+      replace; wording may differ slightly from a browser's.
+  25. **The source manager later (owner, 2026-11-08)**: applications feed
+      events with `replaceSourceChunk` (sehhaty from its API through
+      Riverpod); the manager (periods, retries, live, `icalSource`) comes
+      after the widgets.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
