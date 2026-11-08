@@ -1,7 +1,7 @@
 // Expectations from ISO 8601 and Temporal's documented behaviour, checked
 // against the Temporal polyfill where noted.
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:test/test.dart';
 
 void main() {

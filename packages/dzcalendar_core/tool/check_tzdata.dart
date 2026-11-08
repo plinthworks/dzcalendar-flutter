@@ -8,7 +8,7 @@
 
 import 'dart:io';
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:dzcalendar_core/src/zone/tzdata.g.dart';
 
 const _from = 1800;

@@ -374,7 +374,8 @@ Iterable<ZonedDateTime> _iterateSubDaily(ZonedDateTime start, RRule r, Instant? 
         for (final se in secs) {
           cands.add(
             ZonedDateTime.fromWall(
-              PlainDateTime(pw.date, PlainTime(t.hour, mi, se > 59 ? 59 : se)),
+              // The milliseconds kept, as Temporal's `with({ minute, second })` keeps them.
+              PlainDateTime(pw.date, PlainTime(t.hour, mi, se > 59 ? 59 : se, t.millisecond)),
               zone,
               preferOffsetMs: p.offsetMs,
             )!,

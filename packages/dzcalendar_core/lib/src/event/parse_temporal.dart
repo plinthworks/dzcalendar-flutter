@@ -256,3 +256,12 @@ int _toMinute(int offsetMs) {
     problems: [Problem(ProblemCode.wallTimeSkipped, Severity.warning, path, '$wall → ${value.plainDateTime}')],
   );
 }
+
+/// A zoned string ("2026-10-25T02:30:00+02:00[Europe/Paris]", or a wall time
+/// with its zone) as a [ZonedDateTime], as Temporal's `ZonedDateTime.from`
+/// with `offset: 'prefer'`. Null for anything else.
+ZonedDateTime? parseZonedDateTime(String text) {
+  final r = parseTemporal(text, 'key', start: true);
+  final p = r.parsed;
+  return p is ParsedZoned ? p.value : null;
+}

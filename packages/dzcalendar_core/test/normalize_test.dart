@@ -2,7 +2,7 @@
 // expectations), plus what only the port has: EventInput.fromJson and the
 // refused DateTime.
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:test/test.dart';
 
 NormalizeContext ctx({

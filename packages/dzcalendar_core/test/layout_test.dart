@@ -12,7 +12,7 @@
 
 import 'dart:math' as math;
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:test/test.dart';
 
 /// The TypeScript test's generator, bit for bit (a 32-bit linear congruence).

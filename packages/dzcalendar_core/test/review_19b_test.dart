@@ -1,7 +1,7 @@
 // What the 19b reviews found, each checked against the Temporal polyfill or
 // the owner's decisions 9–11 (2026-11-08) before being fixed.
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:test/test.dart';
 
 NormalizeContext ctx() => NormalizeContext(displayZone: 'Europe/Paris', newId: createIdGenerator('t'));

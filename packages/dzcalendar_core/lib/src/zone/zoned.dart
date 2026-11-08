@@ -2,6 +2,7 @@ import '../time/civil.dart';
 import '../time/duration.dart';
 import '../time/instant.dart';
 import '../time/plain.dart';
+import '../event/parse_temporal.dart';
 import 'wall.dart';
 import 'zone_rules.dart';
 
@@ -17,6 +18,11 @@ ZoneId normalizedZone(ZoneId zone) =>
 /// Temporal's `ZonedDateTime`.
 final class ZonedDateTime implements Comparable<ZonedDateTime> {
   ZonedDateTime._(this.instant, this.zone, this.offsetMs);
+
+  /// "2026-10-25T02:30:00+02:00[Europe/Paris]" (an occurrence's key, as
+  /// Temporal writes a ZonedDateTime), or a wall time with its zone; the
+  /// offset picks the reading of a repeated time. Null for anything else.
+  static ZonedDateTime? tryParse(String text) => parseZonedDateTime(text);
 
   /// [wall] in [zone]: the reading whose offset is [preferOffsetMs] when the
   /// time has one (Temporal's `offset: 'prefer'` — a repeated 02:30 keeps the
@@ -75,6 +81,53 @@ final class ZonedDateTime implements Comparable<ZonedDateTime> {
   }
 
   ZonedDateTime subtract(IsoDuration duration) => add(duration.negated());
+
+  /// From this moment to [other] as Temporal's `until({ largestUnit: 'days' })`:
+  /// whole days on the clock face in this zone (23 or 25 hours across a
+  /// change), then the exact rest. [other] is read in this zone.
+  IsoDuration untilInDays(ZonedDateTime other) {
+    final from = epochMilliseconds;
+    final to = other.epochMilliseconds;
+    if (from == to) return IsoDuration.zero;
+    final sign = to > from ? 1 : -1;
+    final rules = rulesFor(zone);
+    final startWall = plainDateTime;
+    final endWall = other.instant.wallAt(rules.offsetAt(to));
+    // The same date on the clock: exact time only, as Temporal (an end in
+    // the second pass of a repeated hour may read earlier than the start).
+    if (startWall.date == endWall.date) return _exact(to - from);
+    var correction = 0;
+    final timeSign = (endWall.time.msOfDay - startWall.time.msOfDay).sign;
+    if (timeSign == -sign) correction = 1;
+    // At most one more day back (forward) than the first guess, as Temporal.
+    final maxCorrection = correction + (sign > 0 ? 1 : 0);
+    for (; ; correction++) {
+      final date = endWall.date.addDays(-correction * sign);
+      final mid = resolveWallMs(PlainDateTime(date, startWall.time).wallMs, rules, Disambiguation.compatible)!;
+      final rest = to - mid;
+      if (rest.sign != -sign || correction >= maxCorrection) {
+        final exact = _exact(rest);
+        return IsoDuration(
+          days: startWall.date.daysUntil(date),
+          hours: exact.hours,
+          minutes: exact.minutes,
+          seconds: exact.seconds,
+          milliseconds: exact.milliseconds,
+        );
+      }
+    }
+  }
+
+  static IsoDuration _exact(int ms) {
+    final sign = ms < 0 ? -1 : 1;
+    final abs = ms.abs();
+    return IsoDuration(
+      hours: sign * (abs ~/ msPerHour),
+      minutes: sign * (abs ~/ msPerMinute % 60),
+      seconds: sign * (abs ~/ msPerSecond % 60),
+      milliseconds: sign * (abs % msPerSecond),
+    );
+  }
 
   /// The same instant seen in [other].
   ZonedDateTime withTimeZone(ZoneId other) => ZonedDateTime(instant, other);

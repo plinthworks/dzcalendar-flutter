@@ -2,16 +2,11 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19c in progress (2026-11-08).** 19c-1 committed ("Phase 19c-1"):
-  the RRULE engine (`lib/src/rrule/`: parse, serialize, iterate, expand,
-  first/last start), the 102 `rrule-expand` cases pass, `rrule_test.dart`
-  (19, from the TS) passes; the store's persistent structures (AVL, ordered
-  map, interval tree) and span algebra (`intervals.dart`) are written,
-  untested yet. `ZonedDateTime.fromWall` (an offset preference: the one
-  helper the 19b review asked for). **Next: 19c-2** — series
-  (`occurrenceLength` needs `until` with days, materialize, keys), the
-  store, commands, history, series editing; `series-edit` cases; then the
-  reviews of the whole of 19c.
+- **Phase 19c done (2026-11-08)**, committed ("Phase 19c"); see its section
+  below. **Next: 19d** — slots, iCal, resources, timeline axis, and the
+  calendar rules (`validateProposal`, plugged into `CommandContext` /
+  `CommandResult` as optional additions: `rules`, `external`, `violations`);
+  its 96 cases. Read 19c's notes first.
 - **19b done (2026-11-08)**, committed ("Phase 19b"). **19c** — recurrence (rrule parse/expand, series),
   the store (persistent interval indexes, revisions, `eventEquals` is there),
   commands with `EventPatch` (decision 10), the undo history; the
@@ -64,6 +59,17 @@
   11. **`ZonedDateTime ==` (owner, 2026-11-08)**: a link and its zone are one
       zone (`Asia/Calcutta` = `Asia/Kolkata`), as Temporal's `equals`; the
       name written is kept for display.
+  12. **Two libraries (owner, 2026-11-08)**: `dzcalendar_core.dart` is the
+      public API under semver; `internal.dart` re-exports it with the
+      engine's working parts (rule editing, iteration, stamping, patching,
+      `ZoneRules`, the `Start` typedef…) for the Flutter package and the
+      tests, without that promise.
+  13. **`History` (owner, 2026-11-08)**: `dispose()` (not the TS's
+      `destroy()`); `addListener`/`removeListener`, called when `canUndo` or
+      `canRedo` changes (pure Dart, wired to a `ChangeNotifier` by the
+      widgets); the command context passed by value (`History(store, ctx)`),
+      or read at each command (`History.reading(store, () => ctx)`) — the
+      same id generator each time.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -198,3 +204,66 @@
   store build events; `ZoneRules` still exported with raw milliseconds.
 - Known difference: digits past the millisecond are dropped (decision 1),
   said by `precision-truncated` (decision 9).
+
+## 19c — recurrence, store, commands, history ✅ (2026-11-08)
+
+- RRULE engine (`lib/src/rrule/`): parse/serialize, iterate (wall-clock
+  DAILY and slower, elapsed sub-daily), expand with EXDATE/RDATE and the
+  limit, first/last start, rule editing (explicit/implicit, rebase, split,
+  union, positions). Series (`lib/src/recurrence/`): occurrence length in
+  wall days (`ZonedDateTime.untilInDays`, Temporal's `until` with days —
+  checked against the polyfill), materialize with its cache, keys,
+  expansion, spans, and editing this / following / all, deleting.
+- Store (`lib/src/store/`): persistent AVL, ordered map, interval tree;
+  immutable snapshots, revisions stamped by the store, `StoreChange` (dirty
+  spans and days, series touched/changed, applied), source chunks with
+  ownership, adoption and the local-edit cleanup. Normalize: series,
+  overrides (`recurrenceId`), linking.
+- Commands (`lib/src/commands/`): the `Command` hierarchy and a total
+  `Command.fromJson` (an `InvalidCommand` carrying its problems at their
+  paths), `EventPatch` with `clear` (decision 10; set and cleared at once
+  refused), `Edge`, `applyCommand` (all or nothing), `History` (merge,
+  compact, revert, transactions, running events followed; decision 13).
+- Conformance: **205 cases pass** (rrule-expand 102, series-edit 47 and the
+  56 before); 96 skipped (19d). Unit tests ported from the TS by Sonnet
+  agents, none failing: rrule (19), store (20), diff (5), intervals (6),
+  commands (28), series (23), series-edit (50); skipped: what needs the
+  calendar rules, the kernel, sources' fetching, view models. 519 tests.
+- **Reviews** — fixed, each confirmed by running it first: a sub-daily rule
+  dropped DTSTART's milliseconds (the first occurrence vanished;
+  Temporal's `with` keeps them); `untilInDays` threw for an event from the
+  first pass of a repeated hour to the second (Temporal: the same date is
+  exact time, `PT45M`) — one such series in a source chunk would have
+  aborted the delivery; `Command.fromJson` read a `series.rule` with an
+  unreadable `rrule` as "stop repeating" (the series deleted; the TS
+  refuses), a non-string `key` as no key (the whole series deleted), threw
+  on a non-string batch label, lost every reason in `null`; a patch both
+  setting and clearing a field cleared it in silence; a positional `bool`
+  for the resize edge (now `Edge`); `weekStart` unchecked (now throws, a
+  context error); `StoreChange` lists mutable and shared by every listener;
+  the history's transaction compacting after its emptiness check. My own:
+  the conformance adapter made a new id generator per command (two splits
+  both made `n-1`) — the reason for `History`'s context by value.
+- **Notes for 19d / 19e** (reviews):
+  - Rules: `editedOccurrence` and `seriesAllowed` (TS) not ported — with
+    `validateProposal`.
+  - Long series are slow to show: 500 open daily/weekly series from 2020,
+    a one-week query ≈ 55 ms in 2026, ≈ 155 ms in 2040 (`iterateZoned` walks
+    every period from DTSTART). Before 19e scrolls: jump arithmetically to
+    the window for rules without COUNT, and/or cache starts per rule set and
+    window (check the TS: it likely does the same).
+  - `replaceSourceChunks`' local-split cleanup scans every series once per
+    changed series (quadratic; the TS does the same).
+  - Still open from 19b: one wall+offset helper (`parse_temporal` keeps its
+    to-the-minute loop), the POSIX per-year cache, a `ZonedDateTime`
+    carrying its rules, `PlainDate.with`/`tryFrom`, `toString(smallestUnit)`,
+    rethrowing a port bug under `assert` in `normalizeEvent`.
+  - `Command.toJson` (sending edits to a server) — an addition.
+  - Small differences, kept: `INTERVAL=1.0` / `COUNT=1E1` refused (the TS
+    reads `Number`); an unknown `scope` refused on every command (the TS
+    ignores it where no occurrence is reached); `title: null` in a JSON
+    patch is "unchanged" (the TS empties the title).
+- **To bring back to the main repository** (the TS does the same): wall
+  times in EXDATE, RDATE and `recurrenceId` are placed without the
+  `wall-time-skipped`/`-ambiguous` warning ("every guess is a warning");
+  `orphan-override`'s path uses the index after rejections, not the input's.

@@ -62,24 +62,43 @@ final class RRule {
   bool get hasUntil => untilInstant != null || untilDate != null;
   bool get subDaily => freq == Frequency.hourly || freq == Frequency.minutely || freq == Frequency.secondly;
 
-  /// The same rule with its end changed: [count] or an until, or neither.
-  RRule withEnd({int? count, Instant? untilInstant, PlainDate? untilDate}) => RRule(
-    freq: freq,
-    interval: interval,
-    count: count,
-    untilInstant: untilInstant,
-    untilDate: untilDate,
-    bySecond: bySecond,
-    byMinute: byMinute,
-    byHour: byHour,
-    byDay: byDay,
-    byMonthDay: byMonthDay,
-    byYearDay: byYearDay,
-    byWeekNo: byWeekNo,
-    byMonth: byMonth,
-    bySetPos: bySetPos,
-    wkst: wkst,
+  /// Every field; a nullable one is cleared by passing `null`.
+  RRule copyWith({
+    Frequency? freq,
+    int? interval,
+    Object? count = _keep,
+    Object? untilInstant = _keep,
+    Object? untilDate = _keep,
+    Object? bySecond = _keep,
+    Object? byMinute = _keep,
+    Object? byHour = _keep,
+    Object? byDay = _keep,
+    Object? byMonthDay = _keep,
+    Object? byYearDay = _keep,
+    Object? byWeekNo = _keep,
+    Object? byMonth = _keep,
+    Object? bySetPos = _keep,
+    int? wkst,
+  }) => RRule(
+    freq: freq ?? this.freq,
+    interval: interval ?? this.interval,
+    count: _or(count, this.count),
+    untilInstant: _or(untilInstant, this.untilInstant),
+    untilDate: _or(untilDate, this.untilDate),
+    bySecond: _or(bySecond, this.bySecond),
+    byMinute: _or(byMinute, this.byMinute),
+    byHour: _or(byHour, this.byHour),
+    byDay: _or(byDay, this.byDay),
+    byMonthDay: _or(byMonthDay, this.byMonthDay),
+    byYearDay: _or(byYearDay, this.byYearDay),
+    byWeekNo: _or(byWeekNo, this.byWeekNo),
+    byMonth: _or(byMonth, this.byMonth),
+    bySetPos: _or(bySetPos, this.bySetPos),
+    wkst: wkst ?? this.wkst,
   );
+
+  /// The same rule, ending neither by COUNT nor by UNTIL.
+  RRule get open => copyWith(count: null, untilInstant: null, untilDate: null);
 
   /// The rule as RFC 5545 text, parts in a fixed order: equal rules print equal.
   @override
@@ -166,6 +185,14 @@ final class RRuleProblem {
   @override
   String toString() => '$code: $detail';
 }
+
+const Object _keep = _Keep();
+
+final class _Keep {
+  const _Keep();
+}
+
+T _or<T>(Object? given, T current) => identical(given, _keep) ? current : given as T;
 
 const _days = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
 final _int = RegExp(r'^[+-]?\d{1,15}$');

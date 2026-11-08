@@ -1,3 +1,5 @@
+import '../recurrence/series.dart';
+import '../rrule/rule.dart';
 import '../time/duration.dart';
 import '../time/instant.dart';
 import '../time/plain.dart';
@@ -49,7 +51,7 @@ final class NormalizeContext {
   final Set<ResourceId>? knownResources;
 }
 
-/// One event; a series (19c) will be the other kind.
+/// One event, or a series (an event with `rrule`).
 sealed class Normalized {
   const Normalized();
 
@@ -61,6 +63,15 @@ final class NormalizedEvent extends Normalized {
   const NormalizedEvent(this.event);
   @override
   final CalEvent event;
+}
+
+final class NormalizedSeries extends Normalized {
+  const NormalizedSeries(this.series);
+  final Series series;
+
+  /// The series' first occurrence.
+  @override
+  CalEvent get event => series.base;
 }
 
 /// An accepted input ([value] set, with its warnings) or a refused one.
@@ -171,17 +182,6 @@ NormalizeResult _normalize(EventInput input, NormalizeContext ctx, String path) 
     );
   }
 
-  // Repeating events, and overrides of one occurrence, come with the
-  // recurrence engine (Phase 19c).
-  if (input.rrule != null) {
-    add(ProblemCode.invalidRrule, Severity.error, '$path.rrule', 'recurrence is not ported yet (19c)');
-    return failed();
-  }
-  if (input.recurrenceId != null) {
-    add(ProblemCode.invalidRecurrenceId, Severity.error, '$path.recurrenceId', 'not ported yet (19c)');
-    return failed();
-  }
-
   final common = _Common.of(input, ctx, path, problems);
   CalEvent? event;
   if (allDay) {
@@ -195,7 +195,161 @@ NormalizeResult _normalize(EventInput input, NormalizeContext ctx, String path) 
   if (ongoing && event is TimedEvent) {
     event = _stillRunning(event, endParsed != null || duration != null, ctx.now?.call());
   }
-  return NormalizeResult._(NormalizedEvent(event), problems);
+  if (input.recurrenceId != null) {
+    final ref = _overrideRef(input, path, event, problems);
+    if (ref == null) return failed();
+    event = withRef(event, ref);
+  }
+  if (input.rrule == null) return NormalizeResult._(NormalizedEvent(event), problems);
+
+  // A series: the event is its first occurrence; the rules repeat it.
+  final set = _recurrenceSet(input, ctx, path, event, problems);
+  if (set == null || hasError()) return failed();
+  return NormalizeResult._(NormalizedSeries(Series(id: event.id, base: event, set: set)), problems);
+}
+
+/// [e] standing for an occurrence of a series (or for none).
+CalEvent withRef(CalEvent e, EventRef? ref) => switch (e) {
+  TimedEvent() => e.copyWith(ref: ref),
+  AllDayEvent() => e.copyWith(ref: ref),
+};
+
+/// The occurrence an override stands for, keyed as the series keys it: a
+/// date, or the original start in full. A wall time is read in the
+/// override's zone; [normalizeMany] re-keys it in the series' zone.
+EventRef? _overrideRef(EventInput input, String path, CalEvent event, List<Problem> problems) {
+  final at = '$path.recurrenceId';
+  final seriesId = input.seriesId;
+  if (input.rrule != null || seriesId == null || seriesId.isEmpty) {
+    problems.add(
+      Problem(
+        ProblemCode.invalidRecurrenceId,
+        Severity.error,
+        at,
+        input.rrule != null ? 'an override cannot repeat' : 'needs seriesId',
+      ),
+    );
+    return null;
+  }
+  final p = parseTemporal(input.recurrenceId, at, start: true).parsed;
+  final String? key = switch ((event, p)) {
+    (AllDayEvent(), ParsedDate(:final value)) => '$value',
+    (AllDayEvent(), ParsedZoned(:final value)) => '${value.date}',
+    (AllDayEvent(), ParsedWall(:final value)) => '${value.date}',
+    (TimedEvent(), ParsedZoned(:final value)) => '$value',
+    (TimedEvent(start: final s), ParsedInstant(:final value)) => '${value.inZone(s.zone)}',
+    (TimedEvent(start: final s), ParsedWall(:final value)) => '${placeWall(value, s.zone, at).value}',
+    _ => null,
+  };
+  if (key == null) {
+    problems.add(Problem(ProblemCode.invalidRecurrenceId, Severity.error, at, '${input.recurrenceId}'));
+    return null;
+  }
+  return EventRef(seriesId, key);
+}
+
+RRuleSet? _recurrenceSet(EventInput input, NormalizeContext ctx, String path, CalEvent event, List<Problem> problems) {
+  final raw = input.rrule;
+  final texts = switch (raw) {
+    String t => [t],
+    List<Object?> l => l,
+    _ => null,
+  };
+  if (texts == null || texts.isEmpty) {
+    problems.add(
+      Problem(ProblemCode.invalidRrule, Severity.error, '$path.rrule', 'expected a rule string or a list of them'),
+    );
+    return null;
+  }
+  final rules = <RRule>[];
+  for (var i = 0; i < texts.length; i++) {
+    final text = texts[i];
+    final at = '$path.rrule${texts.length > 1 ? '[$i]' : ''}';
+    final r = text is String ? parseRRule(text) : null;
+    final rule = r?.rule;
+    if (rule == null) {
+      problems.add(Problem(ProblemCode.invalidRrule, Severity.error, at, r?.problem?.detail ?? 'not a string'));
+      continue;
+    }
+    // Hours and minutes make no sense for an all-day series.
+    if (event.allDay && rule.subDaily) {
+      problems.add(
+        Problem(
+          ProblemCode.invalidRrule,
+          Severity.error,
+          '$path.rrule',
+          'FREQ=${rule.freq.name.toUpperCase()} on an all-day event',
+        ),
+      );
+      continue;
+    }
+    rules.add(rule);
+  }
+  final zone = switch (event) {
+    TimedEvent(:final start) => start.zone,
+    AllDayEvent() => ctx.displayZone,
+  };
+  final exdates = <ExDate>[];
+  final exInput = input.exdate ?? const [];
+  for (var i = 0; i < exInput.length; i++) {
+    final at = '$path.exdate[$i]';
+    final v = parseTemporal(exInput[i], at, start: true).parsed;
+    if (v == null) {
+      problems.add(Problem(ProblemCode.invalidExdate, Severity.error, at, '${exInput[i]}'));
+      continue;
+    }
+    // A date excludes that day; a moment that moment (a wall time read in the
+    // event's zone). An all-day series has days only: a moment names the day
+    // it falls on, in the calendar's zone.
+    if (event.allDay) {
+      exdates.add(
+        ExDate.date(switch (v) {
+          ParsedDate(:final value) => value,
+          ParsedZoned(:final value) => value.date,
+          ParsedWall(:final value) => value.date,
+          ParsedInstant(:final value) => value.inZone(zone).date,
+        }),
+      );
+      continue;
+    }
+    exdates.add(switch (v) {
+      ParsedDate(:final value) => ExDate.date(value),
+      ParsedInstant(:final value) => ExDate.instant(value),
+      ParsedZoned(:final value) => ExDate.instant(value.instant),
+      ParsedWall(:final value) => ExDate.instant(placeWall(value, zone, at).value.instant),
+    });
+  }
+  final rdates = <RDate>[];
+  final rdInput = input.rdate ?? const [];
+  for (var i = 0; i < rdInput.length; i++) {
+    final at = '$path.rdate[$i]';
+    final v = parseTemporal(rdInput[i], at, start: true).parsed;
+    if (v == null) {
+      problems.add(Problem(ProblemCode.invalidRdate, Severity.error, at, '${rdInput[i]}'));
+      continue;
+    }
+    if (event is AllDayEvent) {
+      rdates.add(
+        RDate.date(switch (v) {
+          ParsedDate(:final value) => value,
+          ParsedZoned(:final value) => value.date,
+          ParsedWall(:final value) => value.date,
+          ParsedInstant(:final value) => value.inZone(zone).date,
+        }),
+      );
+    } else {
+      final start = (event as TimedEvent).start;
+      rdates.add(
+        RDate.zoned(switch (v) {
+          ParsedZoned(:final value) => value,
+          ParsedInstant(:final value) => value.inZone(zone),
+          ParsedWall(:final value) => placeWall(value, zone, at).value,
+          ParsedDate(:final value) => ZonedDateTime.fromWall(value.at(start.time), zone)!,
+        }),
+      );
+    }
+  }
+  return RRuleSet(List.unmodifiable(rules), exdates: List.unmodifiable(exdates), rdates: List.unmodifiable(rdates));
 }
 
 final _spaces = RegExp(r'\s+');
@@ -508,7 +662,9 @@ int _imul(int a, int b) {
       if (input.id == null) {
         // Two 53-bit hashes under different seeds: ~106 bits, so ids derived
         // across chunks and refreshes do not meet by chance.
-        final text = '${_startText(event)}|${_endText(event)}|${event.title}';
+        // A series' rules are part of what it is: the same start with another rule is another series.
+        final rules = item is NormalizedSeries ? '|${item.series.set.rules.map(serializeRRule).join(';;')}' : '';
+        final text = '${_startText(event)}|${_endText(event)}|${event.title}$rules';
         final base = '$sourceId:${hash53(text)}${hash53(text, 0x9e3779b9)}';
         final rank = ranks[base] ?? 0;
         ranks[base] = rank + 1;
@@ -521,9 +677,42 @@ int _imul(int a, int b) {
       rejected++;
       continue;
     }
-    items.add(NormalizedEvent(event));
+    items.add(switch (item) {
+      NormalizedEvent() => NormalizedEvent(event),
+      NormalizedSeries(:final series) => NormalizedSeries(
+        series.copyWith(id: event.id, base: event, sourceId: sourceId ?? series.sourceId),
+      ),
+    });
   }
+  _linkOverrides(items, problems, tag);
   return (items: items, report: NormalizationReport(items.length, rejected, problems));
+}
+
+/// Overrides meet their series: each joins the series' overrides, keyed in
+/// the series' zone. One whose series is not in the batch stays a plain event.
+void _linkOverrides(List<Normalized> items, List<Problem> problems, Problem Function(Problem) tag) {
+  final at = <String, int>{
+    for (var i = 0; i < items.length; i++)
+      if (items[i] case NormalizedSeries(:final series)) series.id: i,
+  };
+  for (var i = 0; i < items.length; i++) {
+    final it = items[i];
+    final ref = it is NormalizedEvent ? it.event.ref : null;
+    if (ref == null) continue;
+    final si = at[ref.seriesId];
+    final sr = si == null ? null : (items[si] as NormalizedSeries).series;
+    if (sr == null || sr.allDay != it.event.allDay) {
+      problems.add(tag(Problem(ProblemCode.orphanOverride, Severity.warning, 'events[$i].seriesId', ref.seriesId)));
+      items[i] = NormalizedEvent(withRef(it.event, null));
+      continue;
+    }
+    final key = switch (sr.base) {
+      AllDayEvent() => ref.key,
+      TimedEvent(:final start) => '${parseZonedDateTime(ref.key)!.withTimeZone(start.zone)}',
+    };
+    if (key != ref.key) items[i] = NormalizedEvent(withRef(it.event, EventRef(sr.id, key)));
+    items[si!] = NormalizedSeries(sr.copyWith(overrides: {...sr.overrides, key: it.event.id}));
+  }
 }
 
 String _startText(CalEvent e) => switch (e) {

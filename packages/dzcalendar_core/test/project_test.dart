@@ -4,7 +4,7 @@
 // Skipped: nothing. Every test of that file has its function in the port
 // (buildColumnAxis, segmentTimed, segmentAllDay, splitByWeek, DateIndex).
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:test/test.dart';
 
 PlainDate d(String s) => PlainDate.parse(s);

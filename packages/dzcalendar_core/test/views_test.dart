@@ -7,7 +7,7 @@
 // - 'formatting' (6 tests: formatRangeTitle, formatTemporal, weekdayNames,
 //   monthNames, weekNumber, weekRulesFor, which need Intl-like formatting)
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:test/test.dart';
 
 PlainDate d(String s) => PlainDate.parse(s);

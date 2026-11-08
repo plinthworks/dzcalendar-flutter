@@ -2,7 +2,7 @@
 // copied from the implementation's output. Ported from the TypeScript core's
 // zone.test.ts, plus what only the port has: its own data and POSIX rules.
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:test/test.dart';
 
 PlainDate d(String s) => PlainDate.parse(s);
@@ -328,7 +328,7 @@ void main() {
     });
 
     test('the bundled data says its release', () {
-      expect(ZoneRules.dataVersion, matches(RegExp(r'^\d{4}[a-z]$')));
+      expect(zoneDataVersion, matches(RegExp(r'^\d{4}[a-z]$')));
     });
   });
 }

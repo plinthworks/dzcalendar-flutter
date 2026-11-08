@@ -7,7 +7,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:test/test.dart';
 
 typedef Json = Map<String, Object?>;
@@ -15,6 +15,16 @@ typedef Json = Map<String, Object?>;
 String? _str(Object? x) => x?.toString();
 
 const defaultLimit = 10000;
+
+String _startText(CalEvent e) => switch (e) {
+  TimedEvent(:final start) => '$start',
+  AllDayEvent(:final start) => '$start',
+};
+
+String _endText(CalEvent e) => switch (e) {
+  TimedEvent(:final end) => '$end',
+  AllDayEvent(:final end) => '$end',
+};
 
 /// A zoned string as Temporal.ZonedDateTime.from reads it, through the port's own parser.
 ZonedDateTime _zoned(String text) {
@@ -39,6 +49,53 @@ WallPolicy _policy(Object? p) => switch (p) {
 final _dateOnly = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
 final Map<String, Object? Function(Json)> _adapters = {
+  'series-edit': (input) {
+    final zone = input['zone']! as String;
+    final store = EventStore();
+    // One context, one id generator for the whole run, as the TS runner's.
+    final context = CommandContext(
+      normalize: NormalizeContext(displayZone: zone, newId: createIdGenerator('n')),
+    );
+    final h = History.reading(store, () => context);
+    List<String> errors(RunResult r) => [for (final p in r.result.problems.where((p) => p.isError)) p.code.code];
+    final created = h.run(CreateEvent(EventInput.fromJson(input['event']! as Json)));
+    if (!created.ok) return {'error': errors(created)};
+    for (final op in (input['ops']! as List).cast<Json>()) {
+      switch (op['type']) {
+        case 'undo':
+          h.undo();
+        case 'redo':
+          h.redo();
+        default:
+          final r = h.run(Command.fromJson(op));
+          if (!r.ok) return {'error': errors(r)};
+      }
+    }
+    final w = input['window']! as Json;
+    final snap = store.snapshot;
+    final shown = [
+      for (final i in snap.queryInstances(
+        viewWindow(PlainDate.parse(w['from']! as String), PlainDate.parse(w['to']! as String), zone),
+      ))
+        '${i.origin.name}|${i.event.title}|${_startText(i.event)}|${_endText(i.event)}',
+    ];
+    final series = snap.allSeries.toList()
+      ..sort(
+        (a, b) => switch ((a.start, b.start)) {
+          (PlainDate x, PlainDate y) => x.compareTo(y),
+          (ZonedDateTime x, ZonedDateTime y) => x.compareTo(y),
+          _ => 0,
+        },
+      );
+    return {
+      'shown': shown,
+      'series': [
+        for (final sr in series)
+          sr.set.rules.map(serializeRRule).join(',') +
+              (sr.set.exdates.isNotEmpty ? '|EXDATE=${sr.set.exdates.join(',')}' : ''),
+      ],
+    };
+  },
   'rrule-expand': (input) {
     final parsed = parseRRule(input['rrule']! as String);
     final rule = parsed.rule;
@@ -237,7 +294,6 @@ final Map<String, Object? Function(Json)> _adapters = {
 
 /// Where each suite not yet ported will be (ROADMAP.md, Phase 19).
 const _pending = {
-  'series-edit': '19c',
   'slots': '19d',
   'ical-parse': '19d',
   'resource-tree': '19d',

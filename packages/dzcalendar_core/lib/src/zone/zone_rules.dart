@@ -6,6 +6,9 @@ import 'tzdata.g.dart';
 /// ("+02:00") — never anything else.
 typedef ZoneId = String;
 
+/// The IANA release the bundled zone rules come from ("2026f").
+String get zoneDataVersion => tzdataVersion;
+
 /// A zone's offsets over time: which offset holds at an instant, and when it
 /// next changes. Everything about zones is built on these two questions, the
 /// way the TypeScript core builds on Temporal's `getTimeZoneTransition`.
