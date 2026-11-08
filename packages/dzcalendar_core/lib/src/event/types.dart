@@ -1,3 +1,5 @@
+import '../time/duration.dart';
+import '../time/instant.dart';
 import '../time/plain.dart';
 import '../zone/zone_rules.dart';
 import '../zone/zoned.dart';
@@ -238,6 +240,40 @@ final class EventInput {
   /// or a `duration` given is the length expected. A timed event, not a series.
   final bool? ongoing;
 
+  /// The web's JSON shape, the fields given only: moments, lengths and
+  /// rules as ISO / RFC 5545 text (a [ZonedDateTime] as
+  /// `2026-10-21T08:00:00+02:00[Europe/Paris]`, an [IsoDuration] as `PT1H`).
+  /// What [EventInput.fromJson] reads back.
+  Map<String, Object?> toJson() => {
+    'id': ?id,
+    'groupId': ?groupId,
+    'title': ?title,
+    'start': ?_jsonOf(start),
+    'end': ?_jsonOf(end),
+    'duration': ?_jsonOf(duration),
+    'allDay': ?allDay,
+    'timeZone': ?timeZone,
+    'resourceId': ?resourceId,
+    'resourceIds': ?_jsonOf(resourceIds),
+    'rrule': ?_jsonOf(rrule),
+    'exdate': ?_jsonOf(exdate),
+    'rdate': ?_jsonOf(rdate),
+    'seriesId': ?seriesId,
+    'recurrenceId': ?_jsonOf(recurrenceId),
+    'display': ?display?.code,
+    'status': ?status?.name,
+    'busy': ?busy,
+    'editable': ?editable,
+    'startEditable': ?startEditable,
+    'durationEditable': ?durationEditable,
+    'resourceEditable': ?resourceEditable,
+    'classNames': ?_jsonOf(classNames),
+    'tone': ?tone,
+    'url': ?url,
+    'extendedProps': ?_jsonOf(extendedProps),
+    'ongoing': ?ongoing,
+  };
+
   /// What [EventInput.fromJson] could not read: `(code, field, detail)`.
   final List<(ProblemCode, String, String)> _readProblems;
 }
@@ -354,6 +390,62 @@ sealed class CalEvent {
 
   /// The same event at the store's [revision].
   CalEvent withRevision(int revision);
+
+  /// The same event at another time of day — what a drag shows as it goes,
+  /// and what [Placement] is checked on — from a timed event or an all-day
+  /// one. A running event so moved is no longer running. Throws an
+  /// [ArgumentError] when [end] is before [start] (the caller's arithmetic).
+  TimedEvent movedToTime(ZonedDateTime start, ZonedDateTime end, {List<ResourceId>? resourceIds}) {
+    if (end.instant.isBefore(start.instant)) throw ArgumentError.value(end, 'end', 'before the start');
+    return TimedEvent(
+      id: id,
+      title: title,
+      resourceIds: List.unmodifiable(resourceIds ?? this.resourceIds),
+      display: display,
+      status: status,
+      busy: busy,
+      perms: perms,
+      classNames: classNames,
+      props: props,
+      revision: revision,
+      start: start,
+      end: end,
+      zoneGuessed: switch (this) {
+        TimedEvent(:final zoneGuessed) => zoneGuessed,
+        AllDayEvent() => false,
+      },
+      groupId: groupId,
+      tone: tone,
+      url: url,
+      sourceId: sourceId,
+      ref: ref,
+    );
+  }
+
+  /// The same event on other days ([end] exclusive), from a timed event or
+  /// an all-day one. Throws an [ArgumentError] when [end] is before [start].
+  AllDayEvent movedToDays(PlainDate start, PlainDate end, {List<ResourceId>? resourceIds}) {
+    if (end.isBefore(start)) throw ArgumentError.value(end, 'end', 'before the start');
+    return AllDayEvent(
+      id: id,
+      title: title,
+      resourceIds: List.unmodifiable(resourceIds ?? this.resourceIds),
+      display: display,
+      status: status,
+      busy: busy,
+      perms: perms,
+      classNames: classNames,
+      props: props,
+      revision: revision,
+      start: start,
+      end: end,
+      groupId: groupId,
+      tone: tone,
+      url: url,
+      sourceId: sourceId,
+      ref: ref,
+    );
+  }
 }
 
 /// An event at a time of day. [start] and [end] may sit in different zones —
@@ -591,3 +683,14 @@ bool eventEquals(CalEvent a, CalEvent b) {
       _sameList(a.classNames, b.classNames) &&
       sameValue(a.props, b.props);
 }
+
+/// A value as JSON: the time types as their ISO text, lists and maps
+/// copied (the input's own are never handed out). Anything else is passed
+/// as it is, for `jsonEncode` to refuse if it is no JSON — never turned
+/// into text that would read back as something else.
+Object? _jsonOf(Object? v) => switch (v) {
+  ZonedDateTime() || Instant() || PlainDate() || PlainDateTime() || PlainTime() || IsoDuration() => '$v',
+  final List<Object?> l => [for (final x in l) _jsonOf(x)],
+  final Map<Object?, Object?> m => {for (final e in m.entries) '${e.key}': _jsonOf(e.value)},
+  _ => v,
+};

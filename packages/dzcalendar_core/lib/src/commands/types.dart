@@ -1,6 +1,7 @@
 import '../event/normalize.dart';
 import '../event/problem.dart';
 import '../event/types.dart';
+import '../rules/validate.dart';
 import '../store/changes.dart';
 
 /// How far an edit of one occurrence reaches.
@@ -92,6 +93,17 @@ final class EventPatch {
     );
     return (patch: patch, problems: const []);
   }
+
+  /// Whether it touches where the event sits (start, end, length, all-day,
+  /// resources): what the calendar's rules check.
+  bool get movesTime =>
+      start != null ||
+      end != null ||
+      duration != null ||
+      allDay != null ||
+      resourceId != null ||
+      resourceIds != null ||
+      clear.contains(EventField.end);
 
   /// The fields both set and cleared: a patch cannot say both.
   List<EventField> get conflicts => [
@@ -425,19 +437,31 @@ final class Batch extends Command {
 }
 
 final class CommandContext {
-  const CommandContext({required this.normalize, this.weekStart});
+  const CommandContext({required this.normalize, this.weekStart, this.rules, this.external = false});
   final NormalizeContext normalize;
 
   /// The locale's first day of the week (ISO), written as WKST into a rule
   /// created without one (a rule read from elsewhere keeps RFC's Monday).
   final int? weekStart;
+
+  /// When given, moves, edits and new series are checked against it
+  /// (editable, valid range, constraint, overlap, allow): a refusal is in
+  /// [CommandResult.violations].
+  final RulesContext? rules;
+
+  /// What is checked comes from outside the calendar (a drop from the page,
+  /// another calendar): said to the rules' `allow`.
+  final bool external;
 }
 
 /// The mutations that carry a command out (nothing applied yet), or why not.
 final class CommandResult {
-  const CommandResult.ok(this.mutations, this.problems) : ok = true;
-  const CommandResult.failed(this.problems) : ok = false, mutations = const [];
+  const CommandResult.ok(this.mutations, this.problems) : ok = true, violations = const [];
+  const CommandResult.failed(this.problems, [this.violations = const []]) : ok = false, mutations = const [];
   final bool ok;
   final List<Mutation> mutations;
   final List<Problem> problems;
+
+  /// Why the calendar's rules refused it ([CommandContext.rules]); empty otherwise.
+  final List<Violation> violations;
 }

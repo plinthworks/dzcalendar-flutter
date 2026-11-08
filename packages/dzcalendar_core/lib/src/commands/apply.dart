@@ -4,6 +4,7 @@ import '../event/problem.dart';
 import '../event/types.dart';
 import '../recurrence/edit.dart';
 import '../recurrence/series.dart';
+import '../rules/validate.dart';
 import '../rrule/rule.dart';
 import '../store/changes.dart';
 import '../store/store.dart';
@@ -113,8 +114,10 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
     throw ArgumentError.value(weekStart, 'weekStart', 'an ISO weekday, 1 to 7');
   }
   final problems = <Problem>[];
+  final violations = <Violation>[];
   final mutations = <Mutation>[];
   var current = snap;
+  final rules = ctx.rules;
 
   // Each step sees the state the previous ones made: create then update works.
   bool push(Mutation m) {
@@ -172,6 +175,63 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
     }
   }
 
+  /// Checks one proposal; a refusal is kept in `violations`.
+  bool check(CalEvent before, CalEvent after, {String? movingSeries, Neighbours? around}) {
+    if (rules == null) return true;
+    final found = validateWith(
+      current,
+      Placement(event: before, proposed: after, external: ctx.external),
+      rules,
+      movingSeries: movingSeries,
+      around: around,
+    );
+    violations.addAll(found);
+    return found.isEmpty;
+  }
+
+  /// Checks the edit against the calendar's rules before anything is
+  /// written — on the very event the edit will write (for a series, the
+  /// occurrence it produces, not its override). When the whole series
+  /// moves, its other occurrences move too: they are not in the way.
+  bool allowed(_Target t, EventPatch patch) {
+    if (rules == null || !patch.movesTime) return true;
+    final pair = switch (t) {
+      _EventTarget(:final event) => switch (patchEvent(event, patch, ctx.normalize, 'check', [])) {
+        null => null,
+        final after => (before: event, after: after),
+      },
+      _OccurrenceTarget(:final ref, :final scope) => editedOccurrence(current, ref, patch, scope, ctx.normalize),
+    };
+    // The edit itself will report why it cannot be made.
+    if (pair == null) return true;
+    return check(
+      pair.before,
+      pair.after,
+      movingSeries: t is _OccurrenceTarget && t.scope != EditScope.this_ ? t.ref.seriesId : null,
+    );
+  }
+
+  /// A series a person makes or changes (a new one, a single event made to
+  /// repeat, another rule) meets the rules on its occurrences — a year of
+  /// them, 500 at most — as a moved event does; its own occurrences are not
+  /// in the way.
+  bool seriesAllowed(Series sr) {
+    if (rules == null) return true;
+    final zone = rules.displayZone;
+    final d0 = switch (sr.base) {
+      AllDayEvent(:final start) => start,
+      TimedEvent(:final start) => start.withTimeZone(zone).date,
+    };
+    final occurrences = expandSeries(sr, viewWindow(d0, d0.addDays(366), zone), limit: 500).occurrences;
+    if (occurrences.isEmpty) return true;
+    // One query for the whole year (with the margins each check reads), not one per occurrence.
+    final around = Neighbours(current, d0.addDays(-3), d0.addDays(370), zone);
+    for (final occ in occurrences) {
+      if (!check(occ, occ, movingSeries: sr.id, around: around)) return false;
+    }
+    return true;
+  }
+
   bool edit(String id, EventPatch patch, Reach reach, String path) {
     // Set and cleared at once: the patch says two things; refused, never guessed.
     final conflicts = patch.conflicts;
@@ -182,9 +242,8 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
       return false;
     }
     final t = target(id, reach, path);
+    if (t == null || !allowed(t, patch)) return false;
     switch (t) {
-      case null:
-        return false;
       case _EventTarget(:final event):
         final next = patchEvent(event, patch, ctx.normalize, path, problems);
         if (next == null) return false;
@@ -209,6 +268,12 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
           NormalizedEvent(:final event) => event.id,
           NormalizedSeries(:final series) => series.id,
         };
+        // A person's new event (the editor) meets the rules too; the application's own creations do not ask.
+        final fits = switch (item) {
+          NormalizedEvent(:final event) => check(event, event),
+          NormalizedSeries(:final series) => seriesAllowed(series),
+        };
+        if (!fits) return false;
         // A command refuses an id used by either: `update('x')` must never be ambiguous.
         if (current.getEvent(id) != null || current.getSeries(id) != null) {
           fail(ProblemCode.duplicateId, '$path.id', id);
@@ -284,6 +349,8 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
         if (item is! NormalizedSeries) return false;
         final series = ev.sourceId != null ? item.series.copyWith(sourceId: ev.sourceId) : item.series;
         push(EventMutation(before: ev));
+        // Checked once the single event is gone: it is not in the way of its own occurrences.
+        if (!seriesAllowed(series)) return false;
         _warnIfEmpty(series, ctx, path, problems);
         return push(SeriesMutation(after: series));
       case ChangeRule(:final id, :final rrule):
@@ -333,6 +400,7 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
         final next = sr.copyWith(
           set: RRuleSet(rules, exdates: sr.set.exdates, rdates: sr.set.rdates),
         );
+        if (!seriesAllowed(next)) return false;
         _warnIfEmpty(next, ctx, path, problems);
         return push(SeriesMutation(before: sr, after: next));
       case Batch(:final commands):
@@ -343,7 +411,7 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
     }
   }
 
-  return run(cmd, 'command') ? CommandResult.ok(mutations, problems) : CommandResult.failed(problems);
+  return run(cmd, 'command') ? CommandResult.ok(mutations, problems) : CommandResult.failed(problems, violations);
 }
 
 /// A rule that can never give an occurrence (an UNTIL before the start…): said, as a warning.

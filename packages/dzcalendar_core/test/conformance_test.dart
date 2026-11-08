@@ -48,7 +48,124 @@ WallPolicy _policy(Object? p) => switch (p) {
 
 final _dateOnly = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
+String _slotText(Slot x) {
+  String minute(ZonedDateTime z) => '${z.plainDateTime.toString().substring(0, 16)}${z.offset}';
+  return '${minute(x.start)}/${minute(x.end)}';
+}
+
 final Map<String, Object? Function(Json)> _adapters = {
+  'ical-parse': (input) {
+    final r = parseICal(
+      (input['lines']! as List).cast<String>().join('\r\n'),
+      defaultZone: input['defaultZone'] as String?,
+    );
+    return {
+      'events': [for (final e in r.events) e.toJson()],
+      'problems': [for (final p in r.problems) p.code.code],
+    };
+  },
+  'slots': (input) {
+    final query = Map<String, Object?>.of(input)..remove('check');
+    if (input.containsKey('check')) {
+      final (req, _) = SlotRequest.fromJson(query, checking: input['check']);
+      if (req == null) return {'ok': false, 'reason': 'invalid-query'};
+      return switch (req.check(input['check']!)) {
+        SlotAccepted(:final slot) => {'ok': true, 'slot': _slotText(slot)},
+        SlotRefused(:final reason) => {'ok': false, 'reason': reason.code},
+      };
+    }
+    final (req, read) = SlotRequest.fromJson(query);
+    final r = req?.find();
+    return {
+      'slots': [for (final s in r?.slots ?? const <Slot>[]) _slotText(s)],
+      'problems': [
+        for (final p in [...read, ...?r?.problems]) p.code.code,
+      ],
+    };
+  },
+  'resource-tree': (input) {
+    final orderBy = input['orderBy'];
+    final r = buildResourceTreeFromJson(
+      input['resources'],
+      orderBy: orderBy == null ? null : ResourceOrder.fromJson(orderBy),
+    );
+    final groupBy = input['groupBy'] as String?;
+    final expanded = (input['expanded'] as List?)?.cast<String>().toSet();
+    final rows = flattenRows(r.tree, RowState(groupBy: groupBy, expanded: expanded));
+    return {
+      'rows': [
+        for (final row in rows)
+          switch (row) {
+            GroupRow(:final value) => '[$value]',
+            ResourceItemRow(:final depth, :final resource) => '$depth:${resource.id}',
+          },
+      ],
+      'problems': [for (final p in r.problems) '${p.code.code}@${p.path}'],
+    };
+  },
+  'resource-rules': (input) {
+    final zone = input['zone']! as String;
+    final store = EventStore();
+    store.replaceSourceChunk(
+      'c',
+      'all',
+      normalizeMany(
+        [for (final e in (input['events']! as List).cast<Json>()) EventInput.fromJson(e)],
+        NormalizeContext(displayZone: zone, newId: createIdGenerator('c')),
+        sourceId: 'c',
+      ).items,
+    );
+    final move = input['move']! as Json;
+    final event = store.snapshot.getEvent(move['id']! as String)! as TimedEvent;
+    final proposed = event.copyWith(
+      start: _zoned(move['start']! as String),
+      end: _zoned(move['end']! as String),
+      resourceIds: (move['resourceIds']! as List).cast<String>(),
+    );
+    final rules = input['rules']! as Json;
+    final v = validateProposal(
+      store.snapshot,
+      Placement(event: event, proposed: proposed),
+      RulesContext(
+        displayZone: zone,
+        resources: buildResourceTreeFromJson(input['resources']).tree,
+        constraint: rules.containsKey('constraint') ? ConstraintSpec.fromJson(rules['constraint']).$1 : null,
+        businessHours: rules.containsKey('businessHours') ? BusinessHours.fromJson(rules['businessHours']).$1 : null,
+        overlap: rules['overlap'] == false ? RulesContext.noOverlap : null,
+      ),
+    );
+    return {
+      'violations': [
+        for (final x in v) [x.code.code, x.detail],
+      ],
+    };
+  },
+  'timeline-axis': (input) {
+    final at = PlainDate.parse(input['date']! as String);
+    final span = input['span']! as String;
+    final spec = timelineViews['timeline${span[0].toUpperCase()}${span.substring(1)}']!;
+    final slot = input['slot'];
+    final axis = buildTimelineAxis(
+      computeViewRange(at, spec, NavContext(firstDay: 1, today: at)),
+      input['zone']! as String,
+      scale: switch (slot) {
+        'day' => TimelineScale.day,
+        final int m => TimelineScale.minutes(m),
+        _ => null,
+      },
+    );
+    String text(TimelineSlot x) {
+      final t = x.time;
+      if (t == null) return '${x.date}';
+      return '${t.toString().substring(0, 5)}${x.pass == TimelinePass.second ? '*' : ''}${x.offset}';
+    }
+
+    return {
+      'slots': [for (final x in axis.slots) text(x)],
+      'groups': [for (final g in axis.groups) g.lengthMinutes.round()],
+      'lengthMinutes': (axis.length * axis.slotMinutes).round(),
+    };
+  },
   'series-edit': (input) {
     final zone = input['zone']! as String;
     final store = EventStore();
@@ -292,14 +409,9 @@ final Map<String, Object? Function(Json)> _adapters = {
   },
 };
 
-/// Where each suite not yet ported will be (ROADMAP.md, Phase 19).
-const _pending = {
-  'slots': '19d',
-  'ical-parse': '19d',
-  'resource-tree': '19d',
-  'resource-rules': '19d',
-  'timeline-axis': '19d',
-};
+/// Where each suite not yet ported will be (ROADMAP.md, Phase 19): none
+/// since 19d; a suite the main repository adds lands here first.
+const _pending = <String, String>{};
 
 void main() {
   // `dart test` runs from the package; the cases sit at the repository's root.

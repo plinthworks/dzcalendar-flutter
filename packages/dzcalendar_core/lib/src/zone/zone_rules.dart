@@ -46,6 +46,11 @@ sealed class ZoneRules {
     return tzdataLinks[name] ?? name;
   }
 
+  /// Every zone of the bundled data by its IANA name, links left out,
+  /// sorted (UTF-16 order): the candidates when a zone is guessed from its
+  /// offsets (an iCal VTIMEZONE).
+  static List<ZoneId> get zoneNames => _zoneNames ??= List.unmodifiable(tzdataZones.keys.toList()..sort());
+
   /// The IANA release the bundled rules come from ("2026f").
   static String get dataVersion => tzdataVersion;
 
@@ -58,6 +63,7 @@ sealed class ZoneRules {
 }
 
 final _cache = <String, ZoneRules?>{};
+List<ZoneId>? _zoneNames;
 Map<String, String>? _lowerNames;
 
 /// Every name and link, by its lower case: built on the first unusual spelling.

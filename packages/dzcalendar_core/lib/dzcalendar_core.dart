@@ -93,7 +93,38 @@ export 'src/rrule/rule.dart'
         RZoned,
         parseRRule,
         serializeRRule;
+export 'src/resource/rows.dart'
+    show
+        ColumnResources,
+        GroupRow,
+        ResourceItemRow,
+        ResourceRow,
+        RowState,
+        columnResources,
+        flattenRows,
+        groupValue,
+        instancesOf;
+export 'src/resource/tree.dart'
+    show
+        CompareOrder,
+        FieldOrder,
+        Resource,
+        ResourceInput,
+        ResourceNode,
+        ResourceOrder,
+        ResourceTree,
+        buildResourceTree,
+        ResourceTreeResult,
+        buildResourceTreeFromJson,
+        unassignedId,
+        unassignedResource;
+export 'src/rules/business_hours.dart' show BusinessHours, BusinessHoursRule, businessIntervals;
+export 'src/rules/constraint.dart' show BusinessHoursConstraint, ConstraintSpec, GroupConstraint, SpansConstraint;
+export 'src/rules/validate.dart'
+    show OverlapFn, Placement, RulesContext, ValidRange, Violation, ViolationCode, validateProposal;
 export 'src/store/changes.dart' show ChangeCause, EventMutation, Mutation, SeriesMutation, StoreChange;
+export 'src/commands/patch.dart' show toInput;
+export 'src/store/export.dart' show eventInput, exportInputs, seriesInput;
 export 'src/store/instance.dart' show EventInstance, InstanceOrigin;
 export 'src/store/store.dart' show EventStore, QueryOptions, StoreSnapshot, ViewWindow, datesWindow, viewWindow;
 export 'src/time/duration.dart' show IsoDuration;
@@ -111,6 +142,7 @@ export 'src/views/views.dart'
         builtinViews,
         computeViewRange,
         navigate;
+export 'src/time/wall_time.dart' show WallTime;
 export 'src/zone/day_info.dart'
     show
         ByDisambiguation,

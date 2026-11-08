@@ -297,6 +297,26 @@ Map<int, Start> _startsAt(Start start, RRuleSet set, List<int> positions) {
   return out;
 }
 
+/// The occurrence an edit would write, before and after — what the rules are
+/// checked on (for `this`, the occurrence as it is now; else what the series
+/// makes there). Null when the edit names nothing or cannot be made (the
+/// edit itself then says why).
+({CalEvent before, CalEvent after})? editedOccurrence(
+  StoreSnapshot snap,
+  OccurrenceRef ref,
+  EventPatch patch,
+  EditScope scope,
+  NormalizeContext ctx,
+) {
+  final sr = snap.getSeries(ref.seriesId);
+  final at = sr == null ? null : startOfKey(sr, ref.key);
+  if (sr == null || at == null) return null;
+  final before = scope == EditScope.this_ ? _current(snap, sr, ref.key) : materialize(sr, at);
+  if (before == null) return null;
+  final after = patchEvent(before, patch, ctx, 'check', []);
+  return after == null ? null : (before: before, after: after);
+}
+
 /// Edits one occurrence, the following ones, or all of them. Pure: the
 /// mutations that carry it out, nothing applied. [forceSplit]: cut even when
 /// the patch changes nothing (`series.split`). [dropOverrides]: `all` lets

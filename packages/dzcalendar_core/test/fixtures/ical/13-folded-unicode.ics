@@ -1,0 +1,12 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Fixture//EN
+BEGIN:VEVENT
+UID:fold@example.com
+DTSTAMP:20261001T000000Z
+DTSTART;VALUE=DATE:20261021
+SUMMARY:Réunion très longue avec des accents é è à ù et des emojis 🎉🎉🎉 qui doi
+ vent être repliés sans couper un caractère au milieu 🚀 fin
+DESCRIPTION:Ligne 1\nLigne 2\, avec virgule\; et point-virgule \\ fin
+END:VEVENT
+END:VCALENDAR

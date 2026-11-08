@@ -2,11 +2,12 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19c done (2026-11-08)**, committed ("Phase 19c"); see its section
-  below. **Next: 19d** — slots, iCal, resources, timeline axis, and the
-  calendar rules (`validateProposal`, plugged into `CommandContext` /
-  `CommandResult` as optional additions: `rules`, `external`, `violations`);
-  its 96 cases. Read 19c's notes first.
+- **Phase 19d done (2026-11-08)**, committed ("Phase 19d"); see its section
+  below. **Next: 19e** — the Flutter widgets. Before them, in the core: the
+  rrule "jump to the window" (long series are slow, and drag feedback
+  validates on every move) and the view models the TS core has and the
+  port does not yet (see 19d's "Before 19e").
+- **Phase 19c done (2026-11-08)**, committed ("Phase 19c").
 - **19b done (2026-11-08)**, committed ("Phase 19b"). **19c** — recurrence (rrule parse/expand, series),
   the store (persistent interval indexes, revisions, `eventEquals` is there),
   commands with `EventPatch` (decision 10), the undo history; the
@@ -70,6 +71,41 @@
       widgets); the command context passed by value (`History(store, ctx)`),
       or read at each command (`History.reading(store, () => ctx)`) — the
       same id generator each time.
+  14. **19d's place (owner, 2026-11-08)**: slots, iCal and the timeline
+      axis live in `dzcalendar_core`, as public libraries of their own —
+      `package:dzcalendar_core/slots.dart`, `ical.dart`, `timeline.dart`
+      (the TS's `@dzcalendar/slots`, `@dzcalendar/ical`,
+      `@dzcalendar/pro/model`); resources and the calendar rules are in
+      `dzcalendar_core.dart`, as in the TS core. One package to version;
+      tree shaking drops what an application does not import.
+  15. **Typed inputs + `fromJson` (owner, 2026-11-08)**: `SlotQuery`,
+      `ResourceInput`, `BusinessHours`, `ConstraintSpec` (sealed) are typed;
+      `fromJson` never throws (what cannot be read is a `Problem`), as
+      `EventInput` and `Command`. An application's own resource fields stay
+      in a `Map` (`fields`).
+  16. **iCal: read and write (owner, 2026-11-08)**: `parseICal` and
+      `serializeICal`; `icalSource` (fetching) waits for the source manager,
+      not ported.
+  17. **Timeline: the axis only (owner, 2026-11-08)**: `buildTimelineAxis`
+      and the eight views; the model (rows, bars, lanes) comes with a
+      timeline widget, none planned in 19e.
+  18. **Slot rules apart from the range (owner, 2026-11-08, after the 19d
+      review)**: `SlotRules` (availability, durations, buffers, notice,
+      horizon, cap, busy) is kept per provider; `findSlots(rules, from:,
+      to:)`, `checkSlot(rules, start, {from, to})`; `SlotRequest.fromJson`
+      reads the web's whole query.
+  19. **`Duration` for the slots' lengths (owner, 2026-11-08)**: duration,
+      step, buffers, notice; the JSON keeps the web's minutes.
+  20. **`WallTime` (owner, 2026-11-08)**: `WallTime(8, 30)`,
+      `WallTime.endOfDay` for 24:00, shared by business hours and the
+      slots' windows, named `from`/`to` in both (the JSON keeps
+      `start`/`end` for business hours, as the web).
+  21. **Before 19e (owner, 2026-11-08)**: value equality on the
+      configuration types; one never-throwing shape (`fromJson` →
+      `(T?, List<Problem>)` with paths; results as classes, not records);
+      the store exported as inputs (`toInput`, `eventInput`, `seriesInput`,
+      `exportInputs`, public as in the TS); `CalEvent.movedToTime` /
+      `movedToDays` for a drag's preview.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -245,8 +281,7 @@
   the conformance adapter made a new id generator per command (two splits
   both made `n-1`) — the reason for `History`'s context by value.
 - **Notes for 19d / 19e** (reviews):
-  - Rules: `editedOccurrence` and `seriesAllowed` (TS) not ported — with
-    `validateProposal`.
+  - Rules: `editedOccurrence` and `seriesAllowed` — ported in 19d.
   - Long series are slow to show: 500 open daily/weekly series from 2020,
     a one-week query ≈ 55 ms in 2026, ≈ 155 ms in 2040 (`iterateZoned` walks
     every period from DTSTART). Before 19e scrolls: jump arithmetically to
@@ -267,3 +302,111 @@
   times in EXDATE, RDATE and `recurrenceId` are placed without the
   `wall-time-skipped`/`-ambiguous` warning ("every guess is a warning");
   `orphan-override`'s path uses the index after rejections, not the input's.
+
+## 19d — slots, iCal, resources, rules, timeline axis ✅ (2026-11-08)
+
+- **Timeline** (`lib/src/timeline/axis.dart`, `timeline.dart`):
+  `buildTimelineAxis` (elapsed axis, wall-clock slots, the repeated hour
+  twice, the skipped one not at all, a day starting after midnight),
+  `TimelineScale` (sealed: `minutes(n)` or `day`; `tryMinutes` for data —
+  null when it does not divide a day, the web's fallback; an invalid one
+  given to `buildTimelineAxis` throws, a programmer's mistake),
+  `timelineViews` (eight specs).
+- **Resources** (`lib/src/resource/`): `ResourceInput` (+ `fromJson`, the
+  application's fields in `fields`), `Resource.field(name)`,
+  `buildResourceTree` / `buildResourceTreeFromJson` → `ResourceTreeResult`
+  (refused entries, duplicates, unknown parents, cycles, `order` then
+  `ResourceOrder` — fields with `-` or a comparison, one that throws said
+  once and the tree left in input order), `flattenRows` (`RowState`),
+  `columnResources`, `instancesOf`, `unassignedResource`.
+- **Rules** (`lib/src/rules/`): `BusinessHours` (+ `fromJson`; a rule with
+  a bad weekday, time or zone throws when made — configuration, the web's
+  `assertBusinessHours` — never where it is used), `businessIntervals`,
+  `ConstraintSpec` (sealed), `validateProposal(snap, Placement,
+  RulesContext)`. `Placement` carries the event and the event as proposed
+  (a typed `CalEvent`; `OverlapFn` and `allow` see the whole proposed
+  event — the web passes `{...event, start, end, resourceIds}`, so a title
+  changed by the same edit is seen here and not there);
+  `RulesContext.overlap` is an `OverlapFn?` (null: overlaps allowed;
+  `RulesContext.noOverlap` is the web's `false`). Wired into
+  `applyCommand`: `CommandContext(rules:, external:)`,
+  `CommandResult.violations`, `editedOccurrence`, `seriesAllowed` (one
+  query for the series' year, `Neighbours`, instead of one per occurrence),
+  `EventPatch.movesTime`.
+- **Slots** (`lib/src/slots/`, `slots.dart`): `SlotRules`, `findSlots` →
+  `SlotsResult`, `checkSlot` (`SlotAccepted` / `SlotRefused`; the start an
+  `Instant`, a `ZonedDateTime` or ISO text, so a start written below the
+  millisecond is `misaligned` as on the web), `SlotRequest.fromJson`,
+  `busyFromEvents`, `readMoment` (strict: an offset the zone does not have
+  is refused, as Temporal's `offset: 'reject'`). Buffers and notice keep
+  fractions of a millisecond, as the TS; a range past Temporal's dates is
+  refused at once.
+- **iCal** (`lib/src/ical/`, `ical.dart`): `parseICal`, `serializeICal`
+  (VTIMEZONE from our data's transitions, RRULEs when the last year's
+  rules hold two more years, 75-octet folding). `EventInput.toJson` (the
+  web's shape: copies, time types as ISO text, anything else passed on for
+  `jsonEncode` to refuse).
+- **Store export** (`lib/src/store/export.dart`): `toInput`, `eventInput`,
+  `seriesInput`, `exportInputs` — `serializeICal(exportInputs(snap))`.
+- **Also**: `WallTime` (`lib/src/time/wall_time.dart`), `jsText`/`jsRound`
+  (`lib/src/util/js.dart`: JavaScript's `String` and `Math.round`, where
+  the web's answer depends on them), `deepEquals` (`lib/src/util/
+  equality.dart`), `ZoneRules.zoneNames`, `CalEvent.movedToTime` /
+  `movedToDays`; value equality on every configuration type.
+- **Conformance**: 301 pass, 0 skipped (`slots` 55, `timeline-axis` 11,
+  `resource-tree` 10, `resource-rules` 10, `ical-parse` 10 — all first
+  run). **Tests**: 738 (TS unit tests ported — iCal 70 with the 32
+  fixtures, resources 12, business hours 5, slots 9, timeline axis 9 —
+  and `review_19d_test.dart`).
+- **Cross-checked against the TS**: `serializeICal` byte for byte (4 557
+  octets: Lord Howe's half hour, New York's skipped hour, folding inside
+  UTF-8, escapes, a background made transparent, an open series' RRULE
+  VTIMEZONE), again after the review fixes; VTIMEZONE matching on four
+  custom zones — three agree, the fourth is the finding below.
+- **Reviews** (architect, code; each finding reproduced before it was
+  fixed — the code reviewer had no shell, so its findings were run here):
+  business hours with an unknown zone threw out of `applyCommand` (now
+  refused when the rule is made, and by `fromJson`); creating a series
+  under overlap rules queried the store once per occurrence (5.1 s with 200
+  open daily series, 0.3 s now); zoned moments with a wrong offset accepted
+  (slots, `serializeICal`); an empty `UID:` made the event an `invalid-id`;
+  an invalid `defaultZone` threw on a UTC time; a start below the
+  millisecond accepted by `checkSlot`; a range to +275760 walked 100
+  million days (11 s); details `null` for `undefined`, a weekday list not
+  as JSON, a non-object rule entry read less far than the web;
+  `EventInput.toJson` handing out the input's lists and turning unknown
+  values into text; `Math.round` vs Dart's `round` on halves (`fixedZone`,
+  `fromPosition`); `jsText` of lists and maps; an invalid timeline scale
+  replaced in silence; `jsText` and the zone list in the wrong layer.
+  Decisions 18–21 came from the architect review.
+- **Differences, kept** (said in the code):
+  - The slot query's JSON reader checks in the web's order, but a rule's
+    expansion warnings (`too-many-occurrences`) come after the exceptions'
+    warnings (the web: between the rules and the exceptions).
+  - A `busy` entry that is not an object is a warning (the web throws on
+    it, caught as `invalid-slot-query`, and offers nothing).
+  - `ConstraintSpec` spans are whole milliseconds (`MsSpan`); the web keeps
+    fractions.
+  - VTIMEZONE matching ranks Windows' preferred zones by canonical name
+    (the table's `Europe/Kiev` is `Europe/Kyiv`).
+- **Before 19e** (architect review): the view models the TS core has and
+  the widgets need — `buildTimeGridModel`, `buildDayGridModel`,
+  `packLanes`/`computeOverflow` ("+N more"), `PrefixSums`/`visibleRange`
+  (windowing), `proposeMove`/`proposeResize`/the keymap, formatting and
+  week numbers — belong in the core, not the widgets: plan them as the
+  first part of 19e. And the rrule jump to the window (drag feedback runs
+  `validateProposal` on each move; a 3-day query over 200 open daily series
+  takes 35 ms).
+- **To bring back to the main repository**:
+  - `matchObservances` takes its candidates from
+    `Intl.supportedValuesOf('timeZone')`, which in V8 (checked on Node
+    24.22) are CLDR's names (`Asia/Calcutta`, `Asia/Katmandu`,
+    `Asia/Rangoon`, `America/Godthab`), while the Windows table names
+    IANA's (`Asia/Kolkata`, `Asia/Kathmandu`, `Asia/Yangon`,
+    `America/Nuuk`): those never rank, and a +05:30 VTIMEZONE ("Mumbai
+    office") is guessed `Asia/Colombo` on Node. The port, on IANA names,
+    says `Asia/Kolkata`. Proposed: compare canonical names, or carry the
+    candidate list.
+  - `seriesAllowed` validates each of up to 500 occurrences with its own
+    store queries (5 s with 200 open daily series in the port before the
+    fix; the TS does the same): one query for the series' year.
