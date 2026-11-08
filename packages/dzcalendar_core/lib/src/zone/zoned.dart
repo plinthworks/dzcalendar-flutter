@@ -1,4 +1,5 @@
 import '../time/civil.dart';
+import '../time/duration.dart';
 import '../time/instant.dart';
 import '../time/plain.dart';
 import 'wall.dart';
@@ -31,18 +32,48 @@ final class ZonedDateTime implements Comparable<ZonedDateTime> {
   /// "+02:00", "+00:09:21" (with its seconds; [toString] rounds to the minute).
   String get offset => offsetText(offsetMs);
 
+  int get epochMilliseconds => instant.epochMilliseconds;
+
   PlainDateTime get plainDateTime => instant.wallAt(offsetMs);
   PlainDate get date => plainDateTime.date;
   PlainTime get time => plainDateTime.time;
 
+  /// As Temporal's `add`: the calendar part moves the clock face (a day is
+  /// the same time next day, 23 or 25 hours later across a change), read
+  /// back `compatible`; then the exact part adds elapsed time.
+  ZonedDateTime add(IsoDuration duration) {
+    var ms = instant.epochMilliseconds;
+    if (!duration.isExact) {
+      final wall = plainDateTime;
+      final moved = PlainDateTime(duration.addCalendarTo(wall.date), wall.time);
+      ms = resolveWallMs(moved.wallMs, rulesFor(zone), Disambiguation.compatible)!;
+    }
+    return ZonedDateTime(Instant.fromEpochMilliseconds(ms + duration.exactMs), zone);
+  }
+
+  ZonedDateTime subtract(IsoDuration duration) => add(duration.negated());
+
+  /// The same instant seen in [other].
+  ZonedDateTime withTimeZone(ZoneId other) => ZonedDateTime(instant, other);
+
+  /// The first instant of this date in this zone.
+  ZonedDateTime startOfDay() =>
+      ZonedDateTime(Instant.fromEpochMilliseconds(startOfDayMs(date.epochDay * msPerDay, rulesFor(zone))), zone);
+
   @override
   int compareTo(ZonedDateTime other) => instant.compareTo(other.instant);
 
+  /// The same instant in the same zone. A link and its zone are one zone
+  /// ("Asia/Calcutta", "Asia/Kolkata"), as Temporal's `equals` (owner,
+  /// 2026-11-08); the name written is kept for display.
   @override
-  bool operator ==(Object other) => other is ZonedDateTime && other.instant == instant && other.zone == zone;
+  bool operator ==(Object other) =>
+      other is ZonedDateTime &&
+      other.instant == instant &&
+      (other.zone == zone || ZoneRules.canonical(other.zone) == ZoneRules.canonical(zone));
 
   @override
-  int get hashCode => Object.hash(instant, zone);
+  int get hashCode => Object.hash(instant, ZoneRules.canonical(zone));
 
   /// "2026-03-29T03:00:00+02:00[Europe/Paris]", as Temporal writes it.
   @override

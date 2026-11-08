@@ -2,10 +2,16 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19, Dart/Flutter port — 19a done (2026-11-08)**, committed
-  ("Phase 19a"); see its section below. **Next: 19b**, starting with
-  `IsoDuration` (decision 6), then normalize (with the `Problem` type), time
-  axis, segments, column layout, navigation — and 19a's notes for 19b.
+- **Phase 19, Dart/Flutter port — 19b done (2026-11-08)**, committed
+  ("Phase 19b"). **Next: 19c** — recurrence (rrule parse/expand, series),
+  the store (persistent interval indexes, revisions, `eventEquals` is there),
+  commands with `EventPatch` (decision 10), the undo history; the
+  `rrule-expand` and `series-edit` cases. Read the notes for 19c below first.
+- **To bring back to the main repository** (a finding, not edited here):
+  derived ids hash a moment's text; the TS keeps nanoseconds, the port the
+  millisecond (decision 9), so a source writing past the millisecond gets
+  different ids on web and mobile. Proposed there: hash the moment to the
+  millisecond, and say `precision-truncated`.
 - **Owner's decisions (2026-11-08)**, the plan accepted:
   1. **Our own time types** stand for Temporal's (`Instant`, `PlainDate`,
      `PlainTime`, `PlainDateTime`, `ZonedDateTime`, immutable, ISO calendar);
@@ -34,6 +40,25 @@
      `ZonedDateTime.add` applies the calendar part on the clock face
      (`compatible`), then the exact part. `Instant.add`/`until` keep
      `dart:core`'s `Duration` (exact time only, as Temporal's `Instant`).
+  7. **`EventInput` (owner, 2026-11-08): a typed class** (nullable fields,
+     the TS names) **and `EventInput.fromJson(Map)`** for an API's data: a
+     field of the wrong type becomes a `Problem` at its path, never an
+     exception; `null` means absent.
+  8. **A Dart `DateTime` is refused (owner, 2026-11-08)**, as the web refuses
+     `Date` (K.15): `date-object-rejected`, the detail giving the conversion
+     (`Instant.fromEpochMilliseconds(value.millisecondsSinceEpoch)`).
+  9. **Below the millisecond (owner, 2026-11-08)**: kept to the millisecond
+     and said — `precision-truncated` (warning, a code the TS does not have
+     yet); derived ids hash the moment to the millisecond.
+  10. **`EventPatch` (owner, 2026-11-08, for 19c)**: `null` means unchanged,
+      and a `clear: {EventField.tone, …}` set names the fields taken away.
+  11. **`ZonedDateTime ==` (owner, 2026-11-08)**: a link and its zone are one
+      zone (`Asia/Calcutta` = `Asia/Kolkata`), as Temporal's `equals`; the
+      name written is kept for display.
+  - Not a question (Dart): recurrence will be part of the core — Dart's tree
+    shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
+    size) pointless, so `recurrence-not-loaded` has no equivalent. No
+    `foreign-temporal` either (no polyfill copies in Dart).
 - **Plan**, each sub-phase closed by an architect review and a code review:
   - 19a — scaffold (workspace, CI, copy script, runner), time types, zone
     rules and data: `zone-dayinfo`, `zone-resolve`.
@@ -108,3 +133,59 @@
     year (`_ruleOffsetAt` recomputes them each call).
   - CI: a scheduled refresh-and-diff job would flag new IANA releases; the
     cases are not validated against `conformance/schema/case.schema.json`.
+
+## 19b — normalize, time axis, segments, column layout, navigation ✅ (2026-11-08)
+
+- `IsoDuration` (decision 6): ISO read and written, maps (`{"hours": 1}`),
+  `ZonedDateTime.add/subtract` (calendar part on the clock face, then exact
+  time), `totalDaysFrom`; every case checked against the Temporal polyfill.
+- `Problem` (`ProblemCode` with the TS spelling, `Severity`), `EventInput`
+  (+ `fromJson`), `CalEvent` (`TimedEvent`, `AllDayEvent`), `parseTemporal`
+  (one ISO grammar: annotations, `!` critical ones refused, `u-ca` dropped as
+  the model is ISO, Temporal's range limits), `placeWall`, `normalizeEvent`,
+  `normalizeMany` (derived ids: cyrb53 identical to the TS's, checked on
+  ASCII, accents and emoji — an event of a source has the same id on the web
+  and on mobile). Rules, exdates, rdates and overrides are refused with a
+  "19c" detail until the recurrence engine is ported.
+- `buildColumnAxis` (wall and elapsed axes, bands, ticks), `segmentTimed`,
+  `segmentAllDay`, `splitByWeek`, `layoutColumn`, `ViewSpec`,
+  `builtinViews`, `computeViewRange`, `navigate`, `assertViewSpec`.
+- Conformance: 54 cases pass (zones 17, normalize 15, time-axis 6, segment 7,
+  layout-column 3, navigation 6); 245 skipped (19c, 19d).
+- Unit tests: normalize (57, from the TS), durations, and project / layout /
+  views (32, ported from the TS by a Sonnet agent, none failing; skipped:
+  row layout, overflow, view models, formatting — not ported yet).
+- **Reviews.** Code review (every claim checked against the polyfill first)
+  and architect review — fixed: `IsoDuration.tryParse` threw past 63 bits
+  and wrapped around past Temporal's limits (an all-day event was accepted
+  with a wrong end, in silence) — now null past Temporal's limits, never an
+  exception; `toString` of 1500 ms (`PT1.5S`); the map form as Temporal's
+  (unknown keys ignored, micro/nanoseconds); sub-millisecond digits dropped
+  in silence (decision 9); the `offset-mismatch` detail rebuilt instead of
+  the text written; an unknown zone said after a syntax error; Temporal's
+  date range off by one at both ends, a zoned instant past it accepted;
+  `CalEvent` without `ref`, a partial `copyWith` that could not clear a
+  field, `withIdentity(…, null)` keeping the source on timed events only,
+  no `withRevision` and no `eventEquals` (now beside the type, with the
+  test that fails when a field is forgotten); regexes, permissions and empty
+  lists made per event (now shared: `normalizeMany` 10 000 ≈ 51 ms before);
+  `fromJson` refusing a `Map<Object?, Object?>`; `ViewSpec.hiddenDays` not
+  copied; `Problem`'s `sourceId` set only through `withSource`.
+- **Notes for 19c** (architect review):
+  - `EventInstance.key` must be built by the store with the TS's `escapeId`
+    / `occurrenceKey`, so an id holding `@` or `|` cannot collide.
+  - `Normalized` gets `NormalizedSeries` (its `event` is the series' base):
+    a breaking change for exhaustive switches — fine while unpublished.
+  - One helper for a wall time with an offset preference (`parse_temporal`'s
+    to-the-minute matching, rrule's `with(…, { offset: 'prefer' })`).
+  - The POSIX rule's changes cached per year; a `ZonedDateTime` constructor
+    carrying its rules (two lookups per construction today).
+  - `PlainDate.with`/`tryFrom`, `ZonedDateTime.with`, `toString(smallestUnit)`.
+  - A port bug inside `normalizeEvent` becomes `invalid-event` (as the TS):
+    consider rethrowing under `assert` so tests see it.
+- **Notes for later**: `ViewSpec ==` and a `copyWith` that can clear
+  (the kernel's "update() with the same values is a no-op", 19e); `CalEvent`
+  constructors are public and check nothing — only `normalizeEvent` and the
+  store build events; `ZoneRules` still exported with raw milliseconds.
+- Known difference: digits past the millisecond are dropped (decision 1),
+  said by `precision-truncated` (decision 9).

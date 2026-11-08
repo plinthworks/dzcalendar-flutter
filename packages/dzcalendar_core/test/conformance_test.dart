@@ -24,6 +24,111 @@ WallPolicy _policy(Object? p) => switch (p) {
 };
 
 final Map<String, Object? Function(Json)> _adapters = {
+  'time-axis': (input) {
+    final axis = buildColumnAxis(
+      PlainDate.parse(input['date']! as String),
+      input['zone']! as String,
+      mode: AxisMode.values.byName(input['mode']! as String),
+    );
+    return {
+      'length': axis.length,
+      'bands': [
+        for (final b in axis.bands) [b.kind.name, b.from, b.to],
+      ],
+    };
+  },
+  'segment': (input) {
+    final zone = input['zone']! as String;
+    final r = normalizeEvent(
+      EventInput.fromJson({'id': 'e', ...input['event']! as Json}),
+      NormalizeContext(displayZone: zone, newId: createIdGenerator('k')),
+    );
+    if (!r.ok) throw StateError('${r.problems}');
+    final days = dayInfos(PlainDate.parse(input['firstDate']! as String), input['days']! as int, zone);
+    final segs = segmentTimed(
+      EventInstance('e', r.value!.event, InstanceOrigin.single),
+      days,
+      cutAtRepeat: input['cutAtRepeat']! as bool,
+    );
+    return [
+      for (final s in segs) [s.dayIndex, s.part, '${s.from}', '${s.to}'],
+    ];
+  },
+  'layout-column': (input) {
+    final items = [
+      for (final x in (input['items']! as List).cast<Json>())
+        ColItem(
+          key: x['key']! as String,
+          start: (x['start']! as num).toDouble(),
+          end: (x['end']! as num).toDouble(),
+          order: x['order']! as int,
+        ),
+    ];
+    return [
+      for (final p in layoutColumn(items, minVisual: (input['minVisual']! as num).toDouble()))
+        [p.key, p.lane, p.lanes, p.left, p.width],
+    ];
+  },
+  'navigation': (input) {
+    var spec = builtinViews[input['view']! as String]!;
+    final over = input['overrides'] as Json?;
+    if (over != null) {
+      spec = spec.copyWith(
+        hiddenDays: (over['hiddenDays'] as List?)?.cast<int>(),
+        fixedWeekCount: over['fixedWeekCount'] as bool?,
+      );
+      final unknown = over.keys.where((k) => k != 'hiddenDays' && k != 'fixedWeekCount');
+      if (unknown.isNotEmpty) throw UnimplementedError('override $unknown');
+    }
+    final ctx = NavContext(
+      firstDay: input['firstDay']! as int,
+      today: PlainDate.parse(input['today'] as String? ?? '2026-01-01'),
+    );
+    final dir = switch (input['dir']) {
+      'prev' => NavDirection.prev,
+      'next' => NavDirection.next,
+      'today' => NavDirection.today,
+      {'to': final String to} => NavDirection.to(PlainDate.parse(to)),
+      final other => throw ArgumentError.value(other, 'dir'),
+    };
+    final next = navigate(PlainDate.parse(input['anchor']! as String), spec, dir, ctx);
+    final range = computeViewRange(next, spec, ctx);
+    return {'anchor': '$next', 'start': '${range.start}', 'end': '${range.end}', 'dates': range.dates.length};
+  },
+  'normalize': (input) {
+    final c = input['context']! as Json;
+    final r = normalizeEvent(
+      EventInput.fromJson(input['event']! as Json),
+      NormalizeContext(
+        displayZone: c['displayZone']! as String,
+        defaultEventZone: c['defaultEventZone'] as String?,
+        strictZones: c['strictZones'] as bool? ?? false,
+        newId: createIdGenerator('k'),
+      ),
+    );
+    final value = r.value;
+    if (value == null) {
+      return {
+        'ok': false,
+        'errors': [for (final p in r.problems.where((p) => p.isError)) p.code.code],
+      };
+    }
+    final e = value.event;
+    return {
+      'ok': true,
+      'allDay': e.allDay,
+      'start': switch (e) {
+        TimedEvent(:final start) => '$start',
+        AllDayEvent(:final start) => '$start',
+      },
+      'end': switch (e) {
+        TimedEvent(:final end) => '$end',
+        AllDayEvent(:final end) => '$end',
+      },
+      'warnings': [for (final p in r.problems) p.code.code],
+      if (e is TimedEvent) 'zoneGuessed': e.zoneGuessed,
+    };
+  },
   'zone-dayinfo': (input) {
     final d = dayInfo(PlainDate.parse(input['date']! as String), input['zone']! as String);
     return {
@@ -64,11 +169,6 @@ final Map<String, Object? Function(Json)> _adapters = {
 
 /// Where each suite not yet ported will be (ROADMAP.md, Phase 19).
 const _pending = {
-  'normalize': '19b',
-  'time-axis': '19b',
-  'segment': '19b',
-  'layout-column': '19b',
-  'navigation': '19b',
   'rrule-expand': '19c',
   'series-edit': '19c',
   'slots': '19d',

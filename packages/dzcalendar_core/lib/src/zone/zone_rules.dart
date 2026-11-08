@@ -34,6 +34,15 @@ sealed class ZoneRules {
     return _lower[zone.toLowerCase()];
   }
 
+  /// [zone]'s identity: a link resolved to its zone ("Asia/Calcutta" →
+  /// "Asia/Kolkata"), an offset in its extended form. What `ZonedDateTime ==`
+  /// compares (owner, 2026-11-08: as Temporal's `equals`). Null for no zone.
+  static ZoneId? canonical(ZoneId zone) {
+    final name = normalize(zone);
+    if (name == null) return null;
+    return tzdataLinks[name] ?? name;
+  }
+
   /// The IANA release the bundled rules come from ("2026f").
   static String get dataVersion => tzdataVersion;
 
