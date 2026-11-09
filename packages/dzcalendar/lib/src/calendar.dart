@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'controller.dart';
 import 'env.dart';
+import 'interaction.dart';
 import 'l10n/localizations.dart';
 import 'theme.dart';
 import 'views/day_grid_view.dart';
@@ -32,7 +34,12 @@ class DzCalendar extends StatefulWidget {
     this.onSlotTap,
     this.actionsBuilder,
     this.eventColor,
-  });
+    this.eventBuilder,
+    this.editable = false,
+    this.selectable = false,
+    this.snapMinutes = 15,
+    this.dayView = 'timeGridDay',
+  }) : assert(snapMinutes > 0);
 
   final CalendarController controller;
 
@@ -66,19 +73,51 @@ class DzCalendar extends StatefulWidget {
   /// An event's color; null leaves its tone's or the theme's.
   final EventColor? eventColor;
 
+  /// An event's look, built by the app (null: the calendar's own); its
+  /// gestures, its name for screen readers and its handles stay the calendar's.
+  final EventBuilder? eventBuilder;
+
+  /// Events can be dragged and resized (a long press grabs one), and the
+  /// menu offers editing entries. An event's own `editable` overrides it.
+  /// Changes are told to the controller's `onEventChange`. Default false.
+  final bool editable;
+
+  /// A long press on empty time, then a drag, selects it (`onSelect`).
+  /// Default false: the long press offers the menu.
+  final bool selectable;
+
+  /// Minutes moves, resizes and selections snap to in a time grid.
+  final int snapMinutes;
+
+  /// Where the menu's "Go to this day" leads (when registered).
+  final String dayView;
+
   @override
   State<DzCalendar> createState() => _DzCalendarState();
 }
 
-class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver {
+class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver, TickerProviderStateMixin {
   Timer? _clock;
   String? _followed;
+  late final CalendarInteraction _interaction = CalendarInteraction(this);
+  late final ValueNotifier<Instant> _now = ValueNotifier(widget.controller.now());
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.controller.addListener(_changed);
     _startClock();
+  }
+
+  /// Another period, view or zone: the held event is let go.
+  void _changed() {
+    const lets = {StateCause.navigate, StateCause.view, StateCause.zone, StateCause.resources};
+    if (widget.controller.changes.any((e) => e is KernelStateEvent && e.causes.any(lets.contains))) {
+      _interaction
+        ..release()
+        ..cancel();
+    }
   }
 
   @override
@@ -90,7 +129,18 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(DzCalendar old) {
     super.didUpdateWidget(old);
+    if (old.editable && !widget.editable) {
+      _interaction
+        ..release()
+        ..cancel();
+    }
     if (old.controller != widget.controller) {
+      old.controller.removeListener(_changed);
+      widget.controller.addListener(_changed);
+      _interaction
+        ..release()
+        ..cancel();
+      _now.value = widget.controller.now();
       _followed = null;
       _followLocale();
     }
@@ -109,7 +159,10 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.controller.removeListener(_changed);
     _clock?.cancel();
+    _interaction.dispose();
+    _now.dispose();
     super.dispose();
   }
 
@@ -120,7 +173,7 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver {
     void tick() {
       if (!mounted) return;
       widget.controller.tick();
-      setState(() {}); // the now line
+      _now.value = widget.controller.now(); // the now line, without a rebuild
     }
 
     final ms = widget.controller.now().epochMilliseconds;
@@ -148,36 +201,55 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver {
     listenable: widget.controller,
     builder: (context, _) {
       final env = CalendarEnv(
-        controller: widget.controller,
+        config: widget,
         l10n: DzCalendarLocalizations.of(context),
         style: DzCalendarTheme.of(context),
         use24h: MediaQuery.alwaysUse24HourFormatOf(context),
         textDirection: Directionality.of(context),
-        onEventTap: widget.onEventTap,
-        onDateTap: widget.onDateTap,
-        onSelect: widget.onSelect,
-        onCreateRequest: widget.onCreateRequest,
-        onSlotTap: widget.onSlotTap,
-        actionsBuilder: widget.actionsBuilder,
-        eventColor: widget.eventColor,
+        interaction: _interaction,
+        now: _now,
       );
+      _interaction
+        ..env = env
+        ..context = context;
       Widget body = _body(env);
       if (widget.swipeToNavigate) {
-        body = GestureDetector(
-          onHorizontalDragEnd: (d) {
-            final v = d.primaryVelocity ?? 0;
-            if (v.abs() < 300) return;
-            // A swipe towards the start of the line goes forward (to the left in LTR, to the right in RTL).
-            final forward = (v < 0) == (env.textDirection == TextDirection.ltr);
-            forward ? widget.controller.next() : widget.controller.previous();
-          },
+        final x = _interaction;
+        // No swipe while an event is held or dragged (decision 35).
+        body = ListenableBuilder(
+          listenable: Listenable.merge([x.held, x.lifted]),
           child: body,
+          builder: (context, child) => GestureDetector(
+            onHorizontalDragEnd: x.held.value != null || x.busy
+                ? null
+                : (d) {
+                    final v = d.primaryVelocity ?? 0;
+                    if (v.abs() < 300) return;
+                    // A swipe towards the start of the line goes forward (to the left in LTR, to the right in RTL).
+                    final forward = (v < 0) == (env.textDirection == TextDirection.ltr);
+                    forward ? widget.controller.next() : widget.controller.previous();
+                  },
+            child: child,
+          ),
         );
       }
       return Column(
         children: [
           if (widget.showHeader) CalendarHeader(controller: widget.controller, views: widget.views),
-          Expanded(child: body),
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(child: body),
+                Positioned.fill(
+                  child: GhostLayer(
+                    interaction: _interaction,
+                    radius: env.style.eventRadius,
+                    style: env.style.eventStyle.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       );
     },
@@ -188,8 +260,11 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver {
     DayGridViewModel(:final model) => DayGridView(env: env, model: model),
     ListViewModel(:final model) => CalendarListView(env: env, model: model),
     MultiMonthViewModel(:final model) => MultiMonthView(env: env, model: model),
-    // A family these widgets do not draw (the timeline, an app's own).
-    _ => const SizedBox.shrink(),
+    // A family these widgets do not draw (the timeline, an app's own): said in debug builds.
+    final other =>
+      kDebugMode
+          ? Center(child: Text('DzCalendar: the ${other.family} family is not drawn', textAlign: TextAlign.center))
+          : const SizedBox.shrink(),
   };
 }
 

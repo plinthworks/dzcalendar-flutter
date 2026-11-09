@@ -5,6 +5,7 @@ import 'package:dzcalendar_core/internal.dart' show UniformSizes, visibleRange;
 import 'package:flutter/material.dart';
 
 import '../env.dart';
+import '../interaction.dart';
 import 'common.dart';
 import 'day_grid_view.dart' show DayNumber;
 
@@ -26,8 +27,14 @@ class TimeGridView extends StatefulWidget {
   State<TimeGridView> createState() => _TimeGridViewState();
 }
 
-class _TimeGridViewState extends State<TimeGridView> {
+class _TimeGridViewState extends State<TimeGridView> implements DragSurface {
   ScrollController? _vertical;
+
+  // What the gestures read: the scrolled body, its content, the all-day row.
+  final _viewportKey = GlobalKey();
+  final _contentKey = GlobalKey();
+  final _allDayKey = GlobalKey();
+  var _ppmNow = 1.0;
 
   // The day heads, the all-day row and the body scroll sideways together.
   final _heads = ScrollController();
@@ -77,6 +84,7 @@ class _TimeGridViewState extends State<TimeGridView> {
 
   @override
   void dispose() {
+    env.interaction.detach(this);
     _vertical?.dispose();
     _heads.dispose();
     _allDay.dispose();
@@ -90,6 +98,8 @@ class _TimeGridViewState extends State<TimeGridView> {
     final n = model.columns.length;
     if (n == 0) return Center(child: Text(env.l10n.noResources));
     final ppm = _ppm(context);
+    _ppmNow = ppm;
+    env.interaction.attach(this);
     final height = model.columns.fold<double>(0, (m, c) => math.max(m, c.axis.length)) * ppm;
     return LayoutBuilder(
       builder: (context, box) {
@@ -117,6 +127,8 @@ class _TimeGridViewState extends State<TimeGridView> {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (model.groupHeads.isNotEmpty)
+                          ResourceGroupRow(env: env, groups: model.groupHeads, heads: model.resourceHeads),
                         if (model.resourceHeads.isNotEmpty)
                           ResourceHeadRow(env: env, heads: model.resourceHeads, cells: n),
                         _DayHeads(env: env, model: model),
@@ -134,13 +146,14 @@ class _TimeGridViewState extends State<TimeGridView> {
                     child: Text(env.l10n.allDay, textAlign: TextAlign.center, style: style.timeLabelStyle, maxLines: 2),
                   ),
                   Expanded(
-                    child: sideways(_allDay, _AllDayRow(env: env, model: model, colW: colW)),
+                    child: sideways(_allDay, _AllDayRow(key: _allDayKey, env: env, model: model, colW: colW)),
                   ),
                 ],
               ),
             Divider(height: 1, color: style.gridLineColor),
             Expanded(
               child: SingleChildScrollView(
+                key: _viewportKey,
                 controller: _vertical,
                 child: SizedBox(
                   height: height,
@@ -155,6 +168,7 @@ class _TimeGridViewState extends State<TimeGridView> {
                       Expanded(
                         child: scrolls
                             ? _VirtualColumns(
+                                contentKey: _contentKey,
                                 env: env,
                                 model: model,
                                 controller: _body,
@@ -163,6 +177,7 @@ class _TimeGridViewState extends State<TimeGridView> {
                                 ppm: ppm,
                               )
                             : Row(
+                                key: _contentKey,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   for (var i = 0; i < n; i++)
@@ -183,6 +198,153 @@ class _TimeGridViewState extends State<TimeGridView> {
     );
   }
 
+  // ——— the gestures' surface ———
+
+  RenderBox? _box(GlobalKey k) {
+    final b = k.currentContext?.findRenderObject();
+    return b is RenderBox && b.attached && b.hasSize ? b : null;
+  }
+
+  Rect _global(RenderBox b, Rect local) => MatrixUtils.transformRect(b.getTransformTo(null), local);
+
+  /// The columns' part of the scrolled body, on screen (the gutter left out).
+  Rect? _columnsArea() {
+    final vp = _box(_viewportKey);
+    if (vp == null) return null;
+    final r = _global(vp, Offset.zero & vp.size);
+    final g = env.style.gutterWidth;
+    return env.textDirection == TextDirection.ltr
+        ? Rect.fromLTRB(r.left + g, r.top, r.right, r.bottom)
+        : Rect.fromLTRB(r.left, r.top, r.right - g, r.bottom);
+  }
+
+  /// Column index at [x] along a box [width] wide, start side first.
+  int _columnAt(double x, double width) {
+    final n = model.columns.length;
+    final w = width / n;
+    final along = env.textDirection == TextDirection.ltr ? x : width - x;
+    return (along / w).floor().clamp(0, n - 1);
+  }
+
+  /// Column [i]'s start edge in a box [width] wide.
+  double _columnX(int i, double width) {
+    final w = width / model.columns.length;
+    return env.textDirection == TextDirection.ltr ? i * w : width - (i + 1) * w;
+  }
+
+  bool _inAllDay(Offset g) {
+    final row = _box(_allDayKey);
+    return row != null && _global(row, Offset.zero & row.size).contains(g);
+  }
+
+  static bool _resourceOk(TimeGridColumn c, CalEvent ev) {
+    final r = c.resource;
+    if (r == null) return true;
+    return ev.resourceIds.isEmpty ? r.id == unassignedId : ev.resourceIds.contains(r.id);
+  }
+
+  @override
+  Hit? hitAt(Offset g) {
+    if (model.columns.isEmpty) return null;
+    final row = _box(_allDayKey);
+    if (row != null && _inAllDay(g)) {
+      return allDayHitAt(model, _columnAt(row.globalToLocal(g).dx, row.size.width));
+    }
+    final area = _columnsArea();
+    final content = _box(_contentKey);
+    if (area == null || content == null) return null;
+    final p = Offset(g.dx.clamp(area.left, area.right - 0.5), g.dy.clamp(area.top, area.bottom - 0.5));
+    final l = content.globalToLocal(p);
+    return slotHitAt(model, _columnAt(l.dx, content.size.width), l.dy / _ppmNow, env.config.snapMinutes);
+  }
+
+  @override
+  List<GhostBox> boxesFor(CalEvent ev) {
+    final out = <GhostBox>[];
+    final n = model.columns.length;
+    switch (ev) {
+      case TimedEvent(:final start, :final end):
+        final content = _box(_contentKey);
+        final area = _columnsArea();
+        if (content == null || area == null) return out;
+        final width = content.size.width;
+        for (var i = 0; i < n; i++) {
+          final c = model.columns[i];
+          if (c.folded || !_resourceOk(c, ev)) continue;
+          final s = start.instant.isBefore(c.axis.start) ? c.axis.start : start.instant;
+          final e = end.instant.isAfter(c.axis.end) ? c.axis.end : end.instant;
+          if (!s.isBefore(e)) continue;
+          final top = c.axis.toPosition(s) * _ppmNow;
+          final bottom = math.max(c.axis.toEndPosition(e) * _ppmNow, top + 6);
+          final x = _columnX(i, width);
+          out.add((
+            rect: _global(content, Rect.fromLTRB(x + 1, top + 0.5, x + width / n - 1, bottom - 0.5)),
+            clip: area,
+          ));
+        }
+      case AllDayEvent(:final start, :final end):
+        final row = _box(_allDayKey);
+        final area = _columnsArea();
+        if (row == null || area == null) return out;
+        final rowRect = _global(row, Offset.zero & row.size);
+        final clip = Rect.fromLTRB(area.left, rowRect.top, area.right, rowRect.bottom);
+        final width = row.size.width;
+        final w = width / n;
+        int? first;
+        void close(int last) {
+          final a = _columnX(first!, width);
+          final b = _columnX(last, width);
+          final left = math.min(a, b);
+          out.add((
+            rect: _global(row, Rect.fromLTWH(left + 1, 2, (last - first! + 1) * w - 2, env.style.barHeight)),
+            clip: clip,
+          ));
+          first = null;
+        }
+
+        for (var i = 0; i < n; i++) {
+          final c = model.columns[i];
+          final inside = !c.date.isBefore(start) && c.date.isBefore(end) && _resourceOk(c, ev);
+          if (inside) first ??= i;
+          if (!inside && first != null) close(i - 1);
+        }
+        if (first != null) close(n - 1);
+    }
+    return out;
+  }
+
+  @override
+  bool autoscroll(Offset g, double seconds) {
+    final area = _columnsArea();
+    if (area == null) return false;
+    const edge = 40.0;
+    const speed = 900.0; // pixels a second at the very edge
+    var moved = false;
+    double push(double towardStart, double towardEnd) =>
+        towardStart < edge ? -(edge - towardStart) / edge : (towardEnd < edge ? (edge - towardEnd) / edge : 0);
+    bool scroll(ScrollController c, double by) {
+      if (by == 0 || !c.hasClients || c.positions.length != 1) return false;
+      final p = c.position;
+      final to = (p.pixels + by).clamp(p.minScrollExtent, p.maxScrollExtent);
+      if (to == p.pixels) return false;
+      c.jumpTo(to);
+      return true;
+    }
+
+    final v = _vertical;
+    if (v != null && !_inAllDay(g)) {
+      moved |= scroll(v, push(g.dy - area.top, area.bottom - g.dy).clamp(-1.5, 1.5) * speed * seconds);
+    }
+    final ltr = env.textDirection == TextDirection.ltr;
+    final toStart = ltr ? g.dx - area.left : area.right - g.dx;
+    final toEnd = ltr ? area.right - g.dx : g.dx - area.left;
+    moved |= scroll(_body, push(toStart, toEnd).clamp(-1.5, 1.5) * speed * seconds);
+    return moved;
+  }
+
+  @override
+  bool canResize(CalEvent event) => true;
+
   Widget _weekNumber() {
     final first = model.range.dates.isEmpty ? null : model.range.dates.first;
     if (first == null) return const SizedBox.shrink();
@@ -198,9 +360,11 @@ class _TimeGridViewState extends State<TimeGridView> {
   }
 }
 
-/// The columns on screen, and one more each side, in a sideways scroll.
-class _VirtualColumns extends StatelessWidget {
+/// The columns on screen, and one more each side, in a sideways scroll:
+/// built again only when that window changes, not at each scrolled pixel.
+class _VirtualColumns extends StatefulWidget {
   const _VirtualColumns({
+    required this.contentKey,
     required this.env,
     required this.model,
     required this.controller,
@@ -208,6 +372,7 @@ class _VirtualColumns extends StatelessWidget {
     required this.height,
     required this.ppm,
   });
+  final GlobalKey contentKey;
   final CalendarEnv env;
   final TimeGridModel model;
   final ScrollController controller;
@@ -216,38 +381,81 @@ class _VirtualColumns extends StatelessWidget {
   final double ppm;
 
   @override
+  State<_VirtualColumns> createState() => _VirtualColumnsState();
+}
+
+class _VirtualColumnsState extends State<_VirtualColumns> {
+  var _width = 0.0;
+  ({int first, int last})? _window;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_scrolled);
+  }
+
+  @override
+  void didUpdateWidget(_VirtualColumns old) {
+    super.didUpdateWidget(old);
+    if (!identical(old.controller, widget.controller)) {
+      old.controller.removeListener(_scrolled);
+      widget.controller.addListener(_scrolled);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_scrolled);
+    super.dispose();
+  }
+
+  ({int first, int last}) _visible() {
+    final c = widget.controller;
+    final r = visibleRange(
+      UniformSizes(widget.colW, widget.model.columns.length),
+      c.hasClients ? c.offset : 0.0,
+      _width,
+      1,
+    );
+    return (first: r.first, last: r.last);
+  }
+
+  void _scrolled() {
+    if (_visible() != _window) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final n = model.columns.length;
+    final w = widget;
+    final n = w.model.columns.length;
     return LayoutBuilder(
-      builder: (context, box) => SingleChildScrollView(
-        controller: controller,
-        scrollDirection: Axis.horizontal,
-        physics: const ClampingScrollPhysics(),
-        child: ListenableBuilder(
-          listenable: controller,
-          builder: (context, _) {
-            final offset = controller.hasClients ? controller.offset : 0.0;
-            final r = visibleRange(UniformSizes(colW, n), offset, box.maxWidth, 1);
-            return SizedBox(
-              width: colW * n,
-              height: height,
-              child: Stack(
-                children: [
-                  for (var i = r.first; i <= r.last; i++)
-                    PositionedDirectional(
-                      key: ValueKey(model.columns[i].key),
-                      start: i * colW,
-                      width: colW,
-                      top: 0,
-                      height: height,
-                      child: _Column(env: env, model: model, index: i, ppm: ppm),
-                    ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
+      builder: (context, box) {
+        _width = box.maxWidth;
+        final r = _window = _visible();
+        return SingleChildScrollView(
+          controller: w.controller,
+          scrollDirection: Axis.horizontal,
+          physics: const ClampingScrollPhysics(),
+          child: SizedBox(
+            key: w.contentKey,
+            width: w.colW * n,
+            height: w.height,
+            child: Stack(
+              children: [
+                for (var i = r.first; i <= r.last; i++)
+                  PositionedDirectional(
+                    key: ValueKey(w.model.columns[i].key),
+                    start: i * w.colW,
+                    width: w.colW,
+                    top: 0,
+                    height: w.height,
+                    child: _Column(env: w.env, model: w.model, index: i, ppm: w.ppm),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -295,7 +503,7 @@ class _DayHeads extends StatelessWidget {
 }
 
 class _AllDayRow extends StatelessWidget {
-  const _AllDayRow({required this.env, required this.model, required this.colW});
+  const _AllDayRow({super.key, required this.env, required this.model, required this.colW});
   final CalendarEnv env;
   final TimeGridModel model;
   final double colW;
@@ -321,11 +529,10 @@ class _AllDayRow extends StatelessWidget {
                         onTap: () => _tap(i),
                         onLongPressStart: (d) {
                           final c = model.columns[i];
-                          env.showActions(
-                            context,
-                            DayTarget(date: c.date, resourceId: c.resource?.id),
-                            d.globalPosition,
-                          );
+                          final hit = allDayHitAt(model, i);
+                          final target = DayTarget(date: c.date, resourceId: c.resource?.id);
+                          if (hit == null) return;
+                          env.interaction.pressEmpty(hit, target, d.globalPosition);
                         },
                         child: DecoratedBox(
                           decoration: BoxDecoration(
@@ -362,6 +569,7 @@ class _AllDayRow extends StatelessWidget {
   }
 
   void _tap(int i) {
+    env.interaction.release();
     final hit = allDayHitAt(model, i);
     if (hit == null) return;
     env.onDateTap?.call(hit);
@@ -423,9 +631,6 @@ class _Column extends StatelessWidget {
       );
     }
     final snap = model.options.slotMinutes.round();
-    final now = env.controller.now();
-    final showNow = !now.isBefore(c.axis.start) && now.isBefore(c.axis.end);
-    final selection = _selectionSpan();
     return LayoutBuilder(
       builder: (context, box) {
         final w = box.maxWidth;
@@ -433,8 +638,10 @@ class _Column extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTapUp: (d) => _tap(d.localPosition.dy / ppm, snap),
           onLongPressStart: (d) {
-            final target = slotTargetAt(model, index, d.localPosition.dy / ppm);
-            if (target != null) env.showActions(context, target, d.globalPosition);
+            final minutes = d.localPosition.dy / ppm;
+            final target = slotTargetAt(model, index, minutes);
+            final hit = slotHitAt(model, index, minutes, env.config.snapMinutes);
+            if (target != null && hit != null) env.interaction.pressEmpty(hit, target, d.globalPosition);
           },
           child: CustomPaint(
             painter: _ColumnPainter(
@@ -457,21 +664,33 @@ class _Column extends StatelessWidget {
                       child: ColoredBox(color: env.colorOf(p.segment.instance).withValues(alpha: 0.25)),
                     ),
                   ),
-                if (selection != null)
-                  PositionedDirectional(
-                    start: 0,
-                    end: 0,
-                    top: selection.$1 * ppm,
-                    height: math.max(2, (selection.$2 - selection.$1) * ppm),
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: style.selectionColor,
-                          borderRadius: BorderRadius.circular(style.eventRadius),
-                        ),
-                      ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ValueListenableBuilder<CalendarSelection?>(
+                      valueListenable: env.controller.selectionListenable,
+                      builder: (context, sel, _) {
+                        final span = _selectionSpan(sel);
+                        if (span == null) return const SizedBox.shrink();
+                        return Stack(
+                          children: [
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: span.$1 * ppm,
+                              height: math.max(2, (span.$2 - span.$1) * ppm),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: style.selectionColor,
+                                  borderRadius: BorderRadius.circular(style.eventRadius),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
+                ),
                 for (final s in c.slots)
                   PositionedDirectional(
                     start: 1,
@@ -498,19 +717,30 @@ class _Column extends StatelessWidget {
                   ),
                 // Over the events: one across a clock change shows the hour it spans that does not exist (or happens twice).
                 for (final b in c.axis.bands) _band(b),
-                if (showNow)
-                  PositionedDirectional(
-                    start: 0,
-                    end: 0,
-                    top: c.axis.toPosition(now) * ppm - 1,
-                    height: 2,
-                    child: IgnorePointer(
-                      child: Semantics(
-                        label: env.l10n.now,
-                        child: ColoredBox(color: style.nowColor),
-                      ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ValueListenableBuilder<Instant>(
+                      valueListenable: env.now,
+                      builder: (context, now, _) {
+                        if (now.isBefore(c.axis.start) || !now.isBefore(c.axis.end)) return const SizedBox.shrink();
+                        return Stack(
+                          children: [
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: c.axis.toPosition(now) * ppm - 1,
+                              height: 2,
+                              child: Semantics(
+                                label: env.l10n.now,
+                                child: ColoredBox(color: style.nowColor),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
+                ),
               ],
             ),
           ),
@@ -520,8 +750,7 @@ class _Column extends StatelessWidget {
   }
 
   /// Where the current selection crosses this column, in axis minutes.
-  (double, double)? _selectionSpan() {
-    final sel = env.controller.selection;
+  (double, double)? _selectionSpan(CalendarSelection? sel) {
     if (sel is! TimeSelection) return null;
     final c = col;
     if (sel.resourceId != null && sel.resourceId != c.resource?.id) return null;
@@ -569,6 +798,7 @@ class _Column extends StatelessWidget {
   }
 
   void _tap(double minutes, int snap) {
+    env.interaction.release();
     final hit = slotHitAt(model, index, minutes, snap);
     if (hit == null) return;
     env.onDateTap?.call(hit);
@@ -648,8 +878,7 @@ class _TimedBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = env.style;
     final i = placed.segment.instance;
-    final color = env.colorOf(i);
-    final on = env.onColor(color);
+    final colors = env.colorsOf(i);
     final title = env.title(i);
     final mark = env.l10n.secondPassMark;
     // The event's times, not the piece's: an event cut at a clock change
@@ -663,52 +892,83 @@ class _TimedBox extends StatelessWidget {
     final end = env.time(to) + (placed.endReading?.pass == WallPass.second ? mark : '');
     final when = env.l10n.range(start, end);
     final tall = placed.visualHeight * ppm;
-    final text = style.eventStyle.copyWith(color: on, height: 1.2);
+    final text = style.eventStyle.copyWith(color: colors.on, height: 1.2);
     final lineHeight = (text.fontSize ?? 11) * 1.2;
     return EventGestures(
       env: env,
       instance: i,
       label: env.l10n.eventLabel(title, when),
-      child: Container(
-        padding: const EdgeInsetsDirectional.only(start: 3, end: 2, top: 1),
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(style.eventRadius),
-          border: Border.all(color: Theme.of(context).colorScheme.surface, width: 0.5),
-        ),
+      draggable: true,
+      resizeAxis: seg.endsHere ? Axis.vertical : null,
+      child: _HeldAware(
+        env: env,
         child: LayoutBuilder(
           builder: (context, box) {
             // Narrow (a week on a phone): one line per field, cut with an
             // ellipsis rather than words broken across lines.
             final narrow = box.maxWidth < 72;
             final room = math.max(1, (tall - 2) ~/ lineHeight);
+            final own = env.eventBuilder?.call(
+              context,
+              i,
+              EventInfo(
+                segment: seg,
+                size: box.biggest,
+                compact: narrow || room < 2,
+                color: colors.fill,
+                onColor: colors.on,
+                when: when,
+                held: env.interaction.held.value == i.key,
+              ),
+            );
+            if (own != null) return own;
             final real = placed.realMinutes;
             final extra = <String>[
               if (room >= 3 || (!narrow && room >= 2)) '$start – $end',
               if (real != null && room >= 4) env.l10n.realDuration(env.l10n.duration(real.round())),
             ];
             final titleLines = math.max(1, room - extra.length);
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  maxLines: narrow ? 1 : titleLines,
-                  softWrap: !narrow,
-                  overflow: TextOverflow.ellipsis,
-                  style: text.copyWith(fontWeight: FontWeight.w600),
-                ),
-                for (final e in extra)
-                  Text(e, maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis, style: text),
-              ],
+            return Container(
+              padding: const EdgeInsetsDirectional.only(start: 3, end: 2, top: 1),
+              clipBehavior: Clip.hardEdge,
+              decoration: BoxDecoration(
+                color: colors.fill,
+                borderRadius: BorderRadius.circular(style.eventRadius),
+                border: Border.all(color: Theme.of(context).colorScheme.surface, width: 0.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: narrow ? 1 : titleLines,
+                    softWrap: !narrow,
+                    overflow: TextOverflow.ellipsis,
+                    style: text.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  for (final e in extra)
+                    Text(e, maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis, style: text),
+                ],
+              ),
             );
           },
         ),
       ),
     );
   }
+}
+
+/// An app's look hears the held state itself (the gestures' builder reuses its child).
+class _HeldAware extends StatelessWidget {
+  const _HeldAware({required this.env, required this.child});
+  final CalendarEnv env;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => env.eventBuilder == null
+      ? child
+      : ValueListenableBuilder<String?>(valueListenable: env.interaction.held, builder: (_, _, _) => child);
 }
 
 class _SlotBox extends StatelessWidget {

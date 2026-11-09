@@ -4,6 +4,7 @@
 //   DATE=2026-11-09  ZONE=Europe/Paris  DARK=true  SCROLL=7 (the hour at the top)
 // The clock is frozen at DATE 10:20 in ZONE.
 import 'package:dzcalendar/dzcalendar.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -14,6 +15,12 @@ const _date = String.fromEnvironment('DATE', defaultValue: '2026-11-09');
 const _zone = String.fromEnvironment('ZONE', defaultValue: 'Europe/Paris');
 const _dark = bool.fromEnvironment('DARK');
 const _scroll = int.fromEnvironment('SCROLL', defaultValue: 7);
+
+/// A gesture played at start, for screenshots: 'drag' (grabbed, held mid-move),
+/// 'held' (let go where taken: its handles), 'drop' (moved and let go), 'select'.
+const _demo = String.fromEnvironment('DEMO');
+const _demoOn = String.fromEnvironment('DEMO_ON', defaultValue: 'Consultation');
+const _demoBy = int.fromEnvironment('DEMO_BY', defaultValue: 96);
 
 void main() => runApp(const ExampleApp());
 
@@ -56,6 +63,16 @@ class _HomeState extends State<Home> {
   late final PlainDate _day = PlainDate.tryParse(_date) ?? PlainDate(2026, 11, 9);
   late final Instant _now = ZonedDateTime.fromWall(PlainDateTime(_day, PlainTime(10, 20)), _zone)!.instant;
   late final CalendarController _controller = CalendarController(
+    onEventChange: (change) {
+      final title = change.after?.title ?? change.before?.title ?? '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${change.cause.name} · $title'),
+          action: SnackBarAction(label: 'Revert', onPressed: () => change.revert()),
+        ),
+      );
+    },
+    onCommandRefused: (r, cmd) => _say('Refused: ${cmd.label}'),
     KernelOptions(
       timeZone: _zone,
       locale: _locale,
@@ -115,8 +132,11 @@ class _HomeState extends State<Home> {
           'multiMonthYear',
           'resourceTimeGridDay',
         ],
+        editable: true,
+        selectable: true,
         onEventTap: (i) => _say(i.event.title),
         onCreateRequest: (r) => _say('$r'),
+        onSelect: (s) => _say('$s'),
       ),
     };
     return Scaffold(
@@ -134,6 +154,52 @@ class _HomeState extends State<Home> {
   }
 
   void _say(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+
+  @override
+  void initState() {
+    super.initState();
+    if (_demo.isNotEmpty) Future<void>.delayed(const Duration(seconds: 2), _play);
+  }
+
+  /// Plays [_demo] with synthetic touches, as a finger would.
+  Future<void> _play() async {
+    Offset? at;
+    void visit(Element e) {
+      final w = e.widget;
+      if (at == null && w is Text && (w.data ?? '').startsWith(_demoOn)) {
+        final box = e.findRenderObject() as RenderBox?;
+        if (box != null && box.hasSize) at = box.localToGlobal(box.size.center(Offset.zero));
+      }
+      e.visitChildren(visit);
+    }
+
+    context.visitChildElements(visit);
+    if (_demo == 'select') at = const Offset(260, 420);
+    final from = at;
+    if (from == null) return;
+    final binding = GestureBinding.instance;
+    var t = Duration.zero;
+    void send(PointerEvent e) => binding.handlePointerEvent(e);
+    Future<void> wait(int ms) async {
+      await Future<void>.delayed(Duration(milliseconds: ms));
+      t += Duration(milliseconds: ms);
+    }
+
+    send(PointerDownEvent(pointer: 7, position: from, timeStamp: t));
+    await wait(700);
+    if (_demo == 'held') {
+      send(PointerUpEvent(pointer: 7, position: from, timeStamp: t));
+      return;
+    }
+    var p = from;
+    for (var k = 1; k <= 12; k++) {
+      final next = from + Offset(0, _demoBy * k / 12);
+      send(PointerMoveEvent(pointer: 7, position: next, delta: next - p, timeStamp: t));
+      p = next;
+      await wait(30);
+    }
+    if (_demo == 'drop' || _demo == 'select') send(PointerUpEvent(pointer: 7, position: p, timeStamp: t));
+  }
 }
 
 /// A practice's week around [day]: consultations, a meeting that overlaps,

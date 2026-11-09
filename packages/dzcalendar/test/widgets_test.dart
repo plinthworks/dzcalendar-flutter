@@ -179,11 +179,16 @@ void main() {
       expect(find.text('Rdv 5'), findsWidgets);
     });
 
-    testWidgets('a long press on an event offers Delete, which deletes it (undoable)', (t) async {
+    testWidgets('editable: a long press holds an event, a tap then offers Delete (undoable)', (t) async {
       final c = _controller(events: [_at('a', 'Bilan', '2026-11-10T09:00', '2026-11-10T10:00')]);
       addTearDown(c.dispose);
-      await _pump(t, DzCalendar(controller: c, scrollHour: 8));
+      await _pump(t, DzCalendar(controller: c, scrollHour: 8, editable: true));
       await t.longPress(find.text('Bilan'));
+      await t.pumpAndSettle();
+      // Held (decision 35): no menu yet, the handle and the menu button show.
+      expect(find.text('Supprimer'), findsNothing);
+      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      await t.tap(find.text('Bilan'));
       await t.pumpAndSettle();
       expect(find.text('Supprimer'), findsOneWidget);
       await t.tap(find.text('Supprimer'));

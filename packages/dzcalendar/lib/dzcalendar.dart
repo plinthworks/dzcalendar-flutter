@@ -31,6 +31,9 @@ export 'package:dzcalendar_core/dzcalendar_core.dart'
         TitleFormatArg,
         ViewModel,
         ViewSpec,
+        Segment,
+        TimedSegment,
+        AllDaySegment,
         AvailableSlot,
         // Events and what loading them says.
         EventInput,
@@ -56,6 +59,9 @@ export 'package:dzcalendar_core/dzcalendar_core.dart'
         EventPatch,
         EditScope,
         RunResult,
+        CommandResult,
+        Violation,
+        Series,
         History,
         // Time.
         Instant,
@@ -113,8 +119,8 @@ export 'package:dzcalendar_core/slots.dart'
         findSlots;
 
 export 'src/calendar.dart' show CalendarHeader, DzCalendar;
-export 'src/controller.dart' show CalendarController;
-export 'src/env.dart' show ActionsBuilder, EventColor;
+export 'src/controller.dart' show CalendarController, ChangedItem, EventChange, EventChangeCause;
+export 'src/env.dart' show ActionsBuilder, EventBuilder, EventColor, EventInfo;
 export 'src/l10n/localizations.dart'
     show
         DzCalendarLocalizations,

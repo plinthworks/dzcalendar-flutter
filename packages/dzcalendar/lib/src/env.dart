@@ -1,7 +1,10 @@
 import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'calendar.dart';
 import 'controller.dart';
+import 'interaction.dart';
 import 'l10n/localizations.dart';
 import 'theme.dart';
 
@@ -12,44 +15,82 @@ typedef ActionsBuilder = List<ActionItem> Function(ActionTarget target, List<Act
 /// An event's color: null leaves the theme's (its tone, else the default).
 typedef EventColor = Color? Function(EventInstance instance);
 
-/// What the views share, built once per [DzCalendar] build: the words, the
-/// style, the formats in the calendar's locale and zone, the callbacks.
+/// What an app's [EventBuilder] draws an event from. Gestures, semantics
+/// and the held event's handles stay the calendar's, around what it builds.
+final class EventInfo {
+  const EventInfo({
+    required this.segment,
+    required this.size,
+    required this.compact,
+    required this.color,
+    required this.onColor,
+    required this.when,
+    required this.held,
+  });
+
+  /// The piece drawn (a day's part of a longer event, its readings).
+  final Segment segment;
+  final Size size;
+
+  /// Too narrow or too short for more than the title.
+  final bool compact;
+
+  /// The event's color (the app's, its tone's or the theme's), and text over it.
+  final Color color;
+  final Color onColor;
+
+  /// Its times as the calendar writes them ("09:30 – 10:15", "All day").
+  final String when;
+
+  /// Held after a long press: its handles show.
+  final bool held;
+}
+
+/// An event's look, built by the app (null: the calendar's own).
+typedef EventBuilder = Widget? Function(BuildContext context, EventInstance instance, EventInfo info);
+
+/// What the views share, made at each [DzCalendar] build: the widget's
+/// settings and callbacks (read from it, not copied), the words, the style,
+/// the formats in the calendar's locale and zone, the gestures.
 class CalendarEnv {
   CalendarEnv({
-    required this.controller,
+    required this.config,
     required this.l10n,
     required this.style,
     required this.use24h,
     required this.textDirection,
-    this.onEventTap,
-    this.onDateTap,
-    this.onSelect,
-    this.onCreateRequest,
-    this.actionsBuilder,
-    this.eventColor,
-    this.onSlotTap,
-    this.dayView = 'timeGridDay',
+    required this.interaction,
+    required this.now,
   });
 
-  final CalendarController controller;
+  final DzCalendar config;
   final DzCalendarLocalizations l10n;
   final DzCalendarStyle style;
 
   /// The device's 24-hour setting (`MediaQuery.alwaysUse24HourFormat`).
   final bool use24h;
   final TextDirection textDirection;
-  final void Function(EventInstance instance)? onEventTap;
-  final void Function(Hit hit)? onDateTap;
-  final void Function(CalendarSelection selection)? onSelect;
-  final void Function(CreateRequest request)? onCreateRequest;
-  final ActionsBuilder? actionsBuilder;
-  final EventColor? eventColor;
+
+  /// The gestures that edit (held, dragged events; a drag selecting time).
+  final CalendarInteraction interaction;
+
+  /// The clock the now line follows (each minute), without a rebuild.
+  final ValueListenable<Instant> now;
+
+  CalendarController get controller => config.controller;
+  void Function(EventInstance instance)? get onEventTap => config.onEventTap;
+  void Function(Hit hit)? get onDateTap => config.onDateTap;
+  void Function(CalendarSelection selection)? get onSelect => config.onSelect;
+  void Function(CreateRequest request)? get onCreateRequest => config.onCreateRequest;
+  ActionsBuilder? get actionsBuilder => config.actionsBuilder;
+  EventColor? get eventColor => config.eventColor;
+  EventBuilder? get eventBuilder => config.eventBuilder;
 
   /// A bookable slot (`availableSlots`) tapped.
-  final void Function(AvailableSlot slot)? onSlotTap;
+  void Function(AvailableSlot slot)? get onSlotTap => config.onSlotTap;
 
   /// Where "Go to this day" leads (when registered).
-  final String dayView;
+  String get dayView => config.dayView;
 
   KernelState get state => controller.state;
   String get locale => state.locale;
@@ -73,18 +114,19 @@ class CalendarEnv {
   String title(EventInstance i) => i.event.title.isEmpty ? l10n.untitled : i.event.title;
 
   /// An event's color: the app's, else its tone's, else the theme's.
-  Color colorOf(EventInstance i) {
-    final own = eventColor?.call(i);
-    if (own != null) return own;
+  Color colorOf(EventInstance i) => colorsOf(i).fill;
+
+  /// An event's color and readable text over it: the theme's pair when the
+  /// color is the theme's, else measured.
+  ({Color fill, Color on}) colorsOf(EventInstance i) {
     final tone = i.event.tone;
-    return (tone != null ? style.tones[tone] : null) ?? style.eventColor;
+    final fill = eventColor?.call(i) ?? (tone != null ? style.tones[tone] : null);
+    if (fill == null) return (fill: style.eventColor, on: style.onEventColor);
+    return (fill: fill, on: _readableOn(fill));
   }
 
-  /// Readable text over [background].
-  Color onColor(Color background) {
-    if (background == style.eventColor) return style.onEventColor;
-    return ThemeData.estimateBrightnessForColor(background) == Brightness.dark ? Colors.white : Colors.black87;
-  }
+  static Color _readableOn(Color background) =>
+      ThemeData.estimateBrightnessForColor(background) == Brightness.dark ? Colors.white : Colors.black87;
 
   /// A timed event's span in the calendar's zone: "09:30 – 10:15".
   String span(EventInstance i) {
@@ -126,7 +168,8 @@ class CalendarEnv {
         onCreateRequest: create,
         onGoToDay: hasDayView && state.view.type != dayView ? (d) => controller.setView(dayView, d) : null,
         onOpen: open,
-        onCommand: (c) => controller.run(c, validate: true),
+        // Editing entries only where a person may edit (as the TS: `editable`).
+        onCommand: config.editable ? (c) => controller.run(c, validate: true) : null,
       ),
     );
     final b = actionsBuilder;

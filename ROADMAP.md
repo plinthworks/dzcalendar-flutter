@@ -2,10 +2,11 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19e-2a done (2026-11-09)**, committed ("Phase 19e-2a"); see its
-  section below. **Next: 19e-2b** — editing in the widgets (decision 35:
-  long press grabs; drag and resize, haptics, edge scrolling; keyboard;
-  full screen-reader support). Read 19e-2a's "For 19e-2b" first.
+- **Phase 19e-2b-1 done (2026-11-09)**, committed ("Phase 19e-2b-1"): the
+  gestures that edit (decisions 37–40). See its section below. **Next:
+  19e-2b-2** — the keyboard and full screen-reader support (its "For
+  19e-2b-2" list); its structural choices to the owner first.
+- **Phase 19e-2a done (2026-11-09)**, committed ("Phase 19e-2a").
 - **Phase 19e-1 done (2026-11-09)**, committed ("Phase 19e-1").
 - **Phase 19d done (2026-11-08)**, committed ("Phase 19d"); see its section
   below. **Next: 19e** — the Flutter widgets. Before them, in the core: the
@@ -171,6 +172,22 @@
   36. **`SlotPicker<T>` (owner, 2026-11-09)**: takes the app's own slot
       objects (`startOf`, `endOf`, per-slot `enabledOf` and `seatsOf`);
       `SlotPicker.fromSlots` for the core's `Slot`s.
+  37. **Edits applied, then revertable (owner, 2026-11-09, 19e-2b)**: as the
+      TS — a gesture's command runs through the history at once, then
+      `onEventChange(change)` tells the app; the server refusing,
+      `change.revert()` takes back exactly that change (false when the
+      events changed since).
+  38. **19e-2b in two parts (owner, 2026-11-09)**: 2b-1 the gesture layer
+      (long-press grab, move, resize, drag-select, haptics, edge scrolling),
+      `onEventChange`, `eventBuilder`, the rebuild granularity; 2b-2 the
+      keyboard (`Shortcuts`/`Actions` over the core's `KeyIntent`s) and full
+      screen-reader support. Each its reviews and its commit.
+  39. **Dragging from outside the calendar later (owner, 2026-11-09)**: an
+      app's own items onto the calendar, or between two calendars — after
+      19f; `proposeMove` already allows it.
+  40. **A short landing motion (owner, 2026-11-09)**: a dropped event slides
+      to its place (~200 ms), a refused one back to where it was; none when
+      the system asks for less motion (`MediaQuery.disableAnimations`).
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -541,6 +558,75 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19e-2b-1 — the gestures that edit ✅ (2026-11-09)
+
+- `CalendarInteraction` (lib/src/interaction.dart), one per `DzCalendar`:
+  a long press grabs an event that may move (`editable`, or its own
+  `startEditable`), else opens its menu; the finger is then followed through
+  the pointer router's global route (the event's widget may be rebuilt or
+  dropped meanwhile). Let go without moving: held — outlined, a handle at
+  its end (down a column, along an all-day bar), a ⋮ button when there is
+  room; a tap on it opens the menu. Tap on an event: `onEventTap`, else the
+  menu. Swipe off while held or dragged.
+- Each view is a `DragSurface` (`hitAt`, `boxesFor`, `autoscroll`,
+  `canResize`): the time grid (body, all-day row, sideways scroll, RTL),
+  the day grid (rows, resource columns). The core proposes
+  (`proposeMove`, `proposeResize`, `selectionBetween`); the ghost is drawn
+  over the calendar in global coordinates, clipped to its area, red-edged
+  where the rules refuse. A handle keeps the edge's distance from the
+  finger. Edge scrolling up to 900 px/s.
+- A drop: unchanged or refused → slides back; an occurrence → "Change which
+  events?" (this / following / all; closed: nothing); then
+  `controller.run(commandFor(...), validate: true)` and the ghost lands
+  (~200 ms, none with `disableAnimations`). Haptics: grab, each new place,
+  drop, refusal.
+- `selectable`: long press on empty time or a day then drag selects
+  (`onSelect`); let go without moving: the menu (decision 35).
+- Controller: `onEventChange(EventChange)` for a person's command
+  (validated) and their undo/redo — `events`/`series` before/after,
+  `revert()` (exactly that change, not told again), `canRevert`;
+  `onCommandRefused`. The selection on its own `selectionListenable` (no
+  longer notifies the controller's listeners).
+- Rebuild granularity: env reads the widget (no copied callbacks); colors
+  with their on-color (`colorsOf`); now line and selection from their own
+  listenables; virtual columns rebuilt only when the window changes.
+- `eventBuilder(context, instance, EventInfo)`; resource group heads drawn;
+  a debug placeholder for families not drawn. Menu editing entries only
+  when `editable` (as the TS).
+- Example: `editable`, `selectable`, a SnackBar with Revert; `DEMO=drag|held|
+  drop|select` plays synthetic touches for screenshots.
+- Tests: editing_test.dart (17), widgets 28, exports 109 names.
+- Review fixes (architect + code): a revert asked inside `onEventChange`
+  was told back as an undo (the deferred write now skipped — **to bring
+  back to the main repository**: the TS has the same shape,
+  calendar.ts ~635–657); `EventInfo.held` stale for `eventBuilder`; the
+  drag followed the last pointer down anywhere (now the live pointer
+  nearest the press; a second finger's long press is ignored); a gesture
+  started during a landing left `lifted` set; a gesture under way is
+  cancelled on another view, period, zone, controller, or `editable`
+  off; a refused place is run validated so `onCommandRefused` hears the
+  violations; edge scrolling waits for the finger to travel; the landing
+  target is read again each frame; an equal selection does not notify;
+  the refusal color is the theme's error; `revert()` after dispose is
+  false; the held event is let go only on navigate/view/zone/resources.
+- **For 19e-2b-2**: the keyboard (`Shortcuts`/`Actions` over `KeyIntent`s,
+  "Move…"/"Change duration…" entries through `onGrab`); announcements
+  (moved, refused, skipped hour) and custom semantics actions on events;
+  the held event's handle and button inside the event's semantics.
+- **Later**: an immediate drag with a mouse (no long press); asking which
+  reading on a repeated hour (`Proposal.ambiguity`, the pass under the
+  finger is taken); resizing from the start; an all-day row shown while
+  dragging when the week has none; dragging to the edge to change period;
+  a handle's touch target under 24 px on short events (needs a hit slop
+  outside the event's box); following from the first pixel instead of
+  after the slop; a muted ticker (`TickerMode` off) leaves a slide
+  unsettled; several controllers on one kernel each tell their own
+  `onEventChange` (document); `controller.undo()` not gated on
+  `editable` (decide in 2b-2); the day grid's ghost on the top lane, not
+  the event's; tests still missing: month resize in RTL, across resource
+  columns, autoscroll, pointer cancel, `snapMinutes` ≠ 15, a
+  spring-forward drop.
 
 ## 19e-2a — the Flutter widgets, reading ✅ (2026-11-09)
 

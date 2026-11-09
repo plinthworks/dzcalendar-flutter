@@ -118,6 +118,12 @@ abstract class DzCalendarLocalizations {
 
   /// The menu asking how far a delete of an occurrence reaches.
   String get deleteWhich;
+
+  /// Asked when an occurrence of a series was moved or resized.
+  String get changeWhich;
+
+  /// A held event's menu button.
+  String get moreOptions;
   String get scopeThis;
   String get scopeFollowing;
   String get scopeAll;
@@ -236,6 +242,10 @@ class DzCalendarLocalizationsEn extends DzCalendarLocalizations {
   @override
   String get deleteWhich => 'Delete which events?';
   @override
+  String get changeWhich => 'Change which events?';
+  @override
+  String get moreOptions => 'More options';
+  @override
   String get scopeThis => 'This event';
   @override
   String get scopeFollowing => 'This and following events';
@@ -344,6 +354,10 @@ class DzCalendarLocalizationsFr extends DzCalendarLocalizations {
   String get resizeEvent => 'Changer la durée…';
   @override
   String get deleteWhich => 'Supprimer quels événements ?';
+  @override
+  String get changeWhich => 'Modifier quels événements ?';
+  @override
+  String get moreOptions => 'Plus d’options';
   @override
   String get scopeThis => 'Cet événement';
   @override
@@ -483,6 +497,10 @@ class DzCalendarLocalizationsAr extends DzCalendarLocalizations {
   String get resizeEvent => 'تغيير المدة…';
   @override
   String get deleteWhich => 'ما الأحداث التي تريد حذفها؟';
+  @override
+  String get changeWhich => 'ما الأحداث التي تريد تعديلها؟';
+  @override
+  String get moreOptions => 'خيارات أخرى';
   @override
   String get scopeThis => 'هذا الحدث';
   @override

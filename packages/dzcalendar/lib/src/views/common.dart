@@ -1,4 +1,5 @@
 import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../env.dart';
@@ -19,7 +20,8 @@ String dayHead(CalendarEnv env, PlainDate date, int days) => days > 3
     : formatTemporal(date, 'MMMEd', env.locale);
 
 /// A bar in a day grid or an all-day row: filled for a day event, a dot and
-/// its time for a timed one. Tap opens, long press offers the menu.
+/// its time for a timed one. Grabbed by a long press; a day event held
+/// shows a handle at its end.
 class EventBar extends StatelessWidget {
   const EventBar({super.key, required this.env, required this.segment});
   final CalendarEnv env;
@@ -28,26 +30,41 @@ class EventBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final i = segment.instance;
-    final color = env.colorOf(i);
+    final colors = env.colorsOf(i);
+    final color = colors.fill;
     final style = env.style;
     final radius = Radius.circular(style.eventRadius);
     final timed = segment is TimedSegment && segment.dayCount == 1;
     final title = env.title(i);
-    final Widget body;
-    if (timed) {
-      final start = (segment as TimedSegment).from;
-      body = Row(
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            margin: const EdgeInsetsDirectional.only(start: 2, end: 3),
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          Flexible(
-            child: LayoutBuilder(
+    final when = env.span(i);
+    Widget look(BuildContext context, BoxConstraints box) {
+      final own = env.eventBuilder?.call(
+        context,
+        i,
+        EventInfo(
+          segment: segment,
+          size: box.biggest,
+          compact: box.maxWidth < 80,
+          color: color,
+          onColor: colors.on,
+          when: when,
+          held: env.interaction.held.value == i.key,
+        ),
+      );
+      if (own != null) return own;
+      if (timed) {
+        final start = (segment as TimedSegment).from;
+        return Row(
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              margin: const EdgeInsetsDirectional.only(start: 2, end: 3),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            Flexible(
               // A narrow cell (a month on a phone) has room for the title only.
-              builder: (context, box) => Text(
+              child: Text(
                 segment.startsHere && box.maxWidth >= 80 ? '${env.time(start)} $title' : title,
                 maxLines: 1,
                 overflow: TextOverflow.clip,
@@ -55,11 +72,10 @@ class EventBar extends StatelessWidget {
                 style: style.eventStyle,
               ),
             ),
-          ),
-        ],
-      );
-    } else {
-      body = Container(
+          ],
+        );
+      }
+      return Container(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         alignment: AlignmentDirectional.centerStart,
         decoration: BoxDecoration(
@@ -74,34 +90,166 @@ class EventBar extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.clip,
           softWrap: false,
-          style: style.eventStyle.copyWith(color: env.onColor(color)),
+          style: style.eventStyle.copyWith(color: colors.on),
         ),
       );
     }
-    return EventGestures(env: env, instance: i, label: env.l10n.eventLabel(title, env.span(i)), child: body);
+
+    return EventGestures(
+      env: env,
+      instance: i,
+      label: env.l10n.eventLabel(title, when),
+      draggable: true,
+      resizeAxis: i.event.allDay && segment.endsHere ? Axis.horizontal : null,
+      // An app's look hears the held state itself (the gestures' builder reuses this child).
+      child: env.eventBuilder == null
+          ? LayoutBuilder(builder: look)
+          : ValueListenableBuilder<String?>(
+              valueListenable: env.interaction.held,
+              builder: (context, _, _) => LayoutBuilder(builder: look),
+            ),
+    );
   }
 }
 
-/// Tap: open; long press: the event's menu. Named for screen readers.
+/// An event's gestures and its name for screen readers, around its look.
+/// Tap: the app opens it (held, or no app to open it: its menu). Long press:
+/// in a grid ([draggable]) it is grabbed when it may move (decision 35),
+/// else its menu. Dragged, it is drawn faded where it was; held, its handle
+/// ([resizeAxis]: down a column, along a bar) and its menu button show.
 class EventGestures extends StatelessWidget {
-  const EventGestures({super.key, required this.env, required this.instance, required this.label, required this.child});
+  const EventGestures({
+    super.key,
+    required this.env,
+    required this.instance,
+    required this.label,
+    required this.child,
+    this.draggable = false,
+    this.resizeAxis,
+  });
   final CalendarEnv env;
   final EventInstance instance;
   final String label;
   final Widget child;
+  final bool draggable;
+
+  /// Which way its end is pulled when held (null: its length is not drawn here).
+  final Axis? resizeAxis;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: label,
-    excludeSemantics: true,
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: env.onEventTap == null ? null : () => env.onEventTap!(instance),
-      onLongPressStart: (d) => env.showActions(context, EventTarget(instance), d.globalPosition),
-      child: child,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final x = env.interaction;
+    final key = instance.key;
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (d) => x.tapEvent(instance, d.globalPosition),
+        onLongPressStart: (d) => draggable
+            ? x.pressEvent(instance, d.globalPosition)
+            : env.showActions(context, EventTarget(instance), d.globalPosition),
+        child: !draggable
+            ? child
+            : ListenableBuilder(
+                listenable: Listenable.merge([x.lifted, x.held]),
+                builder: (context, _) {
+                  final lifted = x.lifted.value == key;
+                  final held = x.held.value == key;
+                  Widget look = lifted ? Opacity(opacity: 0.35, child: child) : child;
+                  if (held) look = _Held(env: env, instance: instance, axis: resizeAxis, child: look);
+                  return look;
+                },
+              ),
+      ),
+    );
+  }
+}
+
+/// A held event: outlined, its end's handle, its menu button.
+class _Held extends StatelessWidget {
+  const _Held({required this.env, required this.instance, required this.axis, required this.child});
+  final CalendarEnv env;
+  final EventInstance instance;
+  final Axis? axis;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final x = env.interaction;
+    final scheme = Theme.of(context).colorScheme;
+    final resizable = axis != null && x.mayResize(instance.event);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final vertical = axis == Axis.vertical;
+        final grip = vertical ? (box.maxHeight / 2).clamp(6.0, 16.0) : (box.maxWidth / 3).clamp(6.0, 16.0);
+        return Stack(
+          fit: StackFit.passthrough,
+          children: [
+            DecoratedBox(
+              position: DecorationPosition.foreground,
+              decoration: BoxDecoration(
+                border: Border.all(color: scheme.primary, width: 2),
+                borderRadius: BorderRadius.circular(env.style.eventRadius),
+              ),
+              child: child,
+            ),
+            if (resizable)
+              PositionedDirectional(
+                start: vertical ? 0 : null,
+                end: 0,
+                bottom: 0,
+                top: vertical ? null : 0,
+                width: vertical ? null : grip,
+                height: vertical ? grip : null,
+                child: Semantics(
+                  label: env.l10n.resizeEvent,
+                  button: true,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    // Where the finger went down: the edge keeps its distance from it.
+                    dragStartBehavior: DragStartBehavior.down,
+                    onVerticalDragStart: vertical ? (d) => x.pullHandle(instance, d.globalPosition) : null,
+                    onHorizontalDragStart: vertical ? null : (d) => x.pullHandle(instance, d.globalPosition),
+                    child: Center(
+                      child: Container(
+                        width: vertical ? 20 : 4,
+                        height: vertical ? 4 : 12,
+                        decoration: BoxDecoration(color: scheme.primary, borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (box.maxHeight >= 24 && box.maxWidth >= 40)
+              PositionedDirectional(
+                top: 0,
+                end: 0,
+                width: 24,
+                height: 24,
+                child: Semantics(
+                  label: env.l10n.moreOptions,
+                  button: true,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapUp: (d) => x.openMenu(instance, d.globalPosition),
+                    child: Center(
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(color: scheme.surface, shape: BoxShape.circle),
+                        child: Icon(Icons.more_vert, size: 16, color: scheme.primary),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 /// The resources over a resource view's columns, each over its days.
@@ -133,6 +281,48 @@ class ResourceHeadRow extends StatelessWidget {
         ),
     ],
   );
+}
+
+/// Resource groups over the resources' heads: each as wide as its resources' columns.
+class ResourceGroupRow extends StatelessWidget {
+  const ResourceGroupRow({super.key, required this.env, required this.groups, required this.heads});
+  final CalendarEnv env;
+  final List<ResourceGroupHead> groups;
+  final List<ResourceHead> heads;
+
+  @override
+  Widget build(BuildContext context) {
+    int cells(int from, int count) =>
+        [for (var k = from; k < from + count && k < heads.length; k++) heads[k].count].fold(0, (a, b) => a + b);
+    return Row(
+      children: [
+        for (final g in groups)
+          if (cells(g.from, g.count) > 0)
+            Expanded(
+              flex: cells(g.from, g.count),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+                decoration: BoxDecoration(
+                  border: BorderDirectional(
+                    end: BorderSide(color: env.style.gridLineColor, width: 0.5),
+                    bottom: BorderSide(color: env.style.gridLineColor, width: 0.5),
+                  ),
+                ),
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    g.value,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: env.style.headerStyle.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ),
+      ],
+    );
+  }
 }
 
 /// A row of a list: time, color, title. Tap opens, long press: the menu.
