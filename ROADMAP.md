@@ -2,11 +2,11 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19e-1 done (2026-11-09)**, committed ("Phase 19e-1"); see its
-  section below. **Next: 19e-2** — the Flutter package `dzcalendar`
-  (`CalendarController` over `CalendarKernel`; month, week, day,
-  mini-month, list, available slots), checked on the iOS simulator and an
-  Android emulator. Read 19e-1's "For 19e-2" first.
+- **Phase 19e-2a done (2026-11-09)**, committed ("Phase 19e-2a"); see its
+  section below. **Next: 19e-2b** — editing in the widgets (decision 35:
+  long press grabs; drag and resize, haptics, edge scrolling; keyboard;
+  full screen-reader support). Read 19e-2a's "For 19e-2b" first.
+- **Phase 19e-1 done (2026-11-09)**, committed ("Phase 19e-1").
 - **Phase 19d done (2026-11-08)**, committed ("Phase 19d"); see its section
   below. **Next: 19e** — the Flutter widgets. Before them, in the core: the
   rrule "jump to the window" (long series are slow, and drag feedback
@@ -140,6 +140,37 @@
   29. **Hit-tests and menus in the core (owner, 2026-11-09)**: `slotHitAt`,
       `slotTargetAt`, `allDayHitAt`, `dayHitAt`, `kernel.interactionContext`,
       `actionsFor` (the TS's actions) — the widgets measure, the core reads.
+  30. **Widgets (owner, 2026-11-09, 19e-2)**: one `DzCalendar(controller)`
+      draws the current view (month, week, day, list), as the web; the
+      mini-month and the available-slots picker are widgets of their own,
+      usable alone (sehhaty's slot picker without the whole calendar). The
+      `CalendarController` is a plain `Listenable` — no Riverpod dependency.
+  31. **Words through a Flutter delegate (owner, 2026-11-09)**:
+      `DzCalendarLocalizations.delegate`, French, English and Arabic shipped,
+      every text replaceable by the application; it follows the app's locale.
+  32. **Style as a `ThemeExtension` (owner, 2026-11-09)**: `DzCalendarTheme`,
+      derived from the app's `ColorScheme` and `TextTheme` when not set
+      (Material 3, light and dark); the app overrides parts in `ThemeData`.
+  33. **19e-2 in two parts (owner, 2026-11-09)**: 19e-2a reads (the six
+      views, tap, selection, long press → menu, virtualization, RTL, screens
+      on iOS and Android); 19e-2b edits (drag and resize with a long press to
+      grab, haptics, edge scrolling; keyboard; full screen-reader support).
+      Each part has its reviews.
+  34. **A chosen export list (owner, 2026-11-09, 19e-2a review)**:
+      `package:dzcalendar/dzcalendar.dart` exports what an app uses with the
+      widgets (controller, event and time types, problems, commands, menus,
+      hits and selections, slots); the whole core stays in
+      `package:dzcalendar_core`. A test checks nothing collides with
+      `material.dart`.
+  35. **Long press grabs (owner, 2026-11-09)**: on touch, a long press on an
+      event picks it up to move it (haptics), as Google Calendar; the event's
+      menu comes from a tap (selected event, action bar) or a button; a long
+      press on an empty slot or day keeps the "New event" menu. Swiping between
+      periods is off while an event is held. Built in 19e-2b; until then the
+      long press on an event opens its menu.
+  36. **`SlotPicker<T>` (owner, 2026-11-09)**: takes the app's own slot
+      objects (`startOf`, `endOf`, per-slot `enabledOf` and `seatsOf`);
+      `SlotPicker.fromSlots` for the core's `Slot`s.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -510,3 +541,77 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19e-2a — the Flutter widgets, reading ✅ (2026-11-09)
+
+The package `packages/dzcalendar` (Flutter), in the workspace with its
+example app (`packages/dzcalendar/example`, iOS and Android; what it shows
+comes from `--dart-define`: SCREEN, VIEW, LOCALE, DATE, ZONE, DARK,
+SCROLL; the clock frozen at DATE 10:20). Owner's decisions 30–36.
+
+- `CalendarController` (a `ChangeNotifier` over the kernel): tells its
+  listeners in a microtask — never during a build, including the first one
+  `runApp` makes outside any frame (found by a test: a phase check missed
+  it); several changes, one notification; `changes` says why. A selection
+  (tap on a slot or a day) is cleared by navigation, view, zone, resources.
+  `CalendarController.of(kernel)` leaves a kernel handed in running.
+- `DzCalendar`: header (previous, next, today, title, views), swipe between
+  periods (mirrored right to left), the app's locale followed only when it
+  changes, one minute-aligned clock paused in the background. Views:
+  - time grid: day heads, all-day row, gutter (the second pass of a
+    repeated hour marked, a skipped hour struck through), off hours, the
+    clock-change bands drawn over events with their words, readings and
+    real lengths on events cut by a change, available slots, "+N", now
+    line; hours taller with a larger text size; columns narrower than
+    `minColumnWidth` scroll sideways, only those on screen built
+    (`visibleRange`), heads, all-day row and body on three synced
+    controllers;
+  - day grid (month, week, day, resources): lanes fitted to the height
+    with the core's `cutDayGridModel` (new, internal: the cut a model
+    built with that `maxLanes` has; the calendar's options untouched, an
+    app's own `maxLanes` stands), "+N" opens a sheet;
+  - list, year (months built as they scroll in, a dot on days with events).
+  - Long press: the core's menus (`actionsFor`), delete as a validated
+    command (undoable).
+- `CalendarHeader(controller)`, `MiniMonth` (alone or on a controller: it
+  follows the calendar's date, marks event days), `SlotPicker<T>` on the
+  app's own slots (`fromSlots` for the core's), the repeated hour told by
+  offset, seats, disabled slots.
+- Words: `DzCalendarLocalizations` (fr, en, ar; Arabic plurals by
+  `Intl.pluralLogic`, counts in the dates' digits, durations translated;
+  a locale `intl` lacks: English numbers, no throw). Style:
+  `DzCalendarTheme` (`ThemeExtension`, named `tones`).
+- CI on Flutter 3.35.7 (`flutter analyze`, core `dart test`, `flutter test`).
+- Checked: screenshots on the iPhone 17 Pro simulator (iOS 26.1) and the
+  Pixel 9a emulator — week, month, day on both Paris clock changes, list,
+  year, resources, mini month, slots (dark), Arabic week and month. The
+  emulator had 371 MB free (other apps installed, left alone): the example
+  goes on as a release arm64 APK.
+- Reviews (architect, code), fixed: one scroll controller on two views (a
+  crash on a phone week with an all-day bar); the widget writing
+  `dayGrid.maxLanes` into the shared options after the frame (a call on a
+  disposed controller possible); a clock per time grid only; unknown
+  skeletons (`EEEEEd`); the top hour unlabelled with `slotMin`; English
+  durations; `number()` throwing for a locale intl lacks; the mini month
+  not following after browsing; the painter repainting every build;
+  resource names missing from heads' labels; the selection never cleared;
+  the locale forced at every dependency change; `Slot` and `CalendarEnv`
+  missing from the public surface (now a chosen export list, decision 34).
+  Tests: 28 widget tests (expectations reasoned: band words, `*`, real
+  lengths, 09:12 → the 09:00 slot, lanes from the theme's sizes), 6 core
+  tests for `cutDayGridModel`.
+- **For 19e-2b** (from the reviews):
+  - Gestures through one interaction layer owning the arena: long press
+    grabs (decision 35), the event menu from a tap or a button, swipe off
+    while an event is held; `Shortcuts`/`Actions` at the root over the
+    core's `KeyIntent`s.
+  - An `eventBuilder(context, instance, info)` seam (segment, size,
+    compact, readings, selected), gestures and semantics kept outside.
+  - Rebuild granularity: the selection on its own listenable; the virtual
+    columns rebuilt only when the window's first/last change; one config
+    object instead of eleven callbacks copied into `CalendarEnv` each
+    build; `onColor` not by comparing colors.
+  - The now line from a `ValueNotifier<Instant>` instead of a rebuild.
+  - Resource group heads (`groupHeads`) are not drawn yet.
+  - A placeholder (debug) for families not drawn (the timeline).
+

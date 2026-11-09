@@ -32,7 +32,8 @@ export 'src/layout/column.dart' show ColItem, ColPlacement, ColumnLayoutMode, la
 export 'src/layout/rows.dart' show OverflowPiece, OverflowResult, Packed, RowItem, computeOverflow, packLanes;
 export 'src/layout/virtual.dart' show PrefixSums, Sizes, UniformSizes, VRange, VariableSizes, visible2D, visibleRange;
 export 'src/project/segment.dart' show DateIndex, segmentAllDay, segmentTimed, splitByWeek;
-export 'src/views/daygrid.dart' show groupHeadsOf, isBackground, updateDayGridModel, updateMultiMonthModel;
+export 'src/views/daygrid.dart'
+    show cutDayGridModel, groupHeadsOf, isBackground, updateDayGridModel, updateMultiMonthModel;
 export 'src/views/timegrid.dart' show buildTimeGridColumn, updateTimeGridModel;
 export 'src/util/js.dart' show jsRound, jsText;
 export 'src/recurrence/series.dart'

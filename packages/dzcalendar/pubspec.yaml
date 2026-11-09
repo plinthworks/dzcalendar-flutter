@@ -1,0 +1,22 @@
+name: dzcalendar
+description: >-
+  DzCalendar's Flutter widgets: month, week, day, list, mini-month and an
+  available-slots picker, drawn from dzcalendar_core's models. Every event
+  keeps its own time zone; days of 23 h or 25 h are drawn as they are.
+version: 0.1.0-dev
+repository: https://github.com/plinthworks/dzcalendar-flutter
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.35.0"
+resolution: workspace
+dependencies:
+  dzcalendar_core: ^0.1.0-dev
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^5.0.0

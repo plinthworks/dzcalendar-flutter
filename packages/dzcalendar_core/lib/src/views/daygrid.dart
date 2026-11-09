@@ -80,9 +80,9 @@ final class DayGridOptions {
   /// False: padding days outside the month are left empty.
   final bool showNonCurrentDates;
 
-  DayGridOptions copyWith({bool? showNonCurrentDates}) => DayGridOptions(
+  DayGridOptions copyWith({bool? showNonCurrentDates, int? maxLanes}) => DayGridOptions(
     displayZone: displayZone,
-    maxLanes: maxLanes,
+    maxLanes: maxLanes ?? this.maxLanes,
     resourceId: resourceId,
     resources: resources,
     resourceGroups: resourceGroups,
@@ -174,6 +174,57 @@ final class DayGridModel {
     weeks: weeks,
     resourceHeads: resourceHeads,
     groupHeads: groupHeads,
+  );
+}
+
+/// [model] cut to [maxLanes] lanes per day (the "+N" link's included), as
+/// a model built with that `maxLanes` would be: what a renderer fits to the
+/// height it measures, without changing the calendar's options. A model
+/// already cut (its options name a `maxLanes`: the application's setting)
+/// is returned as it is. Throws an [ArgumentError] when [maxLanes] is
+/// under 1, as the option does.
+DayGridModel cutDayGridModel(DayGridModel model, int maxLanes) {
+  if (maxLanes < 1) throw ArgumentError.value(maxLanes, 'maxLanes', 'an integer ≥ 1');
+  if (model.maxLanes != null) return model;
+  final weeks = [
+    for (final w in model.weeks)
+      if (w.laneCount <= maxLanes) w else _cutWeek(w, maxLanes),
+  ];
+  return DayGridModel(
+    version: model.version,
+    range: model.range,
+    options: model.options.copyWith(maxLanes: maxLanes),
+    weeks: List.unmodifiable(weeks),
+    resourceHeads: model.resourceHeads,
+    groupHeads: model.groupHeads,
+  );
+}
+
+DayGridWeek _cutWeek(DayGridWeek w, int maxLanes) {
+  // Uncut, every bar is one piece on its packed lane, in the builder's order.
+  final items = [
+    for (final b in w.bars) RowItem(key: b.segment.key, start: b.pieces.first.from, end: b.pieces.first.to),
+  ];
+  final lanes = {for (final b in w.bars) b.segment.key: b.lane};
+  final over = computeOverflow(lanes, items, w.dates.length, maxLanes);
+  final piecesOf = <String, List<({int from, int to})>>{};
+  for (final p in over.pieces) {
+    (piecesOf[p.key] ??= []).add((from: p.from, to: p.to));
+  }
+  return DayGridWeek(
+    dates: w.dates,
+    resources: w.resources,
+    background: w.background,
+    firstColumn: w.firstColumn,
+    bars: List.unmodifiable([
+      for (final b in w.bars)
+        if (piecesOf[b.segment.key] case final pieces?) DayGridBar(segment: b.segment, lane: b.lane, pieces: pieces),
+    ]),
+    laneCount: w.laneCount,
+    hiddenKeysPerDay: List.unmodifiable(over.hiddenKeysPerDay),
+    segments: w.segments,
+    outside: w.outside,
+    closed: w.closed,
   );
 }
 

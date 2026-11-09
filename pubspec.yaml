@@ -4,6 +4,8 @@ environment:
   sdk: ^3.9.0
 workspace:
   - packages/dzcalendar_core
+  - packages/dzcalendar
+  - packages/dzcalendar/example
 dev_dependencies:
   lints: ^5.0.0
 # What Flutter 3.35's flutter_localizations pins: the tests run on the intl an
