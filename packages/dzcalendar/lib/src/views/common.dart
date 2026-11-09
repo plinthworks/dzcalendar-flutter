@@ -1,8 +1,10 @@
 import 'package:dzcalendar_core/dzcalendar_core.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../env.dart';
+import '../keyboard.dart';
 
 /// The segments of [week] over cell [cell], drawn or not.
 List<Segment> segmentsOn(DayGridWeek week, int cell) => [
@@ -139,31 +141,104 @@ class EventGestures extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final x = env.interaction;
+    final k = x.keyboard;
     final key = instance.key;
-    return Semantics(
-      button: true,
-      label: label,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapUp: (d) => x.tapEvent(instance, d.globalPosition),
-        onLongPressStart: (d) => draggable
-            ? x.pressEvent(instance, d.globalPosition)
-            : env.showActions(context, EventTarget(instance), d.globalPosition),
-        child: !draggable
-            ? child
-            : ListenableBuilder(
-                listenable: Listenable.merge([x.lifted, x.held]),
-                builder: (context, _) {
-                  final lifted = x.lifted.value == key;
-                  final held = x.held.value == key;
-                  Widget look = lifted ? Opacity(opacity: 0.35, child: child) : child;
-                  if (held) look = _Held(env: env, instance: instance, axis: resizeAxis, child: look);
-                  return look;
-                },
-              ),
-      ),
+    final gestures = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapUp: (d) {
+        k.tappedEvent(instance);
+        x.tapEvent(instance, d.globalPosition);
+      },
+      onLongPressStart: (d) => draggable
+          ? x.pressEvent(instance, d.globalPosition)
+          : env.showActions(context, EventTarget(instance), d.globalPosition),
+      child: !draggable
+          ? child
+          : ListenableBuilder(
+              listenable: Listenable.merge([x.lifted, x.held, k.focused]),
+              builder: (context, _) {
+                final lifted = x.lifted.value == key;
+                final held = x.held.value == key;
+                Widget look = lifted ? Opacity(opacity: 0.35, child: child) : child;
+                if (held) look = _Held(env: env, instance: instance, axis: resizeAxis, child: look);
+                if (k.focused.value == key && !held) {
+                  look = Stack(
+                    fit: StackFit.passthrough,
+                    children: [
+                      look,
+                      Positioned.fill(
+                        child: IgnorePointer(child: CursorBox(radius: env.style.eventRadius)),
+                      ),
+                    ],
+                  );
+                }
+                return look;
+              },
+            ),
     );
+    if (!draggable) {
+      return Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        onTap: () => x.tapEvent(instance, _center(context)),
+        child: gestures,
+      );
+    }
+    // In a grid: the reader's editing actions; held, it is adjustable (decision 42).
+    return ValueListenableBuilder<GrabInfo?>(
+      valueListenable: k.held,
+      child: gestures,
+      builder: (context, grab, child) {
+        final l = env.l10n;
+        if (grab != null && grab.key == key) {
+          final time = grab.grid == KeyGrid.time;
+          return Semantics(
+            label: label,
+            value: grab.value,
+            increasedValue: grab.increased,
+            decreasedValue: grab.decreased,
+            hint: l.grabHelpReader,
+            excludeSemantics: true,
+            onIncrease: () => k.readerStep(1),
+            onDecrease: () => k.readerStep(-1),
+            onTap: k.readerPutDown,
+            customSemanticsActions: {
+              if (!k.grabbingLength) ...{
+                CustomSemanticsAction(label: time ? l.previousDay : l.previousWeek): () => k.readerDay(-1),
+                CustomSemanticsAction(label: time ? l.nextDay : l.nextWeek): () => k.readerDay(1),
+              },
+              CustomSemanticsAction(label: l.putDown): k.readerPutDown,
+              CustomSemanticsAction(label: l.cancelMove): k.readerCancel,
+            },
+            child: child,
+          );
+        }
+        final ev = instance.event;
+        final editable = env.config.editable;
+        return Semantics(
+          button: true,
+          label: label,
+          excludeSemantics: true,
+          onTap: () => x.tapEvent(instance, _center(context)),
+          onLongPress: () => env.showActions(context, EventTarget(instance), _center(context)),
+          customSemanticsActions: {
+            if (editable && x.mayMove(ev))
+              CustomSemanticsAction(label: l.moveEvent): () => k.grab(instance, GrabKind.move),
+            if (editable && x.mayResize(ev))
+              CustomSemanticsAction(label: l.resizeEvent): () => k.grab(instance, GrabKind.resize),
+            if (editable && x.mayDelete(ev)) CustomSemanticsAction(label: l.deleteEvent): () => k.delete(instance),
+          },
+          child: child,
+        );
+      },
+    );
+  }
+
+  /// The middle of this event on screen (where a menu opens for a reader).
+  static Offset _center(BuildContext context) {
+    final box = context.findRenderObject();
+    return box is RenderBox && box.hasSize ? box.localToGlobal(box.size.center(Offset.zero)) : Offset.zero;
   }
 }
 
@@ -250,6 +325,22 @@ class _Held extends StatelessWidget {
       },
     );
   }
+}
+
+/// The keyboard's cursor: an outline in the theme's primary color.
+class CursorBox extends StatelessWidget {
+  const CursorBox({super.key, required this.radius});
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.expand(
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    ),
+  );
 }
 
 /// The resources over a resource view's columns, each over its days.

@@ -1,4 +1,4 @@
-import 'package:dzcalendar_core/dzcalendar_core.dart' show PlainTime, formatTemporal;
+import 'package:dzcalendar_core/dzcalendar_core.dart' show PlainTime, ViolationCode, formatTemporal;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
@@ -170,6 +170,61 @@ abstract class DzCalendarLocalizations {
 
   /// The time grid's slot: "Tuesday 20 October, 09:30".
   String cursorSlot(String date, String time);
+
+  // ——— the keyboard and screen readers (19e-2b-2) ———
+
+  /// The cursor on a day's all-day row, or on a day.
+  String cursorAllDay(String date);
+
+  /// The keyboard's selection, said as it grows.
+  String selected(String span);
+  String get selectionCleared;
+
+  /// A step that has nowhere to go (a fixed period's end, past the hours).
+  String get noFurther;
+  String get notEditable;
+  String get cannotMove;
+  String get cannotResize;
+
+  /// Grab mode starts (M, Alt+Enter, "Move…").
+  String grabbed(String title);
+
+  /// What the keys do while an event is held.
+  String get grabHelp;
+
+  /// Held from "Change duration…": the arrows pull its end.
+  String get grabHelpResize;
+
+  /// What a screen reader's gestures do while an event is held.
+  String get grabHelpReader;
+  String get grabCancelled;
+
+  /// A place the calendar's rules refuse, with why when known.
+  String get dropRefused;
+  String dropRefusedFor(String reasons);
+
+  /// Why a place is refused, in a few words.
+  String violation(ViolationCode code);
+
+  /// Said once an event is put down.
+  String eventMoved(String title, String time);
+  String eventResized(String title, String time);
+  String movedIntoGap(String time);
+  String get becomesAllDay;
+  String becomesTimed(String length);
+
+  /// Said after Delete; [undo] is the shortcut, empty when there is none.
+  String eventDeleted(String title, String undo);
+  String get undone;
+  String get redone;
+
+  /// A held event's actions for screen readers.
+  String get previousDay;
+  String get nextDay;
+  String get previousWeek;
+  String get nextWeek;
+  String get putDown;
+  String get cancelMove;
 }
 
 /// English.
@@ -281,6 +336,72 @@ class DzCalendarLocalizationsEn extends DzCalendarLocalizations {
   String slotCount(int count) => count == 1 ? '1 slot' : '${number(count)} slots';
   @override
   String cursorSlot(String date, String time) => '$date, $time';
+
+  @override
+  String cursorAllDay(String date) => '$date, all day';
+  @override
+  String selected(String span) => 'Selected: $span';
+  @override
+  String get selectionCleared => 'Selection cleared';
+  @override
+  String get noFurther => 'Cannot go further';
+  @override
+  String get notEditable => 'This event cannot be changed';
+  @override
+  String get cannotMove => 'This event cannot be moved';
+  @override
+  String get cannotResize => 'This length cannot be changed here';
+  @override
+  String grabbed(String title) => '$title grabbed.';
+  @override
+  String get grabHelp =>
+      'Arrows move it, Page Up and Page Down by a week, Shift with arrows changes its end, Enter puts it down, Escape cancels.';
+  @override
+  String get grabHelpResize => 'Arrows change its end, Enter puts it down, Escape cancels.';
+  @override
+  String get grabHelpReader => 'Swipe up or down to move it, double tap to put it down.';
+  @override
+  String get grabCancelled => 'Move cancelled';
+  @override
+  String get dropRefused => 'Not allowed here';
+  @override
+  String dropRefusedFor(String reasons) => 'Not allowed here: $reasons';
+  @override
+  String violation(ViolationCode code) => switch (code) {
+    ViolationCode.constraint => 'outside the allowed hours',
+    ViolationCode.overlap => 'overlaps another event',
+    ViolationCode.allow => 'refused by the application',
+    ViolationCode.validRange => 'outside the dates shown',
+    ViolationCode.notEditable => 'cannot be changed',
+  };
+  @override
+  String eventMoved(String title, String time) => '$title moved to $time';
+  @override
+  String eventResized(String title, String time) => '$title now ends at $time';
+  @override
+  String movedIntoGap(String time) => 'That time does not exist that day; moved to $time';
+  @override
+  String get becomesAllDay => 'It becomes an all-day event';
+  @override
+  String becomesTimed(String length) => 'It becomes a timed event of $length';
+  @override
+  String eventDeleted(String title, String undo) => undo.isEmpty ? '$title deleted.' : '$title deleted. $undo to undo.';
+  @override
+  String get undone => 'Undone';
+  @override
+  String get redone => 'Redone';
+  @override
+  String get previousDay => 'Previous day';
+  @override
+  String get nextDay => 'Next day';
+  @override
+  String get previousWeek => 'Previous week';
+  @override
+  String get nextWeek => 'Next week';
+  @override
+  String get putDown => 'Put down';
+  @override
+  String get cancelMove => 'Cancel the move';
 }
 
 /// French.
@@ -394,6 +515,73 @@ class DzCalendarLocalizationsFr extends DzCalendarLocalizations {
   String slotCount(int count) => count <= 1 ? '${number(count)} créneau' : '${number(count)} créneaux';
   @override
   String cursorSlot(String date, String time) => '$date, $time';
+
+  @override
+  String cursorAllDay(String date) => '$date, journée';
+  @override
+  String selected(String span) => 'Sélection : $span';
+  @override
+  String get selectionCleared => 'Sélection effacée';
+  @override
+  String get noFurther => 'Impossible d’aller plus loin';
+  @override
+  String get notEditable => 'Cet événement ne peut pas être modifié';
+  @override
+  String get cannotMove => 'Cet événement ne peut pas être déplacé';
+  @override
+  String get cannotResize => 'Cette durée ne peut pas être changée ici';
+  @override
+  String grabbed(String title) => '« $title » saisi.';
+  @override
+  String get grabHelp =>
+      'Flèches pour le déplacer, Page précédente et suivante d’une semaine, Maj et flèches pour sa fin, Entrée pour le poser, Échap pour annuler.';
+  @override
+  String get grabHelpResize => 'Flèches pour sa fin, Entrée pour le poser, Échap pour annuler.';
+  @override
+  String get grabHelpReader => 'Balayez vers le haut ou le bas pour le déplacer, touchez deux fois pour le poser.';
+  @override
+  String get grabCancelled => 'Déplacement annulé';
+  @override
+  String get dropRefused => 'Impossible ici';
+  @override
+  String dropRefusedFor(String reasons) => 'Impossible ici : $reasons';
+  @override
+  String violation(ViolationCode code) => switch (code) {
+    ViolationCode.constraint => 'en dehors des heures permises',
+    ViolationCode.overlap => 'chevauche un autre événement',
+    ViolationCode.allow => "refusé par l'application",
+    ViolationCode.validRange => 'en dehors des dates affichables',
+    ViolationCode.notEditable => 'non modifiable',
+  };
+  @override
+  String eventMoved(String title, String time) => '« $title » déplacé à $time';
+  @override
+  String eventResized(String title, String time) => '« $title » finit maintenant à $time';
+  @override
+  String movedIntoGap(String time) => 'Cette heure n’existe pas ce jour-là : déplacé à $time';
+  @override
+  String get becomesAllDay => 'Il devient un événement sur la journée';
+  @override
+  String becomesTimed(String length) => 'Il devient un événement horaire de $length';
+  @override
+  String eventDeleted(String title, String undo) =>
+      undo.isEmpty ? '« $title » supprimé.' : '« $title » supprimé. $undo pour annuler.';
+  @override
+  String get undone => 'Annulé';
+  @override
+  String get redone => 'Rétabli';
+  @override
+  String get previousDay => 'Jour précédent';
+  @override
+  String get nextDay => 'Jour suivant';
+  @override
+  String get previousWeek => 'Semaine précédente';
+  @override
+  String get nextWeek => 'Semaine suivante';
+  @override
+  String get putDown => 'Poser';
+  @override
+  String get cancelMove => 'Annuler le déplacement';
 }
 
 /// Arabic. Times and offsets inside a sentence are isolated (FSI … PDI) so
@@ -553,6 +741,73 @@ class DzCalendarLocalizationsAr extends DzCalendarLocalizations {
   );
   @override
   String cursorSlot(String date, String time) => '$date، ${_iso(time)}';
+
+  @override
+  String cursorAllDay(String date) => '$date، طوال اليوم';
+  @override
+  String selected(String span) => 'تم التحديد: $span';
+  @override
+  String get selectionCleared => 'تم إلغاء التحديد';
+  @override
+  String get noFurther => 'لا يمكن التقدم أكثر';
+  @override
+  String get notEditable => 'لا يمكن تغيير هذا الحدث';
+  @override
+  String get cannotMove => 'لا يمكن نقل هذا الحدث';
+  @override
+  String get cannotResize => 'لا يمكن تغيير هذه المدة هنا';
+  @override
+  String grabbed(String title) => 'تم التقاط «$title».';
+  @override
+  String get grabHelp =>
+      'الأسهم لنقله، و${_iso('Page Up')} و${_iso('Page Down')} بأسبوع، و${_iso('Shift')} مع الأسهم لتغيير نهايته، و${_iso('Enter')} لوضعه، و${_iso('Escape')} للإلغاء.';
+  @override
+  String get grabHelpResize => 'الأسهم لتغيير نهايته، و${_iso('Enter')} لوضعه، و${_iso('Escape')} للإلغاء.';
+  @override
+  String get grabHelpReader => 'اسحب لأعلى أو لأسفل لنقله، وانقر مرتين لوضعه.';
+  @override
+  String get grabCancelled => 'تم إلغاء النقل';
+  @override
+  String get dropRefused => 'غير مسموح هنا';
+  @override
+  String dropRefusedFor(String reasons) => 'غير مسموح هنا: $reasons';
+  @override
+  String violation(ViolationCode code) => switch (code) {
+    ViolationCode.constraint => 'خارج الساعات المسموح بها',
+    ViolationCode.overlap => 'يتداخل مع حدث آخر',
+    ViolationCode.allow => 'رفضه التطبيق',
+    ViolationCode.validRange => 'خارج التواريخ المعروضة',
+    ViolationCode.notEditable => 'لا يمكن تغييره',
+  };
+  @override
+  String eventMoved(String title, String time) => 'تم نقل «$title» إلى ${_iso(time)}';
+  @override
+  String eventResized(String title, String time) => 'ينتهي «$title» الآن في ${_iso(time)}';
+  @override
+  String movedIntoGap(String time) => 'هذا الوقت غير موجود في ذلك اليوم؛ تم النقل إلى ${_iso(time)}';
+  @override
+  String get becomesAllDay => 'يصبح حدثًا طوال اليوم';
+  @override
+  String becomesTimed(String length) => 'يصبح حدثًا مدته $length';
+  @override
+  String eventDeleted(String title, String undo) =>
+      undo.isEmpty ? 'تم حذف «$title».' : 'تم حذف «$title». ${_iso(undo)} للتراجع.';
+  @override
+  String get undone => 'تم التراجع';
+  @override
+  String get redone => 'تمت الإعادة';
+  @override
+  String get previousDay => 'اليوم السابق';
+  @override
+  String get nextDay => 'اليوم التالي';
+  @override
+  String get previousWeek => 'الأسبوع السابق';
+  @override
+  String get nextWeek => 'الأسبوع التالي';
+  @override
+  String get putDown => 'وضع';
+  @override
+  String get cancelMove => 'إلغاء النقل';
 }
 
 /// "2 h", "2 h 30", "45 min", in the locale's digits.

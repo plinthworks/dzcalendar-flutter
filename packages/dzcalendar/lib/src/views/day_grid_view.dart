@@ -6,6 +6,7 @@ import 'package:dzcalendar_core/internal.dart' show cutDayGridModel;
 
 import '../env.dart';
 import '../interaction.dart';
+import '../keyboard.dart';
 import 'common.dart';
 
 /// A day grid: a month, a week or a day as rows of cells with event bars
@@ -26,7 +27,7 @@ class DayGridView extends StatefulWidget {
   State<DayGridView> createState() => _DayGridViewState();
 }
 
-class _DayGridViewState extends State<DayGridView> implements DragSurface {
+class _DayGridViewState extends State<DayGridView> implements DragSurface, KeySurface {
   CalendarEnv get env => widget.env;
   DayGridModel get model => widget.model;
 
@@ -36,6 +37,7 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface {
   @override
   void dispose() {
     env.interaction.detach(this);
+    env.interaction.keyboard.detach(this);
     super.dispose();
   }
 
@@ -44,6 +46,7 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface {
     final weeks = model.weeks;
     if (weeks.isEmpty) return const SizedBox.shrink();
     env.interaction.attach(this);
+    env.interaction.keyboard.attach(this);
     while (_rowKeys.length < weeks.length) {
       _rowKeys.add(GlobalKey());
     }
@@ -186,6 +189,160 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface {
     return out;
   }
 
+  // ——— the keyboard's surface (decision 41) ———
+
+  /// The model as the controller has it now (a period the keyboard just went to).
+  DayGridModel get _now => switch (env.controller.model) {
+    DayGridViewModel(:final model) => model,
+    _ => model,
+  };
+
+  @override
+  KeyGrid get keyGrid => KeyGrid.day;
+
+  @override
+  bool get allDayRow => false;
+
+  @override
+  bool get resourceView => _now.resourceHeads.isNotEmpty;
+
+  ResourceId? get _firstResource {
+    final heads = _now.resourceHeads;
+    return heads.isEmpty ? null : heads.first.resource.id;
+  }
+
+  /// Week and cell of [date] in [resourceId]'s days (the first resource's when unknown).
+  (int, int)? _cellOf(DayGridModel m, PlainDate date, ResourceId? resourceId) {
+    final rid = resourceView ? (resourceId ?? _firstResource) : null;
+    for (var w = 0; w < m.weeks.length; w++) {
+      final week = m.weeks[w];
+      for (var c = 0; c < week.dates.length; c++) {
+        if (week.dates[c] == date && (rid == null || week.resources[c]?.id == rid)) return (w, c);
+      }
+    }
+    return null;
+  }
+
+  @override
+  Hit? home() {
+    final m = _now;
+    if (m.weeks.isEmpty) return null;
+    final today = env.state.today;
+    final r = _firstResource;
+    if (_cellOf(m, today, r) != null) return DayHit(date: today, resourceId: r);
+    for (final w in m.weeks) {
+      for (var c = 0; c < w.dates.length; c++) {
+        if (!w.outside[c]) return DayHit(date: w.dates[c], resourceId: w.resources[c]?.id);
+      }
+    }
+    return DayHit(date: m.weeks.first.dates.first, resourceId: m.weeks.first.resources.first?.id);
+  }
+
+  @override
+  KeyFit? fit(Hit hit) {
+    final m = _now;
+    if (m.weeks.isEmpty) return null;
+    final known = resourceView && _now.resourceHeads.any((h) => h.resource.id == hit.resourceId);
+    final rid = resourceView ? (known ? hit.resourceId : _firstResource) : null;
+    if (_cellOf(m, hit.date, rid) != null) {
+      return hit is DayHit && !hit.allDayRow && hit.resourceId == rid
+          ? FitAt(hit)
+          : FitAt(DayHit(date: hit.date, resourceId: rid));
+    }
+    final st = env.state;
+    if (st.view.hiddenDays.contains(hit.date.dayOfWeek)) return null;
+    if (hit.date.isBefore(st.range.start)) return const FitOff(next: false);
+    if (!hit.date.isBefore(st.range.end)) return const FitOff(next: true);
+    return null;
+  }
+
+  @override
+  Hit lineEdge(Hit hit, Edge edge) {
+    final m = _now;
+    final at = _cellOf(m, hit.date, hit.resourceId);
+    if (at == null) return hit;
+    final week = m.weeks[at.$1];
+    final rid = week.resources[at.$2]?.id;
+    final line = [
+      for (var c = 0; c < week.dates.length; c++)
+        if (week.resources[c]?.id == rid) week.dates[c],
+    ];
+    return DayHit(date: edge == Edge.start ? line.first : line.last, resourceId: rid);
+  }
+
+  static List<EventInstance> _unique(Iterable<EventInstance> all) {
+    final seen = <String>{};
+    return [
+      for (final i in all)
+        if (seen.add(i.key)) i,
+    ];
+  }
+
+  List<EventInstance> _inCell(DayGridModel m, int w, int c) => _unique([
+    for (final s in segmentsOn(m.weeks[w], c))
+      if (s.instance.event.display != EventDisplay.background) s.instance,
+  ]);
+
+  @override
+  List<EventInstance> itemsAt(Hit hit) {
+    final m = _now;
+    final at = _cellOf(m, hit.date, hit.resourceId);
+    return at == null ? const [] : _inCell(m, at.$1, at.$2);
+  }
+
+  @override
+  List<EventInstance> items() {
+    final m = _now;
+    return _unique([
+      for (var w = 0; w < m.weeks.length; w++)
+        for (var c = 0; c < m.weeks[w].dates.length; c++) ..._inCell(m, w, c),
+    ]);
+  }
+
+  /// The first cell that shows [instance].
+  (int, int)? _firstCellOf(DayGridModel m, EventInstance instance) {
+    for (var w = 0; w < m.weeks.length; w++) {
+      for (var c = 0; c < m.weeks[w].dates.length; c++) {
+        if (segmentsOn(m.weeks[w], c).any((s) => s.instance.key == instance.key)) return (w, c);
+      }
+    }
+    return null;
+  }
+
+  @override
+  List<EventInstance> itemsAround(EventInstance instance) {
+    final m = _now;
+    final at = _firstCellOf(m, instance);
+    return at == null ? const [] : _inCell(m, at.$1, at.$2);
+  }
+
+  @override
+  Hit? cursorFor(EventInstance instance) {
+    final m = _now;
+    final at = _firstCellOf(m, instance);
+    if (at == null) return null;
+    final week = m.weeks[at.$1];
+    return DayHit(date: week.dates[at.$2], resourceId: week.resources[at.$2]?.id);
+  }
+
+  @override
+  Hit? firstSlot(PlainDate date, ResourceId? resourceId) => null;
+
+  @override
+  Hit? stepAcross(Hit hit, int delta) {
+    final heads = _now.resourceHeads;
+    if (heads.isEmpty) return null;
+    final k = heads.indexWhere((h) => h.resource.id == hit.resourceId);
+    final n = (k < 0 ? 0 : k) + delta;
+    if (n < 0 || n >= heads.length) return null;
+    final id = heads[n].resource.id;
+    return _cellOf(_now, hit.date, id) == null ? null : DayHit(date: hit.date, resourceId: id);
+  }
+
+  /// A month does not scroll.
+  @override
+  void reveal(Hit hit) {}
+
   @override
   bool autoscroll(Offset global, double seconds) => false;
 
@@ -307,12 +464,24 @@ class _Cell extends StatelessWidget {
                   bottom: BorderSide(color: style.gridLineColor, width: 0.5),
                 ),
               ),
-              child: Align(
-                alignment: AlignmentDirectional.topCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 3),
-                  child: DayNumber(env: env, date: date, today: today, outside: outside),
-                ),
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: AlignmentDirectional.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: DayNumber(env: env, date: date, today: today, outside: outside),
+                    ),
+                  ),
+                  // The keyboard's cursor on this day.
+                  ValueListenableBuilder<Hit?>(
+                    valueListenable: env.interaction.keyboard.cursor,
+                    builder: (context, hit, _) =>
+                        hit is DayHit && hit.date == date && (hit.resourceId == null || hit.resourceId == resource?.id)
+                        ? CursorBox(radius: style.eventRadius)
+                        : const SizedBox.shrink(),
+                  ),
+                ],
               ),
             ),
           ),
@@ -322,9 +491,11 @@ class _Cell extends StatelessWidget {
   }
 
   void _tap() {
-    env.interaction.release();
     final hit = dayHitAt(model, week, cell);
+    if (hit != null && env.interaction.keyboard.putAt(hit)) return;
+    env.interaction.release();
     if (hit == null) return;
+    env.interaction.keyboard.tapped(hit);
     env.onDateTap?.call(hit);
     final ctx = env.controller.kernel.interactionContext(snapMinutes: 1);
     final sel = selectionBetween(ctx, hit, hit);

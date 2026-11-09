@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../env.dart';
 import '../interaction.dart';
+import '../keyboard.dart';
 import 'common.dart';
 import 'day_grid_view.dart' show DayNumber;
 
@@ -27,7 +28,7 @@ class TimeGridView extends StatefulWidget {
   State<TimeGridView> createState() => _TimeGridViewState();
 }
 
-class _TimeGridViewState extends State<TimeGridView> implements DragSurface {
+class _TimeGridViewState extends State<TimeGridView> implements DragSurface, KeySurface {
   ScrollController? _vertical;
 
   // What the gestures read: the scrolled body, its content, the all-day row.
@@ -35,6 +36,7 @@ class _TimeGridViewState extends State<TimeGridView> implements DragSurface {
   final _contentKey = GlobalKey();
   final _allDayKey = GlobalKey();
   var _ppmNow = 1.0;
+  var _colW = 0.0;
 
   // The day heads, the all-day row and the body scroll sideways together.
   final _heads = ScrollController();
@@ -85,6 +87,7 @@ class _TimeGridViewState extends State<TimeGridView> implements DragSurface {
   @override
   void dispose() {
     env.interaction.detach(this);
+    env.interaction.keyboard.detach(this);
     _vertical?.dispose();
     _heads.dispose();
     _allDay.dispose();
@@ -100,11 +103,13 @@ class _TimeGridViewState extends State<TimeGridView> implements DragSurface {
     final ppm = _ppm(context);
     _ppmNow = ppm;
     env.interaction.attach(this);
+    env.interaction.keyboard.attach(this);
     final height = model.columns.fold<double>(0, (m, c) => math.max(m, c.axis.length)) * ppm;
     return LayoutBuilder(
       builder: (context, box) {
         final avail = math.max(0.0, box.maxWidth - style.gutterWidth);
         final colW = math.max(avail / n, style.minColumnWidth);
+        _colW = colW;
         final total = colW * n;
         final scrolls = total > avail + 0.5;
         Widget sideways(ScrollController c, Widget child) => scrolls
@@ -345,6 +350,240 @@ class _TimeGridViewState extends State<TimeGridView> implements DragSurface {
   @override
   bool canResize(CalEvent event) => true;
 
+  // ——— the keyboard's surface (decision 41) ———
+
+  /// The model as the controller has it now: a period the keyboard just went
+  /// to is known before it is built.
+  TimeGridModel get _now => switch (env.controller.model) {
+    TimeGridViewModel(:final model) => model,
+    _ => model,
+  };
+
+  int get _snap => env.config.snapMinutes < 1 ? 1 : env.config.snapMinutes;
+
+  @override
+  KeyGrid get keyGrid => KeyGrid.time;
+
+  @override
+  bool get allDayRow => _now.allDay.lanes > 0;
+
+  @override
+  bool get resourceView => _now.resourceHeads.isNotEmpty;
+
+  /// The column of [date] (and [resourceId]'s, when given), by index.
+  int _indexOf(TimeGridModel m, PlainDate date, ResourceId? resourceId) =>
+      m.columns.indexWhere((c) => c.date == date && (resourceId == null || c.resource?.id == resourceId));
+
+  SlotHit _slot(TimeGridModel m, int i, Instant at) {
+    final c = m.columns[i];
+    return SlotHit(date: c.date, instant: at, resourceId: c.resource?.id);
+  }
+
+  /// The first slot in view on column [i] (the top of its hours when not built yet).
+  Hit? _topSlot(TimeGridModel m, int i) {
+    final c = m.columns[i];
+    if (c.folded || c.axis.length == 0) return null;
+    final v = _vertical;
+    final top = v != null && v.hasClients ? v.offset / _ppmNow : 0.0;
+    final at = ((top / _snap).ceil() * _snap).toDouble().clamp(0.0, math.max(0.0, c.axis.length - _snap).toDouble());
+    return slotHitAt(m, i, at, _snap);
+  }
+
+  @override
+  Hit? home() {
+    final m = _now;
+    final today = env.state.today;
+    var i = m.columns.indexWhere((c) => c.date == today && !c.folded);
+    if (i < 0) i = m.columns.indexWhere((c) => !c.folded);
+    if (i < 0) return null;
+    final c = m.columns[i];
+    // Today with now in view: the slot of now; else the first slot in view.
+    if (c.date == today) {
+      final now = env.controller.now();
+      final v = _vertical;
+      if (!now.isBefore(c.axis.start) && now.isBefore(c.axis.end) && v != null && v.hasClients) {
+        final at = (c.axis.toPosition(now) / _snap).floor() * _snap.toDouble();
+        final y = at * _ppmNow;
+        if (y >= v.offset && (at + _snap) * _ppmNow <= v.offset + v.position.viewportDimension) {
+          return slotHitAt(m, i, at, _snap);
+        }
+      }
+    }
+    return _topSlot(m, i);
+  }
+
+  @override
+  KeyFit? fit(Hit hit) {
+    final m = _now;
+    if (m.columns.isEmpty) return null;
+    final i = _indexOf(m, hit.date, hit.resourceId);
+    if (i < 0) {
+      final st = env.state;
+      // A hidden weekday: null, and the keyboard steps on past it.
+      if (st.view.hiddenDays.contains(hit.date.dayOfWeek)) return null;
+      if (hit.date.isBefore(st.range.start)) return const FitOff(next: false);
+      return !hit.date.isBefore(st.range.end) ? const FitOff(next: true) : null;
+    }
+    final c = m.columns[i];
+    if (hit is DayHit) {
+      if (!allDayRow) {
+        final top = _topSlot(m, i);
+        return top == null ? null : FitAt(top);
+      }
+      return FitAt(DayHit(date: c.date, allDayRow: true, resourceId: c.resource?.id));
+    }
+    if (c.folded || c.axis.length == 0) return null;
+    final h = hit as SlotHit;
+    final s = c.axis.start.epochMilliseconds;
+    final last = math.max(s, c.axis.end.epochMilliseconds - _snap * 60000);
+    final ms = h.instant.epochMilliseconds.clamp(s, last);
+    if (ms == h.instant.epochMilliseconds && h.resourceId == c.resource?.id) return FitAt(h);
+    return FitAt(
+      SlotHit(
+        date: c.date,
+        instant: Instant.fromEpochMilliseconds(ms),
+        gap: h.gap && ms == h.instant.epochMilliseconds,
+        resourceId: c.resource?.id,
+      ),
+    );
+  }
+
+  @override
+  Hit lineEdge(Hit hit, Edge edge) {
+    final m = _now;
+    if (hit is DayHit) {
+      // The all-day row's line: the same resource's first or last day.
+      final same = [
+        for (var i = 0; i < m.columns.length; i++)
+          if (hit.resourceId == null || m.columns[i].resource?.id == hit.resourceId) i,
+      ];
+      if (same.isEmpty) return hit;
+      final c = m.columns[edge == Edge.start ? same.first : same.last];
+      return DayHit(date: c.date, allDayRow: true, resourceId: c.resource?.id);
+    }
+    final i = _indexOf(m, hit.date, hit.resourceId);
+    if (i < 0 || m.columns[i].folded) return hit;
+    final c = m.columns[i];
+    return edge == Edge.start
+        ? _slot(m, i, c.axis.start)
+        : _slot(
+            m,
+            i,
+            Instant.fromEpochMilliseconds(
+              math.max(c.axis.start.epochMilliseconds, c.axis.end.epochMilliseconds - _snap * 60000),
+            ),
+          );
+  }
+
+  @override
+  List<EventInstance> itemsAt(Hit hit) => const [];
+
+  List<EventInstance> _allDayItems(TimeGridModel m) {
+    final bars = [...m.allDay.bars]..sort((a, b) => a.column != b.column ? a.column - b.column : a.lane - b.lane);
+    return [for (final b in bars) b.segment.instance];
+  }
+
+  List<EventInstance> _columnItems(TimeGridColumn c) {
+    final placed = [...c.events]..sort((a, b) => a.top != b.top ? a.top.compareTo(b.top) : a.left.compareTo(b.left));
+    return [for (final p in placed) p.segment.instance];
+  }
+
+  static List<EventInstance> _unique(Iterable<EventInstance> all) {
+    final seen = <String>{};
+    return [
+      for (final i in all)
+        if (seen.add(i.key)) i,
+    ];
+  }
+
+  @override
+  List<EventInstance> items() {
+    final m = _now;
+    return _unique([..._allDayItems(m), for (final c in m.columns) ..._columnItems(c)]);
+  }
+
+  @override
+  List<EventInstance> itemsAround(EventInstance instance) {
+    final m = _now;
+    for (final c in m.columns) {
+      final here = _columnItems(c);
+      if (here.any((x) => x.key == instance.key)) return _unique(here);
+    }
+    return _unique(_allDayItems(m));
+  }
+
+  @override
+  Hit? cursorFor(EventInstance instance) {
+    final m = _now;
+    for (var i = 0; i < m.columns.length; i++) {
+      final c = m.columns[i];
+      final p = c.events.where((p) => p.segment.instance.key == instance.key).firstOrNull;
+      if (p != null) {
+        final f = fit(_slot(m, i, p.segment.from));
+        return f is FitAt ? f.hit : null;
+      }
+    }
+    final bar = m.allDay.bars.where((b) => b.segment.instance.key == instance.key).firstOrNull;
+    if (bar == null || bar.column >= m.columns.length) return null;
+    final c = m.columns[bar.column];
+    return DayHit(date: c.date, allDayRow: true, resourceId: c.resource?.id);
+  }
+
+  @override
+  Hit? firstSlot(PlainDate date, ResourceId? resourceId) {
+    final m = _now;
+    final i = _indexOf(m, date, resourceId);
+    return i < 0 ? null : _topSlot(m, i);
+  }
+
+  @override
+  Hit? stepAcross(Hit hit, int delta) {
+    final m = _now;
+    final heads = m.resourceHeads;
+    if (heads.isEmpty) return null;
+    final k = heads.indexWhere((h) => h.resource.id == hit.resourceId);
+    final n = (k < 0 ? 0 : k) + delta;
+    if (n < 0 || n >= heads.length) return null;
+    final id = heads[n].resource.id;
+    if (_indexOf(m, hit.date, id) < 0) return null;
+    final moved = switch (hit) {
+      SlotHit() => SlotHit(date: hit.date, instant: hit.instant, gap: hit.gap, resourceId: id),
+      DayHit() => DayHit(date: hit.date, allDayRow: hit.allDayRow, resourceId: id),
+    };
+    final f = fit(moved);
+    return f is FitAt ? f.hit : null;
+  }
+
+  @override
+  void reveal(Hit hit) {
+    final m = _now;
+    final i = _indexOf(m, hit.date, hit.resourceId);
+    if (i < 0) return;
+    // Sideways: its column in view.
+    if (_body.hasClients && _body.positions.length == 1 && _colW > 0) {
+      final p = _body.position;
+      final x = i * _colW;
+      final to = x < p.pixels
+          ? x
+          : (x + _colW > p.pixels + p.viewportDimension ? x + _colW - p.viewportDimension : p.pixels);
+      if (to != p.pixels) _body.jumpTo(to.clamp(p.minScrollExtent, p.maxScrollExtent));
+    }
+    final v = _vertical;
+    if (hit is! SlotHit || v == null || !v.hasClients) return;
+    final c = m.columns[i];
+    if (c.folded) return;
+    final y = c.axis.toPosition(hit.instant) * _ppmNow;
+    final room = _snap * _ppmNow * 2;
+    final p = v.position;
+    double? to;
+    if (y - room < p.pixels) {
+      to = y - room;
+    } else if (y + room > p.pixels + p.viewportDimension) {
+      to = y + room - p.viewportDimension;
+    }
+    if (to != null) v.jumpTo(to.clamp(p.minScrollExtent, p.maxScrollExtent));
+  }
+
   Widget _weekNumber() {
     final first = model.range.dates.isEmpty ? null : model.range.dates.first;
     if (first == null) return const SizedBox.shrink();
@@ -538,6 +777,17 @@ class _AllDayRow extends StatelessWidget {
                           decoration: BoxDecoration(
                             border: BorderDirectional(start: BorderSide(color: style.gridLineColor, width: 0.5)),
                           ),
+                          child: ValueListenableBuilder<Hit?>(
+                            valueListenable: env.interaction.keyboard.cursor,
+                            builder: (context, hit, _) {
+                              final c = model.columns[i];
+                              final here =
+                                  hit is DayHit &&
+                                  hit.date == c.date &&
+                                  (hit.resourceId == null || hit.resourceId == c.resource?.id);
+                              return here ? CursorBox(radius: style.eventRadius) : const SizedBox.expand();
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -569,9 +819,11 @@ class _AllDayRow extends StatelessWidget {
   }
 
   void _tap(int i) {
-    env.interaction.release();
     final hit = allDayHitAt(model, i);
+    if (hit != null && env.interaction.keyboard.putAt(hit)) return;
+    env.interaction.release();
     if (hit == null) return;
+    env.interaction.keyboard.tapped(hit);
     env.onDateTap?.call(hit);
     final sel = selectionBetween(env.controller.kernel.interactionContext(snapMinutes: 1), hit, hit);
     env.controller.select(sel);
@@ -717,6 +969,34 @@ class _Column extends StatelessWidget {
                   ),
                 // Over the events: one across a clock change shows the hour it spans that does not exist (or happens twice).
                 for (final b in c.axis.bands) _band(b),
+                // The keyboard's cursor, when it is in this column.
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ValueListenableBuilder<Hit?>(
+                      valueListenable: env.interaction.keyboard.cursor,
+                      builder: (context, hit, _) {
+                        if (hit is! SlotHit ||
+                            hit.date != c.date ||
+                            (hit.resourceId != null && hit.resourceId != c.resource?.id)) {
+                          return const SizedBox.shrink();
+                        }
+                        final top = c.axis.toPosition(hit.instant);
+                        final end = c.axis.toEndPosition(hit.instant.addMs(env.config.snapMinutes * 60000));
+                        return Stack(
+                          children: [
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: top * ppm,
+                              height: math.max(4, (end - top) * ppm),
+                              child: CursorBox(radius: style.eventRadius),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
                 Positioned.fill(
                   child: IgnorePointer(
                     child: ValueListenableBuilder<Instant>(
@@ -798,9 +1078,12 @@ class _Column extends StatelessWidget {
   }
 
   void _tap(double minutes, int snap) {
-    env.interaction.release();
     final hit = slotHitAt(model, index, minutes, snap);
+    if (hit != null && env.interaction.keyboard.putAt(hit)) return;
+    env.interaction.release();
     if (hit == null) return;
+    // The keyboard goes on from the slot tapped, on its own snap.
+    env.interaction.keyboard.tapped(slotHitAt(model, index, minutes, env.config.snapMinutes) ?? hit);
     env.onDateTap?.call(hit);
     final ctx = env.controller.kernel.interactionContext(snapMinutes: snap);
     final sel = selectionBetween(ctx, hit, hit);

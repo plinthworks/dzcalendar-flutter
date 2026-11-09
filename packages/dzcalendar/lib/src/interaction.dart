@@ -4,9 +4,11 @@ import 'package:dzcalendar_core/dzcalendar_core.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import 'env.dart';
+import 'keyboard.dart';
 
 /// A box a dragged event would take on screen (global coordinates), and the
 /// part of the screen it may show in (the scrolled area it belongs to).
@@ -98,6 +100,7 @@ class _Drag {
 /// the event's widget may be rebuilt, moved or dropped while it is dragged.
 class CalendarInteraction {
   CalendarInteraction(TickerProvider vsync) {
+    keyboard = CalendarKeyboard(this);
     _ticker = vsync.createTicker(_onTick);
     _motion = AnimationController(vsync: vsync, duration: const Duration(milliseconds: 200));
     GestureBinding.instance.pointerRouter.addGlobalRoute(_route);
@@ -108,6 +111,9 @@ class CalendarInteraction {
 
   /// The calendar's context: menus open from it.
   BuildContext? context;
+
+  /// The keyboard and screen readers' side (decisions 41–43).
+  late final CalendarKeyboard keyboard;
 
   DragSurface? _surface;
   _Drag? _drag;
@@ -161,6 +167,11 @@ class CalendarInteraction {
   bool mayMove(CalEvent ev) =>
       ev.display != EventDisplay.background && ev.perms.start && (env.config.editable || ev.perms.ownStart);
 
+  /// As the TS: an editable calendar's event that may move or change length, or one that says so itself.
+  bool mayDelete(CalEvent ev) =>
+      ev.display != EventDisplay.background &&
+      ((env.config.editable && (ev.perms.start || ev.perms.duration)) || (ev.perms.ownStart && ev.perms.ownDuration));
+
   bool mayResize(CalEvent ev) =>
       ev.display != EventDisplay.background &&
       ev.perms.duration &&
@@ -171,13 +182,16 @@ class CalendarInteraction {
 
   /// A long press on an event: grabbed when it may move, else its menu.
   void pressEvent(EventInstance i, Offset global) {
-    if (_drag != null) return; // another finger is dragging
+    if (_drag != null || keyboard.grabbing) return; // another finger is dragging, or the keyboard holds one
     if (mayMove(i.event) && _start(_Kind.move, global, instance: i)) return;
     _menu(EventTarget(i), global);
   }
 
   /// An event tapped: the app opens it; held, or no app to open it, its menu.
   void tapEvent(EventInstance i, Offset global) {
+    // Held from the keyboard or a menu's "Move…": a tap puts it there (WCAG 2.5.7).
+    final at = _surface?.hitAt(global);
+    if (at != null && keyboard.putAt(at)) return;
     final open = env.onEventTap;
     if (open == null || held.value == i.key) {
       _menu(EventTarget(i), global);
@@ -198,6 +212,7 @@ class CalendarInteraction {
   /// A long press on empty time or a day: a selection that follows the finger
   /// (`selectable`), its menu when let go without moving; else the menu at once.
   void pressEmpty(Hit hit, ActionTarget target, Offset global) {
+    if (keyboard.putAt(hit)) return;
     release();
     if (!env.config.selectable || !_start(_Kind.select, global, hit: hit, target: target)) {
       _menu(target, global);
@@ -376,28 +391,109 @@ class CalendarInteraction {
     if (d.instance != null) _back(d.instance!);
   }
 
-  /// A drop: refused (it goes back), asked how far (an occurrence), run
-  /// through the history — told to `onEventChange` — and landed.
+  /// A drop: run through [commit], from where the finger let go.
   Future<void> _drop(_Drag d) async {
     final i = d.instance!;
     final p = d.proposal;
     if (p == null || isUnchanged(p)) return _back(i);
-    // A place the rules refuse is still run (validated): refused there, the
-    // app's `onCommandRefused` hears why.
+    await commit(i, p, resize: d.kind == _Kind.resize, at: d.last);
+  }
+
+  /// From a proposal to the calendar, the same for the finger, the keyboard
+  /// and a screen reader (as the TS's `commitProposal`): refused, it goes
+  /// back (a place the rules refuse is still run validated, so the app's
+  /// `onCommandRefused` hears why); an occurrence asks how far it reaches;
+  /// then it runs through the history — told to `onEventChange` — is said,
+  /// and lands. True when the calendar changed.
+  Future<bool> commit(EventInstance i, Proposal p, {required bool resize, required Offset at}) async {
     var scope = EditScope.this_;
-    if (i.event.ref != null && p.valid) {
-      final chosen = await _askScope(d.last);
-      if (_disposed) return;
-      if (chosen == null) return _back(i);
+    if (!p.valid) say(refusalWords(p));
+    // Switching between timed and all-day is for one occurrence only (a series keeps one kind).
+    if (i.event.ref != null && p.valid && p.allDay == i.event.allDay) {
+      final chosen = await askScope(at, env.l10n.changeWhich);
+      if (_disposed) return false;
+      if (chosen == null) {
+        _back(i);
+        return false;
+      }
       scope = chosen;
     }
     final r = env.controller.run(commandFor(i, p, scope), validate: true);
     if (!r.ok) {
       HapticFeedback.heavyImpact();
-      return _back(i);
+      _back(i);
+      return false;
     }
     HapticFeedback.lightImpact();
+    say(_doneWords(i, p, resize: resize));
     _fly(() => _surface?.boxesFor(p.proposed) ?? const [], _settle);
+    return true;
+  }
+
+  /// Said once it is put down: where it went, and a change of kind.
+  String _doneWords(EventInstance i, Proposal p, {required bool resize}) {
+    final l = env.l10n;
+    final title = env.title(i);
+    final ev = p.proposed;
+    final time = edgeWords(ev, end: resize);
+    var said = p.skipped
+        ? l.movedIntoGap(time)
+        : resize
+        ? l.eventResized(title, time)
+        : l.eventMoved(title, time);
+    if (ev.allDay != i.event.allDay) said += '. ${ev.allDay ? l.becomesAllDay : l.becomesTimed(lengthWords(ev))}';
+    return said;
+  }
+
+  /// An event's start or end as the calendar writes it: a time (its offset
+  /// when the wall time happens twice), or a day.
+  String edgeWords(CalEvent ev, {required bool end}) => switch (ev) {
+    TimedEvent(:final start, end: final e) => timeWords((end ? e : start).instant),
+    AllDayEvent(:final start, end: final e) => env.dateLong(end ? e.addDays(-1) : start),
+  };
+
+  /// A moment's time, with its offset when that wall time happens twice that day.
+  String timeWords(Instant at) {
+    final z = ZonedDateTime(at, env.zone);
+    final r = resolveWall(z.date, z.time, env.zone, WallPolicy.earlier);
+    return env.time(at, withOffset: r.ambiguous);
+  }
+
+  String lengthWords(CalEvent ev) => switch (ev) {
+    TimedEvent(:final start, :final end) => env.l10n.duration(
+      (end.instant.epochMilliseconds - start.instant.epochMilliseconds) ~/ 60000,
+    ),
+    AllDayEvent() => env.l10n.allDay,
+  };
+
+  /// Why a place is refused, in words.
+  String refusalWords(Proposal p) {
+    final l = env.l10n;
+    final reasons = {for (final v in p.violations) l.violation(v.code)};
+    return reasons.isEmpty ? l.dropRefused : l.dropRefusedFor(reasons.join(', '));
+  }
+
+  /// Said to screen readers (`SemanticsService.announce`).
+  void say(String text) {
+    if (text.isEmpty || _disposed) return;
+    unawaited(SemanticsService.announce(text, env.textDirection));
+  }
+
+  /// The keyboard holds [i] where [ev] is (null: no ghost, it is let go).
+  void showHeld(EventInstance i, CalEvent? ev, {bool valid = true}) {
+    _gen++;
+    _motion.stop();
+    lifted.value = ev == null ? null : i.key;
+    ghost.value = ev == null ? null : _ghostOf(i, ev, valid: valid);
+  }
+
+  /// Where the view draws [ev] (global boxes; none when it is not drawn).
+  List<GhostBox> boxesOf(CalEvent ev) => _surface?.boxesFor(ev) ?? const [];
+
+  /// Where the ghost is on screen (where a menu opens for a keyboard drop).
+  Offset? get ghostAnchor {
+    final b = ghost.value?.boxes;
+    return b == null || b.isEmpty ? null : b.first.rect.bottomLeft;
   }
 
   void _back(EventInstance i) => _fly(() => _surface?.boxesFor(i.event) ?? const [], _settle);
@@ -437,7 +533,8 @@ class CalendarInteraction {
     });
   }
 
-  Future<EditScope?> _askScope(Offset global) async {
+  /// How far a change to an occurrence reaches, asked with [header] at [global].
+  Future<EditScope?> askScope(Offset global, String header) async {
     final ctx = context;
     if (ctx == null || !ctx.mounted) return null;
     final l10n = env.l10n;
@@ -445,9 +542,9 @@ class CalendarInteraction {
     return showMenu<EditScope>(
       context: ctx,
       position: RelativeRect.fromRect(global & const Size(1, 1), Offset.zero & overlay.size),
-      semanticLabel: l10n.changeWhich,
+      semanticLabel: header,
       items: [
-        PopupMenuItem<EditScope>(enabled: false, height: 32, child: Text(l10n.changeWhich)),
+        PopupMenuItem<EditScope>(enabled: false, height: 32, child: Text(header)),
         PopupMenuItem(value: EditScope.this_, child: Text(l10n.scopeThis)),
         PopupMenuItem(value: EditScope.following, child: Text(l10n.scopeFollowing)),
         PopupMenuItem(value: EditScope.all, child: Text(l10n.scopeAll)),
@@ -463,6 +560,7 @@ class CalendarInteraction {
 
   void dispose() {
     _disposed = true;
+    keyboard.dispose();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(_route);
     _ticker.dispose();
     _motion.dispose();

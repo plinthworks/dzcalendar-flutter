@@ -170,6 +170,10 @@ class CalendarEnv {
         onOpen: open,
         // Editing entries only where a person may edit (as the TS: `editable`).
         onCommand: config.editable ? (c) => controller.run(c, validate: true) : null,
+        // "Move…", "Change duration…": the keyboard's grab, a tap then puts it down.
+        onGrab: config.editable ? interaction.keyboard.grab : null,
+        canMove: (i) => interaction.mayMove(i.event),
+        canResize: (i) => interaction.mayResize(i.event),
       ),
     );
     final b = actionsBuilder;

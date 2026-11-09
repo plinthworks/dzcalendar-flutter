@@ -2,10 +2,12 @@
 
 ## Resume here (if a session is lost)
 
+- **Phase 19e-2b-2 done (2026-11-09)**, committed ("Phase 19e-2b-2"): the
+  keyboard and screen readers (decisions 41–43). See its section below.
+  **Next: 19f** — the showcase app (its structural choices to the owner
+  first); the "Later" lists of 19e-2b-1 and 19e-2b-2 stay open.
 - **Phase 19e-2b-1 done (2026-11-09)**, committed ("Phase 19e-2b-1"): the
-  gestures that edit (decisions 37–40). See its section below. **Next:
-  19e-2b-2** — the keyboard and full screen-reader support (its "For
-  19e-2b-2" list); its structural choices to the owner first.
+  gestures that edit (decisions 37–40).
 - **Phase 19e-2a done (2026-11-09)**, committed ("Phase 19e-2a").
 - **Phase 19e-1 done (2026-11-09)**, committed ("Phase 19e-1").
 - **Phase 19d done (2026-11-08)**, committed ("Phase 19d"); see its section
@@ -188,6 +190,22 @@
   40. **A short landing motion (owner, 2026-11-09)**: a dropped event slides
       to its place (~200 ms), a refused one back to where it was; none when
       the system asks for less motion (`MediaQuery.disableAnimations`).
+  41. **The keyboard's cursor, as the TS (owner, 2026-11-09, 19e-2b-2)**:
+      the calendar is one focus point drawing a cursor (a `Hit`) moved by
+      the core's `stepHit`; Shift+arrows extend a selection, Tab goes to the
+      events; not Flutter's directional traversal over cell widgets (hours
+      not built yet would be out of reach, repeated hours and skipped days
+      would differ from the TS).
+  42. **Screen readers move an event in grab mode (owner, 2026-11-09)**:
+      "Move…" holds the event, which becomes adjustable — swipe up/down a
+      slot (`onIncrease`/`onDecrease`), custom actions for the day before or
+      after, double tap puts it down, "Cancel" lets it go; each step said.
+      The same path as the keyboard (`grabStep`), so the same result as a
+      finger (refusal, series scope, skipped hour).
+  43. **Undo keys only when editable (owner, 2026-11-09)**: Ctrl+Z / ⌘Z and
+      Shift+Ctrl+Z work only with `editable: true`, and `keyboardUndo:
+      false` turns them off (as the TS); `controller.undo()`/`redo()` are
+      never gated — the app calls them.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -558,6 +576,72 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19e-2b-2 — the keyboard and screen readers ✅ (2026-11-09)
+
+Owner's decisions 41–43.
+
+- `CalendarKeyboard` (`lib/src/keyboard.dart`), owned by
+  `CalendarInteraction`: the calendar is one `Focus`; the cursor is a core
+  `Hit` moved by `stepHit` and kept in the view by `KeySurface` (the TS's
+  `KeyboardSurface`: `home`, `fit`, `lineEdge`, `itemsAt`, `items`,
+  `itemsAround`, `cursorFor`, `firstSlot`, `stepAcross`, `reveal`),
+  implemented by the time grid and the day grid from the controller's
+  current model (a period the keyboard just went to is known before it is
+  built). Keys are read by the core's `intentFor` (`keyLikeOf` turns a
+  Flutter key into the web's name; M, Z, Y also by their physical place, for
+  an Arabic layout) — not Flutter `Shortcuts`/`Actions`: the keymap stays
+  the same in every port.
+- Cursor: arrows (15 min / a day; RTL swaps), Home/End, PageUp/PageDown (the
+  view's own step), Shift extends a selection, Enter hands it once, Escape
+  clears it; up from the first slot to the all-day row; past hidden or
+  skipped days; drawn (`CursorBox`) only in the keyboard's highlight mode. A
+  tap places it. Tab goes through the events in reading order, Shift+Tab
+  back to the cursor, past the last out of the calendar. On an event: Enter
+  opens it (else its menu), M / Alt+Enter holds it, Delete deletes it (scope
+  asked for an occurrence), ←/→ the next one of its day, Escape back.
+- Grab mode: each arrow a `grabStep` (Shift: its end; Alt: across
+  resources; PageUp/Down a week), drawn by the gestures' ghost; Enter puts
+  it down through `CalendarInteraction.commit` — now shared by the finger,
+  the keyboard and the reader: refusal said and run validated, scope asked,
+  history, `onEventChange`, said ("« Bilan » déplacé à 10:00"), landed;
+  Escape, Tab, or the focus leaving let go. "Move…" / "Change duration…"
+  in the menu (core `onGrab`) hold it too; a tap on the calendar then puts
+  it there (WCAG 2.5.7).
+- Screen readers (decision 42): an event's custom actions "Déplacer…",
+  "Changer la durée…", "Supprimer" (editable only); held, it is adjustable
+  (value, increased/decreased value: where a swipe takes it), with actions
+  day before/after (a month: week), put down, cancel; double tap puts it
+  down. Every step announced (`SemanticsService.announce`). Undo keys only
+  when `editable && keyboardUndo` (new `DzCalendar.keyboardUndo`, decision
+  43); `controller.undo()` never gated.
+- Verified on the Android emulator with real key events (`adb input
+  keyevent`): the cursor, Tab + M + ↓ (ghost at 12:00), Enter (placed, told,
+  focused), Arabic month RTL (→ the day before). 58 widget tests (13 new).
+- Review fixes (code + architect): a grab taken with the focus already there
+  was never let go when the focus left; `_commit`'s `finally` and `_letGo`
+  wrote to disposed notifiers when the calendar went during the scope menu;
+  a navigation that did nothing (a fixed period) left the "own navigation"
+  count stale (now counted only when the range moved; no navigation in a
+  `visibleRange` view); M/Z/Y on non-Latin layouts; key repeat only for the
+  moves; an app callback throwing during a keyboard drop is reported and
+  the grab still ends; reader previews only with semantics on, `GrabInfo`
+  equality; the reader's day actions hidden while changing a length, an
+  all-day event steps by days; one `_letGo` helper in `DzCalendar`.
+- **Later**: refocus by the resulting event id after an occurrence edit
+  (`commit` returns a bool; the TS returns `eventId`); `held`/`focused`
+  rebuild every event's builder at each step (make them per key); let go on
+  `AppLifecycleState.inactive` and on a tap outside the calendar (the TS:
+  window blur, press elsewhere); the list and year views have no keyboard
+  surface (keys ignored there); a free bookable slot under the cursor is not
+  said nor booked by Enter (TS `freeSlotAt`); resizing from the start
+  (Alt+Shift); `SemanticsService.announce` is deprecated after 3.35 (move to
+  `sendAnnouncement`); check on VoiceOver/TalkBack that a step is not said
+  twice (announce + value change); tests still missing: a series dropped
+  from the keyboard (scope + refocus), Alt+arrows across resources,
+  all-day row ↔ slots, hidden/skipped days, a DST gap said, a refused Enter,
+  Home/End/PageUp, Shift+Tab, dispose during the scope menu, reader cancel
+  and day actions.
 
 ## 19e-2b-1 — the gestures that edit ✅ (2026-11-09)
 

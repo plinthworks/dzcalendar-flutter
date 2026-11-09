@@ -39,6 +39,7 @@ class DzCalendar extends StatefulWidget {
     this.selectable = false,
     this.snapMinutes = 15,
     this.dayView = 'timeGridDay',
+    this.keyboardUndo = true,
   }) : assert(snapMinutes > 0);
 
   final CalendarController controller;
@@ -92,6 +93,12 @@ class DzCalendar extends StatefulWidget {
   /// Where the menu's "Go to this day" leads (when registered).
   final String dayView;
 
+  /// Ctrl+Z / ⌘Z undo and Shift+Ctrl+Z / Ctrl+Y redo, only on an
+  /// [editable] calendar (owner's decision 43); false leaves those keys to
+  /// the app.
+  /// `controller.undo()` is never gated.
+  final bool keyboardUndo;
+
   @override
   State<DzCalendar> createState() => _DzCalendarState();
 }
@@ -114,10 +121,16 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver, Ti
   void _changed() {
     const lets = {StateCause.navigate, StateCause.view, StateCause.zone, StateCause.resources};
     if (widget.controller.changes.any((e) => e is KernelStateEvent && e.causes.any(lets.contains))) {
-      _interaction
-        ..release()
-        ..cancel();
+      _letGo();
     }
+  }
+
+  /// Any gesture under way ends, the held event is let go (another period, view, controller…).
+  void _letGo() {
+    _interaction
+      ..release()
+      ..cancel();
+    _interaction.keyboard.periodChanged();
   }
 
   @override
@@ -130,16 +143,12 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver, Ti
   void didUpdateWidget(DzCalendar old) {
     super.didUpdateWidget(old);
     if (old.editable && !widget.editable) {
-      _interaction
-        ..release()
-        ..cancel();
+      _letGo();
     }
     if (old.controller != widget.controller) {
       old.controller.removeListener(_changed);
       widget.controller.addListener(_changed);
-      _interaction
-        ..release()
-        ..cancel();
+      _letGo();
       _now.value = widget.controller.now();
       _followed = null;
       _followLocale();
@@ -237,17 +246,23 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver, Ti
         children: [
           if (widget.showHeader) CalendarHeader(controller: widget.controller, views: widget.views),
           Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(child: body),
-                Positioned.fill(
-                  child: GhostLayer(
-                    interaction: _interaction,
-                    radius: env.style.eventRadius,
-                    style: env.style.eventStyle.copyWith(fontWeight: FontWeight.w600),
+            // The calendar's one focus point: its keys (decision 41).
+            child: Focus(
+              focusNode: _interaction.keyboard.node,
+              onKeyEvent: _interaction.keyboard.onKey,
+              onFocusChange: _interaction.keyboard.focusChanged,
+              child: Stack(
+                children: [
+                  Positioned.fill(child: body),
+                  Positioned.fill(
+                    child: GhostLayer(
+                      interaction: _interaction,
+                      radius: env.style.eventRadius,
+                      style: env.style.eventStyle.copyWith(fontWeight: FontWeight.w600),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
