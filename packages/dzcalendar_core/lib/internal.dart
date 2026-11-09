@@ -27,6 +27,13 @@ export 'src/recurrence/edit.dart'
 export 'src/slots/engine.dart' show maxCandidates, maxSlots, openSpans;
 export 'src/slots/json.dart' show readMomentExact;
 export 'src/rules/validate.dart' show Neighbours, validateWith;
+export 'src/kernel.dart' show kernelFamilies;
+export 'src/layout/column.dart' show ColItem, ColPlacement, ColumnLayoutMode, layoutColumn;
+export 'src/layout/rows.dart' show OverflowPiece, OverflowResult, Packed, RowItem, computeOverflow, packLanes;
+export 'src/layout/virtual.dart' show PrefixSums, Sizes, UniformSizes, VRange, VariableSizes, visible2D, visibleRange;
+export 'src/project/segment.dart' show DateIndex, segmentAllDay, segmentTimed, splitByWeek;
+export 'src/views/daygrid.dart' show groupHeadsOf, isBackground, updateDayGridModel, updateMultiMonthModel;
+export 'src/views/timegrid.dart' show buildTimeGridColumn, updateTimeGridModel;
 export 'src/util/js.dart' show jsRound, jsText;
 export 'src/recurrence/series.dart'
     show defaultOccurrenceLimit, forever, keyOf, occurrenceSpan, seriesEquals, seriesSpan, setEquals;

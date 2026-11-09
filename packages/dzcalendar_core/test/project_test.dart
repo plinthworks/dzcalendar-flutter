@@ -128,7 +128,7 @@ void main() {
       final pos = axis.fromPosition(150);
       expect((pos.exists, '${pos.instant}'), (false, '2026-03-29T01:30:00Z')); // pushed to 03:30
       final tick = axis.ticks(60).firstWhere((t) => t.position == 120);
-      expect(tick.note, TickNote.skipped);
+      expect(tick.skipped, isTrue);
       expect(tick.instant, isNull);
     });
 
@@ -154,8 +154,8 @@ void main() {
       final ticks = axis.ticks(60);
       expect(ticks, hasLength(26));
       expect(
-        [for (final t in ticks.sublist(2, 5)) ('${t.label}', t.note)],
-        [('02:00:00', TickNote.firstPass), ('02:00:00', TickNote.secondPass), ('03:00:00', null)],
+        [for (final t in ticks.sublist(2, 5)) ('${t.label}', t.pass)],
+        [('02:00:00', WallPass.first), ('02:00:00', WallPass.second), ('03:00:00', null)],
       );
     });
 

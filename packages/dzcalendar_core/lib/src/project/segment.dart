@@ -34,6 +34,10 @@ sealed class Segment {
   /// Rounded corners, continuation arrows.
   final bool startsHere;
   final bool endsHere;
+
+  /// The same piece at another place: a week row's part of a bar, a
+  /// resource's copy of it in its own cells.
+  Segment placed({String? key, int? dayIndex, int? dayCount, bool? startsHere, bool? endsHere});
 }
 
 final class TimedSegment extends Segment {
@@ -50,6 +54,18 @@ final class TimedSegment extends Segment {
 
   final Instant from;
   final Instant to;
+
+  @override
+  TimedSegment placed({String? key, int? dayIndex, int? dayCount, bool? startsHere, bool? endsHere}) => TimedSegment(
+    key: key ?? this.key,
+    instance: instance,
+    dayIndex: dayIndex ?? this.dayIndex,
+    part: part,
+    startsHere: startsHere ?? this.startsHere,
+    endsHere: endsHere ?? this.endsHere,
+    from: from,
+    to: to,
+  );
 }
 
 final class AllDaySegment extends Segment {
@@ -69,14 +85,15 @@ final class AllDaySegment extends Segment {
   final PlainDate from;
   final PlainDate to;
 
-  AllDaySegment _piece(String key, int dayIndex, int dayCount, bool startsHere, bool endsHere) => AllDaySegment(
-    key: key,
+  @override
+  AllDaySegment placed({String? key, int? dayIndex, int? dayCount, bool? startsHere, bool? endsHere}) => AllDaySegment(
+    key: key ?? this.key,
     instance: instance,
-    dayIndex: dayIndex,
-    dayCount: dayCount,
+    dayIndex: dayIndex ?? this.dayIndex,
+    dayCount: dayCount ?? this.dayCount,
     part: part,
-    startsHere: startsHere,
-    endsHere: endsHere,
+    startsHere: startsHere ?? this.startsHere,
+    endsHere: endsHere ?? this.endsHere,
     from: from,
     to: to,
   );
@@ -147,7 +164,13 @@ List<TimedSegment> segmentTimed(EventInstance instance, List<DayInfo> days, {boo
 
 /// The dates a view shows, in order, hidden days already removed.
 final class DateIndex {
-  DateIndex(this.dates) : _cols = {for (var i = 0; i < dates.length; i++) dates[i].epochDay: i};
+  /// [keep]: a date shown in a column but given no segment (a month grid's
+  /// padding days when they are left empty).
+  DateIndex(this.dates, {bool Function(PlainDate)? keep})
+    : _cols = {
+        for (var i = 0; i < dates.length; i++)
+          if (keep == null || keep(dates[i])) dates[i].epochDay: i,
+      };
   final List<PlainDate> dates;
   final Map<int, int> _cols;
 
@@ -213,12 +236,12 @@ List<AllDaySegment> segmentAllDay(EventInstance instance, DateIndex view) {
 /// Bars cut at the end of each displayed week, for a grid drawn one week per
 /// row. [weeks] lists the columns of each row. Each piece keeps the bar's
 /// `from`/`to`; its place is `dayIndex`/`dayCount`.
-List<List<AllDaySegment>> splitByWeek(List<AllDaySegment> segs, List<List<int>> weeks) {
+List<List<T>> splitByWeek<T extends Segment>(List<T> segs, List<List<int>> weeks) {
   final rowOf = <int, int>{
     for (var r = 0; r < weeks.length; r++)
       for (final c in weeks[r]) c: r,
   };
-  final rows = [for (final _ in weeks) <AllDaySegment>[]];
+  final rows = [for (final _ in weeks) <T>[]];
   for (final seg in segs) {
     var col = seg.dayIndex;
     final end = seg.dayIndex + seg.dayCount;
@@ -230,13 +253,14 @@ List<List<AllDaySegment>> splitByWeek(List<AllDaySegment> segs, List<List<int>> 
       final rowLast = rowCols.last + 1;
       final rowEnd = end < rowLast ? end : rowLast;
       rows[row].add(
-        seg._piece(
-          '${seg.key}|w$piece',
-          col,
-          rowEnd - col,
-          seg.startsHere && col == seg.dayIndex,
-          seg.endsHere && rowEnd == end,
-        ),
+        seg.placed(
+              key: '${seg.key}|w$piece',
+              dayIndex: col,
+              dayCount: rowEnd - col,
+              startsHere: seg.startsHere && col == seg.dayIndex,
+              endsHere: seg.endsHere && rowEnd == end,
+            )
+            as T,
       );
       piece++;
       col = rowEnd;

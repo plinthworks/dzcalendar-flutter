@@ -14,6 +14,11 @@ enum DayKind { normal, short, long, skipped, irregular }
 /// happen twice.
 enum TransitionKind { gap, repeat }
 
+/// Which reading of a wall time that happens twice (a fall-back night): the
+/// first pass, before the clocks go back, or the second, after. One enum for
+/// every place that tells them apart: the time grid, its ticks, the timeline.
+enum WallPass { first, second }
+
 /// One change of a zone's offset.
 final class Transition {
   const Transition({

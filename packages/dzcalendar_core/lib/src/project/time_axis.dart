@@ -17,10 +17,15 @@ enum AxisMode {
   elapsed,
 }
 
-enum TickNote { firstPass, secondPass, skipped }
-
 final class AxisTick {
-  const AxisTick({required this.position, required this.label, required this.instant, required this.major, this.note});
+  const AxisTick({
+    required this.position,
+    required this.label,
+    required this.instant,
+    required this.major,
+    this.pass,
+    this.skipped = false,
+  });
 
   /// Axis minutes from the top.
   final double position;
@@ -29,7 +34,12 @@ final class AxisTick {
   /// Null where the wall time does not exist. On the wall axis, a repeated
   /// time gives its first reading.
   final Instant? instant;
-  final TickNote? note;
+
+  /// On a repeated time, which reading this tick marks; null when it happens once.
+  final WallPass? pass;
+
+  /// A wall time the clocks skip (its tick marks where the jump is).
+  final bool skipped;
   final bool major;
 }
 
@@ -239,7 +249,8 @@ final class _WallAxis extends ColumnAxis {
           position: p,
           label: wall.time,
           instant: r.exists ? r.instant : null,
-          note: !r.exists ? TickNote.skipped : (r.ambiguous ? TickNote.firstPass : null),
+          skipped: !r.exists,
+          pass: r.exists && r.ambiguous ? WallPass.first : null,
           major: _labelled(wall, every),
         ),
       );
@@ -308,12 +319,12 @@ final class _ElapsedAxis extends ColumnAxis {
       if (!r.exists || first == null) continue;
       final other = r.other;
       final readings = r.ambiguous && other != null
-          ? [(first, TickNote.firstPass), (other, TickNote.secondPass)]
+          ? [(first, WallPass.first), (other, WallPass.second)]
           : [(first, null)];
-      for (final (instant, note) in readings) {
+      for (final (instant, pass) in readings) {
         final p = _raw(instant);
         if (p < -1e-9 || p > length + 1e-9) continue;
-        out.add(AxisTick(position: p, label: wall.time, instant: instant, note: note, major: _labelled(wall, every)));
+        out.add(AxisTick(position: p, label: wall.time, instant: instant, pass: pass, major: _labelled(wall, every)));
       }
     }
     return out..sort((a, b) => a.position.compareTo(b.position));

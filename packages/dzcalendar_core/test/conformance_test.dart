@@ -157,7 +157,7 @@ final Map<String, Object? Function(Json)> _adapters = {
     String text(TimelineSlot x) {
       final t = x.time;
       if (t == null) return '${x.date}';
-      return '${t.toString().substring(0, 5)}${x.pass == TimelinePass.second ? '*' : ''}${x.offset}';
+      return '${t.toString().substring(0, 5)}${x.pass == WallPass.second ? '*' : ''}${x.offset}';
     }
 
     return {

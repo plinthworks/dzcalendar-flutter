@@ -7,9 +7,6 @@ import '../zone/day_info.dart';
 import '../zone/zoned.dart';
 import '../zone/zone_rules.dart';
 
-/// On a fall-back night, which of the two readings of a wall time a slot is.
-enum TimelinePass { first, second }
-
 /// One step of a timeline's scale: a wall-clock slot (time unit) or a day
 /// (day unit).
 final class TimelineSlot {
@@ -32,7 +29,7 @@ final class TimelineSlot {
   final PlainTime? time;
 
   /// Null when the wall time happens once.
-  final TimelinePass? pass;
+  final WallPass? pass;
 
   /// The zone's offset at its start (`+01:00`): what tells the two 02:00s apart.
   final String offset;
@@ -201,7 +198,7 @@ void _daySlots(DayInfo day, int step, ZoneId zone, List<TimelineSlot> out) {
     }
     return;
   }
-  final starts = <({Instant at, PlainTime time, TimelinePass? pass})>[];
+  final starts = <({Instant at, PlainTime time, WallPass? pass})>[];
   for (var m = 0; m < 1440; m += step) {
     final r = resolveWall(day.date, _wall(m), zone, WallPolicy.earlier);
     final at = r.instant;
@@ -209,8 +206,8 @@ void _daySlots(DayInfo day, int step, ZoneId zone, List<TimelineSlot> out) {
     final other = r.other;
     if (r.ambiguous && other != null) {
       starts
-        ..add((at: at, time: _wall(m), pass: TimelinePass.first))
-        ..add((at: other, time: _wall(m), pass: TimelinePass.second));
+        ..add((at: at, time: _wall(m), pass: WallPass.first))
+        ..add((at: other, time: _wall(m), pass: WallPass.second));
     } else {
       starts.add((at: at, time: _wall(m), pass: null));
     }

@@ -7,6 +7,10 @@ repository: https://github.com/plinthworks/dzcalendar-flutter
 environment:
   sdk: ^3.9.0
 resolution: workspace
+dependencies:
+  # 0.20.x: flutter_localizations pins intl exactly (0.20.2 with Flutter 3.35); a
+  # wider range would let an app resolve a version Flutter refuses (decision 3).
+  intl: ^0.20.2
 dev_dependencies:
   lints: ^5.0.0
   test: ^1.25.0

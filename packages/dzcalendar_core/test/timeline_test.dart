@@ -21,7 +21,7 @@ final nav = NavContext(firstDay: 1, today: d('2026-10-21'));
 ViewRange range(String type, String at) => computeViewRange(d(at), timelineViews[type]!, nav);
 String label(TimelineSlot s) {
   final t = s.time;
-  return '${t != null ? t.toString().substring(0, 5) : '${s.date}'}${s.pass == TimelinePass.second ? '*' : ''}${s.offset}';
+  return '${t != null ? t.toString().substring(0, 5) : '${s.date}'}${s.pass == WallPass.second ? '*' : ''}${s.offset}';
 }
 
 Instant i(String s) => Instant.parse(s);
@@ -39,7 +39,7 @@ void main() {
         '02:30*+01:00',
         '03:00+01:00',
       ]);
-      expect(a.slots[4].pass, TimelinePass.first);
+      expect(a.slots[4].pass, WallPass.first);
       // Every slot is 30 real minutes: the second 02:00 starts an hour after the first.
       expect(a.slots[6].start.epochMilliseconds - a.slots[4].start.epochMilliseconds, 3600000);
     });

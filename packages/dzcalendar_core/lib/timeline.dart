@@ -8,7 +8,6 @@ export 'src/timeline/axis.dart'
         MinuteScale,
         TimelineAxis,
         TimelineGroup,
-        TimelinePass,
         TimelineScale,
         TimelineSlot,
         TimelineUnit,

@@ -60,11 +60,96 @@ export 'src/event/types.dart'
         eventEquals,
         sameValue;
 export 'src/intervals.dart' show MsSpan;
-export 'src/layout/column.dart' show ColItem, ColPlacement, ColumnLayoutMode, layoutColumn;
-export 'src/project/segment.dart'
-    show AllDaySegment, DateIndex, Segment, TimedSegment, segmentAllDay, segmentTimed, splitByWeek;
+export 'src/format/format.dart'
+    show
+        NameWidth,
+        WeekRules,
+        checkSkeleton,
+        dateSkeletons,
+        formatLocale,
+        formatRangeTitle,
+        formatTemporal,
+        monthNames,
+        weekNumber,
+        weekRulesFor,
+        weekdayNames;
+export 'src/interaction/actions.dart'
+    show
+        ActionContext,
+        ActionItem,
+        ActionLabels,
+        ActionTarget,
+        CreateAt,
+        CreateOn,
+        CreateRequest,
+        DayTarget,
+        EventTarget,
+        GrabKind,
+        SlotTarget,
+        actionsFor;
+export 'src/interaction/hit.dart' show allDayHitAt, dayHitAt, slotHitAt, slotTargetAt;
+export 'src/interaction/keymap.dart'
+    show
+        AcrossKeyIntent,
+        KeyIntent,
+        ItemKeyIntent,
+        KeyGrid,
+        KeyLike,
+        KeyMode,
+        LineKeyIntent,
+        MoveKeyIntent,
+        PeriodKeyIntent,
+        ResizeKeyIntent,
+        CommandKeyIntent,
+        KeyCommand,
+        KeyStep,
+        eventHit,
+        grabStep,
+        heldEvent,
+        intentFor,
+        stepHit;
+export 'src/interaction/propose.dart'
+    show
+        Ambiguity,
+        DayHit,
+        DaySelection,
+        Hit,
+        InteractionContext,
+        Proposal,
+        CalendarSelection,
+        SlotHit,
+        TimeSelection,
+        commandFor,
+        isUnchanged,
+        proposeMove,
+        proposeResize,
+        selectionBetween;
+export 'src/kernel.dart'
+    show
+        CalendarKernel,
+        CalendarRules,
+        DayGridSettings,
+        DayGridViewModel,
+        KernelEvent,
+        KernelOptions,
+        KernelState,
+        KernelStateEvent,
+        KernelStoreEvent,
+        ListViewModel,
+        ModelOptions,
+        MultiMonthViewModel,
+        StateCause,
+        StateDirection,
+        TimeGridSettings,
+        TimeGridViewModel,
+        TitleBuilder,
+        TitleFormat,
+        TitleFormatArg,
+        TitleSkeleton,
+        ViewModel;
+export 'src/project/segment.dart' show AllDaySegment, Segment, TimedSegment;
 export 'src/project/time_axis.dart'
-    show AxisBand, AxisMode, AxisPrefer, AxisTick, ColumnAxis, FromPosition, TickNote, buildColumnAxis;
+    show AxisBand, AxisMode, AxisPrefer, AxisTick, ColumnAxis, FromPosition, buildColumnAxis;
 export 'src/recurrence/series.dart'
     show
         Series,
@@ -130,6 +215,32 @@ export 'src/store/store.dart' show EventStore, QueryOptions, StoreSnapshot, View
 export 'src/time/duration.dart' show IsoDuration;
 export 'src/time/instant.dart' show Instant;
 export 'src/time/plain.dart' show PlainDate, PlainDateTime, PlainTime;
+export 'src/views/daygrid.dart'
+    show
+        DayGridBar,
+        DayGridModel,
+        DayGridOptions,
+        DayGridWeek,
+        MultiMonthModel,
+        ResourceGroupHead,
+        ResourceHead,
+        buildDayGridModel,
+        buildMultiMonthModel;
+export 'src/views/list.dart' show ListDay, ListEntry, ListModel, ListOptions, buildListModel;
+export 'src/views/timegrid.dart'
+    show
+        AllDayBar,
+        AvailableSlot,
+        MoreTimed,
+        PlacedSlot,
+        PlacedTimed,
+        Reading,
+        TimeGridAllDay,
+        TimeGridColumn,
+        TimeGridModel,
+        TimeGridOptions,
+        buildTimeGridModel,
+        locateNow;
 export 'src/views/views.dart'
     show
         NavContext,
@@ -152,6 +263,7 @@ export 'src/zone/day_info.dart'
         ResolvedWall,
         Transition,
         TransitionKind,
+        WallPass,
         WallPolicy,
         dayInfo,
         dayInfos,

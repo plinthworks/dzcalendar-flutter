@@ -6,3 +6,7 @@ workspace:
   - packages/dzcalendar_core
 dev_dependencies:
   lints: ^5.0.0
+# What Flutter 3.35's flutter_localizations pins: the tests run on the intl an
+# app gets (19e-1 review), not the newest the constraint allows.
+dependency_overrides:
+  intl: 0.20.2
