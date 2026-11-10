@@ -28,7 +28,12 @@ final class BusinessHoursRule {
     if (zone != null && !isValidZone(zone)) throw ArgumentError.value(zone, 'timeZone', 'not a time zone');
   }
 
-  /// ISO weekdays, 1 (Monday) to 7 (Sunday).
+  /// ISO weekdays, 1 (Monday) to 7 (Sunday) — not 0–6 with 0 for Sunday
+  /// (JavaScript's `getDay`, PostgreSQL's `EXTRACT(dow)`): the two agree on
+  /// Monday to Saturday and differ on Sunday only, so convert at the border
+  /// (`dow == 0 ? 7 : dow`). A 0 here throws (configuration); in
+  /// [BusinessHours.fromJson] it is a problem. The Algerian working week,
+  /// Sunday to Thursday, is `[7, 1, 2, 3, 4]`.
   final List<int> daysOfWeek;
 
   /// Opens. [WallTime.endOfDay] opens no time.

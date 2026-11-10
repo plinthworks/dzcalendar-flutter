@@ -7,7 +7,7 @@ on:
 
 jobs:
   core:
-    # The workspace holds the Flutter package and its example: Flutter 3.35.7
+    # The workspace holds the Flutter package, its example and the showcase: Flutter 3.35.7
     # (Dart 3.9.2, sehhaty-mobile's) resolves it.
     runs-on: ubuntu-latest
     steps:
@@ -23,6 +23,8 @@ jobs:
         working-directory: packages/dzcalendar_core
       - run: flutter test
         working-directory: packages/dzcalendar
+      - run: flutter test
+        working-directory: apps/showcase
 
   conformance-copy:
     # The cases are the main repository's; the copy must be its current one.

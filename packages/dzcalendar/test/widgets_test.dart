@@ -212,6 +212,19 @@ void main() {
       expect(t.getCenter(find.text('السبت')).dx, greaterThan(t.getCenter(find.text('الجمعة')).dx));
     });
 
+    testWidgets('a year: as many months a row as fit, one on a phone', (t) async {
+      final c = _controller(view: 'multiMonthYear');
+      addTearDown(c.dispose);
+      Offset at(String month) => t.getTopLeft(find.text(month));
+      await _pump(t, DzCalendar(controller: c, showHeader: false), size: const Size(1000, 900));
+      // 1000 px: four months of 240 px or more a row (macOS Calendar's 4 × 3).
+      expect(at('janvier 2026').dy, at('avril 2026').dy);
+      expect(at('mai 2026').dy, greaterThan(at('avril 2026').dy));
+      await _pump(t, DzCalendar(controller: c, showHeader: false), size: const Size(400, 900));
+      expect(at('février 2026').dy, greaterThan(at('janvier 2026').dy));
+      expect(at('février 2026').dx, at('janvier 2026').dx);
+    });
+
     testWidgets('a time grid narrower than its columns builds only those on screen', (t) async {
       final resources = [for (var i = 0; i < 30; i++) ResourceInput(id: 'r$i', title: 'R$i')];
       final c = _controller(

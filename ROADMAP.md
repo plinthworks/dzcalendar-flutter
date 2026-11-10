@@ -2,10 +2,13 @@
 
 ## Resume here (if a session is lost)
 
+- **Phase 19f done (2026-11-10)**, committed ("Phase 19f"): the showcase
+  app `apps/showcase` (decisions 44–47). See its section below. **Next**:
+  two questions for the owner from 19f's reviews (an event filter in the
+  library, the anchor of a tapped event), then the Hijri calendar, the
+  source manager, the timeline; the "Later" lists stay open.
 - **Phase 19e-2b-2 done (2026-11-09)**, committed ("Phase 19e-2b-2"): the
-  keyboard and screen readers (decisions 41–43). See its section below.
-  **Next: 19f** — the showcase app (its structural choices to the owner
-  first); the "Later" lists of 19e-2b-1 and 19e-2b-2 stay open.
+  keyboard and screen readers (decisions 41–43).
 - **Phase 19e-2b-1 done (2026-11-09)**, committed ("Phase 19e-2b-1"): the
   gestures that edit (decisions 37–40).
 - **Phase 19e-2a done (2026-11-09)**, committed ("Phase 19e-2a").
@@ -206,6 +209,19 @@
       Shift+Ctrl+Z work only with `editable: true`, and `keyboardUndo:
       false` turns them off (as the TS); `controller.undo()`/`redo()` are
       never gated — the app calls them.
+  44. **The showcase is its own app (owner, 2026-11-10, 19f)**:
+      `apps/showcase` in the workspace; `packages/dzcalendar/example` stays
+      the small pub.dev example and the screenshot app.
+  45. **iOS, Android and macOS (owner, 2026-11-10)**: an adaptive layout —
+      a fixed sidebar on macOS and tablets, a drawer on phones.
+  46. **Events in memory and .ics, no source manager (owner, 2026-11-10)**:
+      a few demo calendars in memory, .ics import and export through the
+      core; each calendar is a source chunk (`replaceSourceChunk`), and
+      unticking one empties its chunk. Nothing is kept between launches.
+  47. **A medium inspector (owner, 2026-11-10)**: title, place, all day,
+      start and end, calendar, repeat presets (never, daily, weekly,
+      monthly, yearly), notes, delete — a popover on macOS and tablets, a
+      sheet on phones.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -576,6 +592,83 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19f — the showcase app ✅ (2026-11-10)
+
+- **`apps/showcase`** (decisions 44–47), iOS, Android and macOS:
+  - day, week, month and year, a mini-month, today, and search over a year
+    around today;
+  - calendars to tick in a sidebar (≥ 800 px; a drawer below), an inspector
+    (a popover beside the tap, a sheet on phones), and .ics import
+    (`file_selector`) and export (a save dialog on macOS, text to copy on
+    phones);
+  - French, English and Arabic, light and dark, a choice of time zone;
+  - demo calendars around today: a practice in Algiers, home, sport, and
+    the Algerian public holidays read from a bundled `.ics` (read-only).
+- **The calendars** (`CalendarBook`):
+  - each one is a source chunk, and an event's calendar is its
+    `extendedProps['calendar']` (an occurrence or an override: its
+    series');
+  - unticking one stashes its items (`exportInputs`) and removes them: the
+    source's with the chunk, those made here (new events, overrides, cut
+    series) by `store.apply(…, ChangeCause.api)`, as `refreshOngoing`
+    does;
+  - ticking re-delivers the stash, with what the chunk holds that has
+    moved to another calendar;
+  - history entries touching removed items are dropped by the history
+    (`_heard`), so an undo after a hide refuses and changes nothing
+    (tested);
+  - imported ids are prefixed by their calendar's id: a file read twice is
+    a calendar of its own, not a clash.
+- **The inspector** runs validated commands — `CreateEvent`, `UpdateEvent`
+  (an occurrence asks this / following / all), `RepeatEvent`, `ChangeRule`,
+  `Batch`, `DeleteEvent` — so every save is one step of the undo history.
+  An edit keeps the event's own zone. A new rule, or another calendar, is
+  for the whole series. Saving into an unticked calendar ticks it.
+- **In the library**:
+  - the year view is a grid of as many months a row as fit (≥ 240 px each,
+    at most four — macOS's 4 × 3), its day numbers scale down rather than
+    overflow, and its month titles are headers for screen readers;
+  - the docs of `BusinessHoursRule.daysOfWeek` say ISO 1–7 and not 0–6
+    (Sehhaty's backend counts PostgreSQL's way: only Sunday differs).
+- **Screenshots and tests**:
+  - `--dart-define`s for screenshots made again exactly: `TODAY`,
+    `LOCALE`, `DARK`, `ZONE`, `VIEW`, and `SHOT` (a tap or a search played
+    at start);
+  - screenshots on the iPad 13" and 11" and the iPhone 17 Pro simulators
+    and the Pixel_9a emulator (an arm64 release build: the emulator's
+    storage is nearly full, and its other apps are not ours);
+  - macOS was built and run, but not captured (the terminal lacks the
+    screen-recording permission);
+  - tests: 13 for the model (`book_test`) and 12 for the screens
+    (`app_test`), run in CI.
+- **Reviews' fixes**, all done:
+  - an event moved to another calendar was lost when its first calendar
+    was hidden and shown again;
+  - an unticked calendar could be chosen in the inspector, its event then
+    shown;
+  - an override's calendar was its own, not its series';
+  - the search results did not follow changes;
+  - the toolbar and the inspector's buttons overflowed with larger text;
+  - the popover kept the place of an old click when opened from the
+    keyboard;
+  - the book was touched after it was disposed;
+  - a weak Arabic test was split in two.
+- **For the owner** (from the reviews):
+  1. an event filter at query time in the library
+     (`ModelOptions.eventFilter` or `setEventFilter`): hiding a calendar
+     would be a view's concern, the history kept whole, and the stash
+     machinery gone. The TS has none, so it would be a divergence.
+  2. the place of what was tapped, given to `onEventTap`, `onSelect` and
+     `onCreateRequest` (a global `Rect`), to anchor a popover without
+     tracking pointers.
+- **Later**:
+  - export per calendar (one file now; the calendar is lost on re-import);
+  - say when hiding a calendar drops undo steps (`History.onDropped`);
+  - the refusal's detail in the inspector (a `Violation`, not "refused");
+  - a dot under a busy day of the mini-month;
+  - the year view's keyboard;
+  - a test of the year with Saturday and Monday as first days.
 
 ## 19e-2b-2 — the keyboard and screen readers ✅ (2026-11-09)
 
