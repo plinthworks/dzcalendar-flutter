@@ -2,9 +2,11 @@
 
 ## Resume here (if a session is lost)
 
+- **Phase 19i under way (2026-11-10)**: the source manager (decisions
+  54–57). **19i-1**: the manager and function/list sources. **19i-2**:
+  saves, live sources, `jsonSource`, `icalSource`. Then 19j, the timeline.
 - **Phase 19h done (2026-11-10)**, committed ("Phase 19h"): the Hijri
-  calendar (decisions 50–53). See its section below. **Next: 19i**, the
-  source manager (decision 50), then 19j, the timeline view.
+  calendar (decisions 50–53).
 - **Phase 19g done (2026-11-10)**, committed ("Phase 19g"): the event
   filter (decision 48) and the tapped `Rect` (decision 49).
 - **Phase 19f done (2026-11-10)**, committed ("Phase 19f"): the showcase
@@ -255,6 +257,25 @@
       calendar (titles, day numbers, labels in Hijri; the grids and the
       data stay Gregorian) and a secondary calendar (the Hijri date beside
       the Gregorian: cells, headings, the mini-month).
+  54. **The source manager in two steps (owner, 2026-11-10)**: 19i-1, the
+      manager (chunks of a week, month or year, prefetch, retries, four
+      requests at once, cancelling, stale chunks, the zone, `hold`) with
+      function and list sources; 19i-2, optimistic saves (put back when
+      the server refuses), live sources, `jsonSource` and `icalSource`.
+      Deferred loading of large lists (above 2000) later.
+  55. **The application makes the HTTP requests (owner, 2026-11-10)**: no
+      HTTP client in the core; `jsonSource` and `icalSource` are given a
+      function that makes the request (dio for sehhaty, http…), the core
+      builds the URL and parameters and reads the answer.
+  56. **Live sources are Dart Streams (owner, 2026-11-10)**:
+      `liveSource` takes a `Stream` of messages (created, changed, gone,
+      everything anew); the calendar listens and cancels when the source
+      goes. (The web: an `open(emit)` callback.)
+  57. **A cancel token in each request (owner, 2026-11-10)**: a fetch is
+      given a token (`cancelled`, a `Future` that completes on cancel) the
+      application ties to its client (dio's `CancelToken`); an answer that
+      arrives after a cancel is ignored anyway. (The web: an
+      `AbortSignal`.)
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
