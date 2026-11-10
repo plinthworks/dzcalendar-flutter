@@ -3,10 +3,11 @@
 ## Resume here (if a session is lost)
 
 - **Phase 19f done (2026-11-10)**, committed ("Phase 19f"): the showcase
-  app `apps/showcase` (decisions 44–47). See its section below. **Next**:
-  two questions for the owner from 19f's reviews (an event filter in the
-  library, the anchor of a tapped event), then the Hijri calendar, the
-  source manager, the timeline; the "Later" lists stay open.
+  app `apps/showcase` (decisions 44–47). See its section below. **Next:
+  19g** — decisions 48 (`eventFilter`; the showcase's stash removed) and
+  49 (the tapped `Rect` in the callbacks; the showcase's pointer tracking
+  removed); then the Hijri calendar, the source manager, the timeline. The
+  "Later" lists stay open.
 - **Phase 19e-2b-2 done (2026-11-09)**, committed ("Phase 19e-2b-2"): the
   keyboard and screen readers (decisions 41–43).
 - **Phase 19e-2b-1 done (2026-11-09)**, committed ("Phase 19e-2b-1"): the
@@ -222,6 +223,15 @@
       start and end, calendar, repeat presets (never, daily, weekly,
       monthly, yearly), notes, delete — a popover on macOS and tablets, a
       sheet on phones.
+  48. **An event filter in the library (owner, 2026-11-10, 19f review)**:
+      `ModelOptions.eventFilter` — a predicate applied when views are
+      built — so hiding a calendar is the view's concern and the history
+      stays whole; the showcase's stash goes. A divergence from the TS (it
+      has none): to propose there too.
+  49. **The place of what was tapped (owner, 2026-11-10, 19f review)**:
+      `onEventTap`, `onSelect` and `onCreateRequest` are given the global
+      `Rect` of the event or slot, to anchor a popover — from the keyboard
+      and a screen reader too, where there is no pointer.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -654,7 +664,7 @@
     keyboard;
   - the book was touched after it was disposed;
   - a weak Arabic test was split in two.
-- **For the owner** (from the reviews):
+- **For the owner** (from the reviews) — decided: decisions 48 and 49:
   1. an event filter at query time in the library
      (`ModelOptions.eventFilter` or `setEventFilter`): hiding a calendar
      would be a view's concern, the history kept whole, and the stash
