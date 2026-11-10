@@ -38,6 +38,23 @@ export 'package:dzcalendar_core/dzcalendar_core.dart'
         // Events and what loading them says.
         EventInput,
         CalEvent,
+        // Sources fetched as the calendar moves (decisions 54–57).
+        EventSourceSpec,
+        FetchRequest,
+        CancelToken,
+        SourceAnswer,
+        RetryPolicy,
+        ChunkPolicy,
+        ChunkUnit,
+        SourceManager,
+        SourceHold,
+        SourceNotice,
+        SourceLoading,
+        SourceFetchFailed,
+        SourceProblems,
+        KernelSourceEvent,
+        arraySource,
+        fnSource,
         // The Hijri calendar (decisions 51–53).
         HijriCalendar,
         HijriDate,

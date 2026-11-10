@@ -136,6 +136,7 @@ export 'src/kernel.dart'
         KernelOptions,
         KernelState,
         KernelStateEvent,
+        KernelSourceEvent,
         KernelStoreEvent,
         ListViewModel,
         ModelOptions,
@@ -210,6 +211,29 @@ export 'src/rules/business_hours.dart' show BusinessHours, BusinessHoursRule, bu
 export 'src/rules/constraint.dart' show BusinessHoursConstraint, ConstraintSpec, GroupConstraint, SpansConstraint;
 export 'src/rules/validate.dart'
     show OverlapFn, Placement, RulesContext, ValidRange, Violation, ViolationCode, validateProposal;
+export 'src/source/chunks.dart' show Chunk, ChunkPolicy, ChunkUnit, chunkAt, chunksCovering;
+export 'src/source/manager.dart'
+    show
+        SourceFetchFailed,
+        SourceHold,
+        SourceLoading,
+        SourceManager,
+        SourceNotice,
+        SourceProblems,
+        SystemTimers,
+        Timers,
+        wholeChunk;
+export 'src/source/source.dart'
+    show
+        CancelSource,
+        CancelToken,
+        EventSourceSpec,
+        FetchRequest,
+        RetryPolicy,
+        SourceAnswer,
+        SourceFetch,
+        arraySource,
+        fnSource;
 export 'src/store/changes.dart' show ChangeCause, EventMutation, Mutation, SeriesMutation, StoreChange;
 export 'src/commands/patch.dart' show toInput;
 export 'src/store/export.dart' show eventInput, exportInputs, seriesInput;

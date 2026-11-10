@@ -21,6 +21,7 @@ class CalendarController extends ChangeNotifier {
     : kernel = CalendarKernel(_withErrors(options)),
       _ownsKernel = true {
     _unsubscribe = kernel.subscribe(_onKernel);
+    _loading.value = kernel.sources.loading;
   }
 
   /// Wraps a kernel made elsewhere (shared with a server-side model, a test).
@@ -28,6 +29,7 @@ class CalendarController extends ChangeNotifier {
   CalendarController.of(this.kernel, {this.followAppLocale = false, this.onEventChange, this.onCommandRefused})
     : _ownsKernel = false {
     _unsubscribe = kernel.subscribe(_onKernel);
+    _loading.value = kernel.sources.loading;
   }
 
   /// A person changed events (a drag, a resize, the menu: a command run with
@@ -58,6 +60,13 @@ class CalendarController extends ChangeNotifier {
   /// write is over: that next undo or redo is the revert's, not told.
   var _skipRevertWrite = false;
   final _selection = ValueNotifier<CalendarSelection?>(null);
+  final _loading = ValueNotifier<bool>(false);
+
+  /// The sources (owner's decision 54): add, remove, fetch again, hold.
+  SourceManager get sources => kernel.sources;
+
+  /// A source is fetching (a spinner's cue), without rebuilding the calendar.
+  ValueListenable<bool> get loadingListenable => _loading;
 
   static KernelOptions _withErrors(KernelOptions o) => KernelOptions(
     timeZone: o.timeZone,
@@ -77,6 +86,9 @@ class CalendarController extends ChangeNotifier {
     onError: o.onError ?? _report,
     displayCalendar: o.displayCalendar,
     secondaryCalendar: o.secondaryCalendar,
+    sources: o.sources,
+    onSource: o.onSource,
+    timers: o.timers,
   );
 
   static void _report(Object error, StackTrace stack) => FlutterError.reportError(
@@ -182,6 +194,16 @@ class CalendarController extends ChangeNotifier {
     // zone or set of resources clears it.
     if (e is KernelStateEvent && e.causes.any(_clears.contains)) _selection.value = null;
     if (e is KernelStoreEvent) _tell(e);
+    if (e is KernelSourceEvent) {
+      // What a delivery changes comes as a store event; the notice alone redraws nothing.
+      // Told after the current build, as the other changes (never a widget marked dirty during one).
+      if (e.notice case SourceLoading(:final loading)) {
+        scheduleMicrotask(() {
+          if (!_disposed) _loading.value = loading;
+        });
+      }
+      return;
+    }
     _pending.add(e);
     _schedule();
   }
@@ -274,6 +296,7 @@ class CalendarController extends ChangeNotifier {
     _disposed = true;
     _unsubscribe();
     _selection.dispose();
+    _loading.dispose();
     if (_ownsKernel) kernel.dispose();
     super.dispose();
   }

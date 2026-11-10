@@ -12,6 +12,8 @@ import 'project/time_axis.dart';
 import 'resource/rows.dart';
 import 'resource/tree.dart';
 import 'rules/business_hours.dart';
+import 'source/manager.dart';
+import 'source/source.dart';
 import 'rules/constraint.dart';
 import 'rules/validate.dart';
 import 'store/changes.dart';
@@ -266,7 +268,23 @@ final class KernelOptions {
     this.onError,
     this.displayCalendar,
     this.secondaryCalendar,
+    this.sources = const [],
+    this.onSource,
+    this.timers = const SystemTimers(),
   });
+
+  /// Fetched as the calendar moves (owner's decision 54); `kernel.sources`
+  /// adds, removes, fetches again. Read once: what a source says while the
+  /// kernel is being made (a synchronous source's problems) reaches
+  /// [onSource], not subscribers — there are none yet.
+  final List<EventSourceSpec> sources;
+
+  /// Loading, fetch errors, problems in a delivery (also a
+  /// [KernelSourceEvent] to subscribers).
+  final void Function(SourceNotice notice)? onSource;
+
+  /// For retries; injectable for tests.
+  final Timers timers;
 
   /// The calendar dates are written in (owner's decision 53): titles, day
   /// numbers, labels. The data and the grids stay Gregorian. Null: the
@@ -379,6 +397,12 @@ final class KernelStateEvent extends KernelEvent {
   final StateDirection? direction;
 }
 
+/// What the sources say: loading, a failed fetch, problems in a delivery.
+final class KernelSourceEvent extends KernelEvent {
+  const KernelSourceEvent(this.notice);
+  final SourceNotice notice;
+}
+
 final class KernelStoreEvent extends KernelEvent {
   const KernelStoreEvent(this.change, {this.offscreen = false, this.command, this.validated = false});
   final StoreChange change;
@@ -473,9 +497,33 @@ final class CalendarKernel {
     _buildResources();
     _history = History.reading(store, _commandContext, limit: o.historyLimit);
     _state = _computeState(_date, _view);
+    final onSource = o.onSource;
+    sources = SourceManager(
+      store: store,
+      normalize: () => NormalizeContext(displayZone: _timeZone, newId: _idGen, now: _now),
+      now: _now,
+      timers: o.timers,
+      forgotten: () => _forgottenBefore,
+      // The `events` option is its own source, loaded apart.
+      reserved: const ['events'],
+      notify: (n) {
+        if (onSource != null) {
+          try {
+            onSource(n);
+          } catch (e, st) {
+            _onError(e, st);
+          }
+        }
+        _emit(KernelSourceEvent(n));
+      },
+    );
     final events = o.events;
     if (events != null) _loadEvents(events);
     _unsubscribe = store.subscribe(_onStore);
+    for (final spec in o.sources) {
+      sources.add(spec);
+    }
+    _fetchShown();
   }
 
   final Instant Function() _now;
@@ -503,6 +551,10 @@ final class CalendarKernel {
   late List<Problem> _resourceProblems;
   late ColumnResources _columns;
   late final History _history;
+
+  /// The sources: fetched for what the view shows, kept in step with the store.
+  late final SourceManager sources;
+  int? _forgottenBefore;
   late KernelState _state;
   late final void Function() _unsubscribe;
   final _idGen = createIdGenerator('ev');
@@ -714,10 +766,15 @@ final class CalendarKernel {
     _emit(KernelStateEvent(_state, List.unmodifiable(causes), dir));
   }
 
+  /// The sources fetch what the view shows now.
+  void _fetchShown() => sources.setRange(_state.range.start, _state.range.end, _timeZone);
+
   void _changeState(StateCause cause) {
     _state = _computeState(_date, _view);
+    // The model first: a source answering at once lands on the new period's.
     _model = null;
     _pending.add(cause);
+    _fetchShown();
     _flush();
   }
 
@@ -986,6 +1043,7 @@ final class CalendarKernel {
     if (silent) {
       _state = _computeState(_date, _view);
       _model = null;
+      _fetchShown();
     } else {
       _changeState(StateCause.options);
     }
@@ -1042,6 +1100,10 @@ final class CalendarKernel {
   /// itself, and an event still running, stay. How many went.
   int forgetBefore(Instant at) {
     _live();
+    // A source's next delivery does not bring them back.
+    final ms = at.epochMilliseconds;
+    final was = _forgottenBefore;
+    _forgottenBefore = was == null || ms > was ? ms : was;
     final gone = <Mutation>[];
     for (final e in store.snapshot.allEvents) {
       if (e is TimedEvent && e.ongoing) continue;
@@ -1128,6 +1190,7 @@ final class CalendarKernel {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    sources.destroy();
     _unsubscribe();
     _history.dispose();
     _listeners.clear();

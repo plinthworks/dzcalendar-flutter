@@ -3,8 +3,10 @@
 ## Resume here (if a session is lost)
 
 - **Phase 19i under way (2026-11-10)**: the source manager (decisions
-  54–57). **19i-1**: the manager and function/list sources. **19i-2**:
-  saves, live sources, `jsonSource`, `icalSource`. Then 19j, the timeline.
+  54–57). **19i-1 done**, committed ("Phase 19i-1"): the manager, reading
+  (see 19i below). **Next: 19i-2**: saves, live sources (`Stream`s),
+  `jsonSource`, `icalSource` — the room left for them is listed in 19i-1's
+  section. Then 19j, the timeline.
 - **Phase 19h done (2026-11-10)**, committed ("Phase 19h"): the Hijri
   calendar (decisions 50–53).
 - **Phase 19g done (2026-11-10)**, committed ("Phase 19g"): the event
@@ -646,6 +648,44 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19i — the source manager (under way)
+
+- **19i-1, reading ✅ (2026-11-10)** — `source/{chunks,source,manager}.dart`,
+  ported from the TS `source/manager.ts` (its reading part) and
+  `sources.test.ts`:
+  - chunks of a week (from Monday), a month or a year, `prefetch` either
+    side; contiguous missing chunks one request, four at once; a request
+    no longer shown cancelled (`CancelToken`, decision 57: `cancelled`,
+    `whenCancelled`, `onCancel`); answers from before a refetch ignored;
+    a multi-chunk answer one store change, an event over two chunks owned
+    by both, a series and its overrides by every chunk asked;
+  - retries (`RetryPolicy`: `attempts`, `backoff` doubled up to
+    `maxBackoff`, `retryIf`); `staleAfter`; `zoneDependent` (asked again
+    in another zone, told it: `FetchRequest.zone`); `hold` for prints and
+    exports (`ready` names what failed); twelve spare chunks kept;
+  - `fnSource`, `arraySource`; `EventSourceSpec.key`: a spec made again
+    with an equal key (a provider rebuilt) replaces the old one without
+    fetching; `EventInput.withDefaults`;
+  - the kernel: `KernelOptions.sources`, `onSource`, `timers`;
+    `kernel.sources`; fetched at every state change; `KernelSourceEvent`;
+    `forgetBefore` sets the mark a delivery respects. The controller:
+    `sources`, `loadingListenable` (set after the build, as its other
+    news).
+  - Tests: core 949 (+37 `sources_test`), library 80 (+2).
+  - Reviews' fixes: the model cleared before a synchronous source lands;
+    an answer that cannot be applied is a failed fetch, not a stuck chunk;
+    a refetch asked while an answer is applied is kept; the loading flag
+    never set during a build; nothing told after `destroy`; a held range
+    before anything shown gets a window; no `1 << 62` sentinel (0 on the
+    web); a problem's source is always the source's.
+  - Room for 19i-2: `save`, `live` (a `Stream`), `forgot` on the spec;
+    `SourceSaved` / `SourceSaveFailed` notices (`SourceNotice` is not
+    sealed); the manager's store subscription, `pending`/`shielded` tags,
+    the save chain counted by `idle`; `forgetBefore` calling `forgot`.
+  - Later: `sources.setAll` (declarative, by id), a per-source status
+    (loading, last error), shown chunks before prefetched ones in the
+    queue, `ChunkPolicy.week`/`year` constants.
 
 ## 19h — the Hijri calendar ✅ (2026-11-10)
 

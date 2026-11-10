@@ -276,6 +276,40 @@ final class EventInput {
 
   /// What [EventInput.fromJson] could not read: `(code, field, detail)`.
   final List<(ProblemCode, String, String)> _readProblems;
+
+  /// [defaults] laid under this event's own fields, one level deep (a
+  /// source's `defaults`): a field given here wins, whole — an event's
+  /// `classNames` replaces the default list rather than adding to it.
+  EventInput withDefaults(EventInput defaults) => EventInput._json(
+    [...defaults._readProblems, ..._readProblems],
+    id: id ?? defaults.id,
+    groupId: groupId ?? defaults.groupId,
+    title: title ?? defaults.title,
+    start: start ?? defaults.start,
+    end: end ?? defaults.end,
+    duration: duration ?? defaults.duration,
+    allDay: allDay ?? defaults.allDay,
+    timeZone: timeZone ?? defaults.timeZone,
+    resourceId: resourceId ?? defaults.resourceId,
+    resourceIds: resourceIds ?? defaults.resourceIds,
+    rrule: rrule ?? defaults.rrule,
+    exdate: exdate ?? defaults.exdate,
+    rdate: rdate ?? defaults.rdate,
+    seriesId: seriesId ?? defaults.seriesId,
+    recurrenceId: recurrenceId ?? defaults.recurrenceId,
+    display: display ?? defaults.display,
+    status: status ?? defaults.status,
+    busy: busy ?? defaults.busy,
+    editable: editable ?? defaults.editable,
+    startEditable: startEditable ?? defaults.startEditable,
+    durationEditable: durationEditable ?? defaults.durationEditable,
+    resourceEditable: resourceEditable ?? defaults.resourceEditable,
+    classNames: classNames ?? defaults.classNames,
+    tone: tone ?? defaults.tone,
+    url: url ?? defaults.url,
+    extendedProps: extendedProps ?? defaults.extendedProps,
+    ongoing: ongoing ?? defaults.ongoing,
+  );
 }
 
 /// What [EventInput.fromJson] could not read, for `normalizeEvent`.
