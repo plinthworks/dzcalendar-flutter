@@ -2,10 +2,15 @@
 
 ## Resume here (if a session is lost)
 
+- **Phase 19h under way (2026-11-10)**: the Hijri calendar (decisions
+  50–53). **19h-1**, the core: Umm al-Qura conversion (ICU's table, civil
+  outside, the app's month starts), Hijri names and formatting (fr, en,
+  ar), the kernel's `displayCalendar` / `secondaryCalendar` and titles.
+  **19h-2**, the widgets: day numbers, headings, the mini-month and the
+  year in the display calendar, the secondary date beside; the showcase's
+  setting; screenshots. Then 19i (sources), 19j (timeline).
 - **Phase 19g done (2026-11-10)**, committed ("Phase 19g"): the event
-  filter (decision 48) and the tapped `Rect` (decision 49). See its section
-  below. **Next**: the Hijri calendar, the source manager, the timeline
-  (to choose with the owner). The "Later" lists stay open.
+  filter (decision 48) and the tapped `Rect` (decision 49).
 - **Phase 19f done (2026-11-10)**, committed ("Phase 19f"): the showcase
   app `apps/showcase` (decisions 44–47).
 - **Phase 19e-2b-2 done (2026-11-09)**, committed ("Phase 19e-2b-2"): the
@@ -236,6 +241,24 @@
       `onEventTap`, `onSelect` and `onCreateRequest` are given the global
       `Rect` of the event or slot, to anchor a popover — from the keyboard
       and a screen reader too, where there is no pointer.
+  50. **What comes next, simplest first (owner, 2026-11-10)**: the Hijri
+      calendar (19h), then the source manager (19i), then the timeline
+      view (19j).
+  51. **Hijri data: ICU's Umm al-Qura table, arithmetic outside (owner,
+      2026-11-10)**: ICU's month lengths for 1300–1600 AH (Unicode
+      licence; the year starts follow from them — checked continuous, and
+      equal to the civil reckoning at both ends), the tabular `civil`
+      reckoning before and after. Tests written by hand from the published
+      Umm al-Qura dates.
+  52. **Month starts the application corrects (owner, 2026-11-10)**: the
+      application may give months' announced first days (1 Ramadan 1447 =
+      19 February 2026, Algeria's sighting); they replace the table's. A
+      correction that cannot be (out of order, far from the table) is a
+      problem, not a throw.
+  53. **Both calendars, as the web (owner, 2026-11-10)**: a display
+      calendar (titles, day numbers, labels in Hijri; the grids and the
+      data stay Gregorian) and a secondary calendar (the Hijri date beside
+      the Gregorian: cells, headings, the mini-month).
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
