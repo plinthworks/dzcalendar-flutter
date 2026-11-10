@@ -48,7 +48,7 @@ class MultiMonthView extends StatelessWidget {
   }
 
   Widget _month(({PlainDate month, DayGridModel model}) m, List<String> names, bool canGo, {required bool compact}) {
-    final title = formatTemporal(m.month, 'yMMMM', env.locale);
+    final title = monthTitle(env, m.month);
     return Padding(
       padding: EdgeInsets.fromLTRB(12, 12, 12, compact ? 8 : 4),
       child: Column(
@@ -122,9 +122,12 @@ class _MonthWeek extends StatelessWidget {
             children: [
               // A narrow month (four a row) or a large text: the number shrinks, never overflows.
               Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: DayNumber(env: env, date: date, today: env.isToday(date)),
+                child: LayoutBuilder(
+                  builder: (context, box) => FittedBox(
+                    fit: BoxFit.scaleDown,
+                    // Its width told: a long "1 Ram." is dropped, not every digit shrunk.
+                    child: DayNumber(env: env, date: date, today: env.isToday(date), maxWidth: box.maxWidth),
+                  ),
                 ),
               ),
               const SizedBox(height: 2),

@@ -28,6 +28,7 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
     this.selectionColor,
     this.headerStyle,
     this.dayNumberStyle,
+    this.secondaryDateStyle,
     this.timeLabelStyle,
     this.eventStyle,
     this.titleStyle,
@@ -78,6 +79,9 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
   final TextStyle? headerStyle;
   final TextStyle? dayNumberStyle;
 
+  /// The secondary calendar's date beside a day's number (Hijri).
+  final TextStyle? secondaryDateStyle;
+
   /// The time grid's hours.
   final TextStyle? timeLabelStyle;
   final TextStyle? eventStyle;
@@ -122,6 +126,9 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
       selectionColor: ext?.selectionColor ?? s.primary.withValues(alpha: 0.18),
       headerStyle: (t.labelMedium ?? const TextStyle(fontSize: 12)).merge(ext?.headerStyle),
       dayNumberStyle: (t.bodySmall ?? const TextStyle(fontSize: 12)).merge(ext?.dayNumberStyle),
+      secondaryDateStyle: (t.labelSmall ?? const TextStyle(fontSize: 10))
+          .copyWith(color: s.onSurfaceVariant)
+          .merge(ext?.secondaryDateStyle),
       timeLabelStyle: (t.labelSmall ?? const TextStyle(fontSize: 11))
           .copyWith(color: s.onSurfaceVariant)
           .merge(ext?.timeLabelStyle),
@@ -154,6 +161,7 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
     Color? selectionColor,
     TextStyle? headerStyle,
     TextStyle? dayNumberStyle,
+    TextStyle? secondaryDateStyle,
     TextStyle? timeLabelStyle,
     TextStyle? eventStyle,
     TextStyle? titleStyle,
@@ -180,6 +188,7 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
     selectionColor: selectionColor ?? this.selectionColor,
     headerStyle: headerStyle ?? this.headerStyle,
     dayNumberStyle: dayNumberStyle ?? this.dayNumberStyle,
+    secondaryDateStyle: secondaryDateStyle ?? this.secondaryDateStyle,
     timeLabelStyle: timeLabelStyle ?? this.timeLabelStyle,
     eventStyle: eventStyle ?? this.eventStyle,
     titleStyle: titleStyle ?? this.titleStyle,
@@ -214,6 +223,7 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
       selectionColor: c(selectionColor, other.selectionColor),
       headerStyle: s(headerStyle, other.headerStyle),
       dayNumberStyle: s(dayNumberStyle, other.dayNumberStyle),
+      secondaryDateStyle: s(secondaryDateStyle, other.secondaryDateStyle),
       timeLabelStyle: s(timeLabelStyle, other.timeLabelStyle),
       eventStyle: s(eventStyle, other.eventStyle),
       titleStyle: s(titleStyle, other.titleStyle),
@@ -247,6 +257,7 @@ class DzCalendarStyle {
     required this.selectionColor,
     required this.headerStyle,
     required this.dayNumberStyle,
+    required this.secondaryDateStyle,
     required this.timeLabelStyle,
     required this.eventStyle,
     required this.titleStyle,
@@ -274,6 +285,7 @@ class DzCalendarStyle {
   final Color selectionColor;
   final TextStyle headerStyle;
   final TextStyle dayNumberStyle;
+  final TextStyle secondaryDateStyle;
   final TextStyle timeLabelStyle;
   final TextStyle eventStyle;
   final TextStyle titleStyle;

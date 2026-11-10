@@ -38,6 +38,13 @@ export 'package:dzcalendar_core/dzcalendar_core.dart'
         // Events and what loading them says.
         EventInput,
         CalEvent,
+        // The Hijri calendar (decisions 51–53).
+        HijriCalendar,
+        HijriDate,
+        HijriMonth,
+        HijriReckoning,
+        formatInCalendar,
+        hijriMonthNames,
         TimedEvent,
         AllDayEvent,
         EventInstance,

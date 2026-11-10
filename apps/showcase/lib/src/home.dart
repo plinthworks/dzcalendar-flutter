@@ -63,6 +63,8 @@ class _HomePageState extends State<HomePage> {
         initialDate: frozen,
         initialView: widget.view ?? (narrow ? 'timeGridDay' : 'timeGridWeek'),
         now: now == null ? null : () => now,
+        displayCalendar: widget.settings.hijri == HijriMode.main ? HijriCalendar.ummAlQura : null,
+        secondaryCalendar: widget.settings.hijri == HijriMode.beside ? HijriCalendar.ummAlQura : null,
         options: ModelOptions(
           timeGrid: const TimeGridSettings(slotMinutes: 30),
           businessHours: BusinessHours([
@@ -83,10 +85,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _settingsChanged() {
-    if (widget.settings.zone != _zone) {
-      _zone = widget.settings.zone;
-      _controller.setTimeZone(_zone);
-    }
+    final settings = widget.settings;
+    _controller.batch(() {
+      if (settings.zone != _zone) {
+        _zone = settings.zone;
+        _controller.setTimeZone(_zone);
+      }
+      // Umm al-Qura, as published (an app could give its country's announced months: decision 52).
+      _controller.setDisplayCalendar(settings.hijri == HijriMode.main ? HijriCalendar.ummAlQura : null);
+      _controller.setSecondaryCalendar(settings.hijri == HijriMode.beside ? HijriCalendar.ummAlQura : null);
+    });
   }
 
   @override
@@ -781,6 +789,19 @@ class _SettingsDialog extends StatelessWidget {
                 ],
                 selected: {settings.mode},
                 onSelectionChanged: (v) => settings.update(mode: v.first),
+              ),
+              const SizedBox(height: 16),
+              Text(s.hijri, style: Theme.of(context).textTheme.labelLarge),
+              const SizedBox(height: 6),
+              SegmentedButton<HijriMode>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: HijriMode.off, label: Text(s.hijriOff)),
+                  ButtonSegment(value: HijriMode.beside, label: Text(s.hijriBeside)),
+                  ButtonSegment(value: HijriMode.main, label: Text(s.hijriMain)),
+                ],
+                selected: {settings.hijri},
+                onSelectionChanged: (v) => settings.update(hijri: v.first),
               ),
             ],
           ),

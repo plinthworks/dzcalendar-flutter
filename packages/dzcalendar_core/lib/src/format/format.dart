@@ -13,6 +13,7 @@ import 'package:intl/date_symbol_data_local.dart' as data;
 import 'package:intl/date_time_patterns.dart' as patterns;
 import 'package:intl/intl.dart';
 
+import '../calendars/hijri.dart';
 import '../time/plain.dart';
 import '../zone/zoned.dart';
 import 'week_data.g.dart';
@@ -103,26 +104,172 @@ DateTime _fields(Object v) {
   return DateTime.utc(d.year, d.month, d.day, t.hour, t.minute, t.second, t.millisecond);
 }
 
-/// [v] (a [ZonedDateTime], [PlainDateTime], [PlainDate] or [PlainTime]) in
-/// [locale], by an ICU [skeleton]. Throws an [ArgumentError] for any other
-/// value (the caller's).
-String formatTemporal(Object v, String skeleton, String locale) => _format(skeleton, locale).format(_fields(v));
+/// [v] (a [ZonedDateTime], [PlainDateTime], [PlainDate], [PlainTime] or
+/// [HijriDate]) in [locale], by an ICU [skeleton]. Throws an
+/// [ArgumentError] for any other value (the caller's).
+String formatTemporal(Object v, String skeleton, String locale) =>
+    v is HijriDate ? _formatHijri(v, skeleton, locale) : _format(skeleton, locale).format(_fields(v));
 
-final _token = RegExp(r'\d+|[\p{L}\p{M}]+|[^\d\p{L}\p{M}]+', unicode: true);
+// ——— the Hijri calendar (owner's decision 53) ———
+
+/// The months' names, CLDR's (`islamic` calendar, format forms), for the
+/// languages the widgets speak; any other language gets the English ones.
+const _hijriMonths = <String, List<List<String>>>{
+  'en': [
+    [
+      'Muharram', 'Safar', 'Rabiʻ I', 'Rabiʻ II', 'Jumada I', 'Jumada II', //
+      'Rajab', 'Shaʻban', 'Ramadan', 'Shawwal', 'Dhuʻl-Qiʻdah', 'Dhuʻl-Hijjah',
+    ],
+    [
+      'Muh.', 'Saf.', 'Rab. I', 'Rab. II', 'Jum. I', 'Jum. II', //
+      'Raj.', 'Sha.', 'Ram.', 'Shaw.', 'Dhuʻl-Q.', 'Dhuʻl-H.',
+    ],
+  ],
+  'fr': [
+    [
+      'mouharram', 'safar', 'rabia al awal', 'rabia ath-thani', 'joumada al oula', 'joumada ath-thania', //
+      'rajab', 'chaabane', 'ramadan', 'chawwal', 'dhou al qi`da', 'dhou al-hijja',
+    ],
+    [
+      'mouh.', 'saf.', 'rab. aw.', 'rab. th.', 'joum. oul.', 'joum. tha.', //
+      'raj.', 'chaa.', 'ram.', 'chaw.', 'dhou. q.', 'dhou. h.',
+    ],
+  ],
+  'ar': [
+    [
+      'محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر', 'جمادى الأولى', 'جمادى الآخرة', //
+      'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
+    ],
+    [
+      'محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر', 'جمادى الأولى', 'جمادى الآخرة', //
+      'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
+    ],
+  ],
+};
+
+/// The era after a year: "1447 AH", "١٤٤٧ هـ".
+const _hijriEra = {'en': 'AH', 'fr': 'AH', 'ar': 'هـ'};
+
+String _language(String locale) => locale.split(RegExp('[-_]')).first.toLowerCase();
+
+/// The Hijri month names of [locale] (English for a language without them).
+List<String> hijriMonthNames(String locale, {bool short = false}) {
+  final names = _hijriMonths[_language(_verified(locale))] ?? _hijriMonths['en']!;
+  return names[short ? 1 : 0];
+}
+
+final _zeros = <String, int>{};
+final _digit = RegExp(r'\p{Nd}', unicode: true);
+
+/// [n] in [locale]'s digits (Arabic-Indic where its dates use them).
+String _digits(int n, String locale, {int width = 1}) {
+  final loc = _verified(locale);
+  // The 0 of "10" as the locale writes the 10th ("10", "١٠", "10日").
+  final zero = _zeros[loc] ??= () {
+    final ten = _format('d', loc).format(DateTime.utc(2024, 1, 10));
+    final digits = _digit.allMatches(ten).toList();
+    return digits.length < 2 ? 0x30 : digits[1][0]!.runes.first;
+  }();
+  final text = n.toString().padLeft(width, '0');
+  if (zero == 0x30) return text;
+  return String.fromCharCodes([for (final c in text.runes) c >= 0x30 && c <= 0x39 ? zero + c - 0x30 : c]);
+}
+
+final _patternRun = RegExp(r"'(?:[^']|'')*'|([A-Za-z])\1*|[^'A-Za-z]+");
+
+/// A pattern's runs, read once per locale and skeleton: a field (its
+/// letter) or literal text.
+final _runs = <String, List<({String text, String? letter})>>{};
+
+/// [v] by [skeleton] in [locale]: the locale's pattern for the skeleton (its
+/// order and words), the year, month and day fields Hijri, the weekday and
+/// the time the Gregorian day's; the era after the year.
+String _formatHijri(HijriDate v, String skeleton, String locale) {
+  final loc = _verified(locale);
+  final runs = _runs['$loc|$skeleton'] ??= () {
+    if (_runs.length > 500) _runs.clear();
+    final pattern = _format(skeleton, locale).pattern ?? skeleton;
+    return [
+      for (final m in _patternRun.allMatches(pattern))
+        if (m[0]!.startsWith("'"))
+          (text: m[0]!.length == 2 ? "'" : m[0]!.substring(1, m[0]!.length - 1).replaceAll("''", "'"), letter: null)
+        else
+          (text: m[0]!, letter: m[1]),
+    ];
+  }();
+  final lang = _language(loc);
+  final hasEra = runs.any((r) => r.letter == 'G');
+  final era = _hijriEra[lang] ?? _hijriEra['en']!;
+  final greg = _fields(v.date);
+  final out = StringBuffer();
+  var eraDue = false;
+  for (final r in runs) {
+    final run = r.text;
+    final letter = r.letter;
+    // The era after the year and what is glued to it ("1447年 AH", not "1447 AH年").
+    if (eraDue && (letter != null || run.startsWith(RegExp(r'\s')))) {
+      out.write(' $era');
+      eraDue = false;
+    }
+    if (letter == null) {
+      out.write(run);
+      continue;
+    }
+    final n = run.length;
+    switch (letter) {
+      case 'y' || 'Y' || 'u':
+        out.write(_digits(v.year, loc, width: n == 2 ? 2 : 1));
+        eraDue = !hasEra;
+      case 'G':
+        out.write(era);
+      case 'M' || 'L':
+        out.write(switch (n) {
+          1 || 2 => _digits(v.month, loc, width: n),
+          3 => hijriMonthNames(loc, short: true)[v.month - 1],
+          5 => hijriMonthNames(loc)[v.month - 1].characters1,
+          _ => hijriMonthNames(loc)[v.month - 1],
+        });
+      case 'd':
+        out.write(_digits(v.day, loc, width: n));
+      default:
+        // The weekday: the Gregorian day's own (a Hijri date has no time).
+        out.write(_format(run, loc).format(greg));
+    }
+  }
+  if (eraDue) out.write(' $era');
+  return out.toString();
+}
+
+extension on String {
+  /// The first character (a narrow month name).
+  String get characters1 => isEmpty ? this : String.fromCharCode(runes.first);
+}
+
+final _token = RegExp(r'\p{Nd}+|[\p{L}\p{M}]+|[^\p{Nd}\p{L}\p{M}]+', unicode: true);
 
 /// "15–21 mars 2026", "Mar 30 – Apr 5, 2026", "Dec 28, 2026 – Jan 3, 2027":
 /// both ends formatted, what they share at the start and the end said once.
+/// Both ends Hijri ([HijriDate]) or neither (an [ArgumentError] else).
 /// `intl` has no range formats (the browser's `formatRange`): the shared
 /// words are found token by token, so a locale's own range pattern may
-/// differ slightly (German writes "15.–21. März", here "15–21. März").
+/// differ slightly.
 /// Ends given the wrong way round still make a readable title.
 String formatRangeTitle(Object a, Object b, String skeleton, String locale, {String separator = '–'}) {
-  final f = _format(skeleton, locale);
-  var x = _fields(a);
-  var y = _fields(b);
-  if (y.isBefore(x)) (x, y) = (y, x);
-  final left = f.format(x);
-  final right = f.format(y);
+  final String left;
+  final String right;
+  if (a is HijriDate || b is HijriDate) {
+    if (a is! HijriDate || b is! HijriDate) throw ArgumentError('both ends Hijri, or neither');
+    final (x, y) = b.compareTo(a) < 0 ? (b, a) : (a, b);
+    left = _formatHijri(x, skeleton, locale);
+    right = _formatHijri(y, skeleton, locale);
+  } else {
+    final f = _format(skeleton, locale);
+    var x = _fields(a);
+    var y = _fields(b);
+    if (y.isBefore(x)) (x, y) = (y, x);
+    left = f.format(x);
+    right = f.format(y);
+  }
   if (left == right) return left;
   final ta = [for (final m in _token.allMatches(left)) m[0]!];
   final tb = [for (final m in _token.allMatches(right)) m[0]!];
@@ -133,6 +280,11 @@ String formatRangeTitle(Object a, Object b, String skeleton, String locale, {Str
   var s = 0;
   while (s < ta.length - p && s < tb.length - p && ta[ta.length - 1 - s] == tb[tb.length - 1 - s]) {
     s++;
+  }
+  // A shared end starting with the point of an abbreviation ("janv." and
+  // "févr." share ".") gives the point back: each keeps its own.
+  while (s > 0 && ta.length - s > p && ta[ta.length - s].startsWith('.') && _isWord(ta[ta.length - s - 1])) {
+    s--;
   }
   // A shared stretch must hold a word or a number: separators alone are not shared.
   bool meaningful(Iterable<String> ts) => ts.any((t) => _isWord(t));
@@ -149,7 +301,7 @@ String formatRangeTitle(Object a, Object b, String skeleton, String locale, {Str
   return '$prefix${midA.trimRight()}$dash${midB.trimLeft()}$suffix';
 }
 
-bool _isWord(String t) => RegExp(r'[\d\p{L}]', unicode: true).hasMatch(t);
+bool _isWord(String t) => RegExp(r'[\p{Nd}\p{L}]', unicode: true).hasMatch(t);
 
 enum NameWidth { narrow, short, long }
 

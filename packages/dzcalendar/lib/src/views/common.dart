@@ -17,10 +17,24 @@ List<Segment> segmentsOn(DayGridWeek week, int cell) => [
 String weekdayName(CalendarEnv env, PlainDate date, NameWidth width) =>
     weekdayNames(env.locale, width, 1)[date.dayOfWeek - 1];
 
+/// A Gregorian month's title in [state]'s display calendar: "novembre
+/// 2026", or the Hijri months it spans ("joum. oul.–joum. tha. 1448 AH").
+String monthTitleOf(PlainDate month, KernelState state) {
+  final first = PlainDate(month.year, month.month, 1);
+  final c = state.displayCalendar;
+  if (c == null) return formatTemporal(first, 'yMMMM', state.locale);
+  final a = c.fromDate(first);
+  final b = c.fromDate(first.addMonths(1).addDays(-1));
+  return a.year == b.year && a.month == b.month
+      ? formatTemporal(a, 'yMMMM', state.locale)
+      : formatRangeTitle(a, b, 'yMMM', state.locale);
+}
+
+String monthTitle(CalendarEnv env, PlainDate month) => monthTitleOf(month, env.state);
+
 /// A column's head in a one-row grid: "W 21" (narrow), "Wed, Oct 21".
-String dayHead(CalendarEnv env, PlainDate date, int days) => days > 3
-    ? '${weekdayName(env, date, NameWidth.narrow)} ${formatTemporal(date, 'd', env.locale)}'
-    : formatTemporal(date, 'MMMEd', env.locale);
+String dayHead(CalendarEnv env, PlainDate date, int days) =>
+    days > 3 ? '${weekdayName(env, date, NameWidth.narrow)} ${env.dayNumber(date)}' : env.date(date, 'MMMEd');
 
 /// A bar in a day grid or an all-day row: filled for a day event, a dot and
 /// its time for a timed one. Grabbed by a long press; a day event held

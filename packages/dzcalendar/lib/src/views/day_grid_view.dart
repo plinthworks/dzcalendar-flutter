@@ -506,34 +506,89 @@ class _Cell extends StatelessWidget {
 
 /// A day's number, circled on today.
 class DayNumber extends StatelessWidget {
-  const DayNumber({super.key, required this.env, required this.date, required this.today, this.outside = false});
+  const DayNumber({
+    super.key,
+    required this.env,
+    required this.date,
+    required this.today,
+    this.outside = false,
+    this.maxWidth,
+  });
   final CalendarEnv env;
   final PlainDate date;
   final bool today;
   final bool outside;
 
+  /// The room it has, when its parent does not bound it (a year's [FittedBox]).
+  final double? maxWidth;
+
   @override
   Widget build(BuildContext context) {
     final style = env.style;
-    final text = formatTemporal(date, 'd', env.locale);
+    final marked = env.dayNumber(date);
+    final second = env.secondaryDay(date);
     final color = today
         ? style.onTodayColor
         : outside
         ? style.outsideDayColor
         : null;
-    // Sized to the number (a circle on today), never stretched by the cell.
-    return UnconstrainedBox(
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        alignment: Alignment.center,
-        decoration: today ? BoxDecoration(color: style.todayColor, borderRadius: BorderRadius.circular(12)) : null,
-        child: Text(
-          text,
-          style: style.dayNumberStyle.copyWith(color: color, fontWeight: today ? FontWeight.w600 : null),
-        ),
-      ),
+    final numberStyle = style.dayNumberStyle.copyWith(color: color, fontWeight: today ? FontWeight.w600 : null);
+    final secondStyle = outside
+        ? style.secondaryDateStyle.copyWith(color: style.outsideDayColor)
+        : style.secondaryDateStyle;
+    // Gregorian alone: the number, nothing to measure.
+    if (second == null && env.state.displayCalendar == null) {
+      return UnconstrainedBox(child: _circle(marked, numberStyle));
+    }
+    return LayoutBuilder(
+      builder: (context, box) {
+        final room = maxWidth ?? (box.maxWidth.isFinite ? box.maxWidth : double.infinity);
+        // As the circle draws it: at least 24 wide.
+        double numberWidth(String t) => math.max(24, _width(context, t, numberStyle) + 8);
+        // A month's first day says its month ("1 Ram.") where the cell has room; else its number.
+        var text = marked;
+        if (numberWidth(text) > room) text = env.date(date, 'd');
+        // The secondary day beside it, its month dropped, then itself, when they do not fit.
+        String? beside = second;
+        if (beside != null && numberWidth(text) + 2 + _width(context, beside, secondStyle) > room) {
+          final plain = env.state.formatSecondary(date, 'd');
+          beside = plain != null && numberWidth(text) + 2 + _width(context, plain, secondStyle) <= room ? plain : null;
+        }
+        final number = _circle(text, numberStyle);
+        if (beside == null) return UnconstrainedBox(child: number);
+        return UnconstrainedBox(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              number,
+              const SizedBox(width: 2),
+              Text(beside, maxLines: 1, softWrap: false, style: secondStyle),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  /// Sized to the number (a circle on today), never stretched by the cell.
+  Widget _circle(String text, TextStyle numberStyle) => Container(
+    constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+    padding: const EdgeInsets.symmetric(horizontal: 4),
+    alignment: Alignment.center,
+    decoration: today ? BoxDecoration(color: env.style.todayColor, borderRadius: BorderRadius.circular(12)) : null,
+    child: Text(text, maxLines: 1, softWrap: false, style: numberStyle),
+  );
+
+  static double _width(BuildContext context, String text, TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final w = painter.width;
+    painter.dispose();
+    return w;
   }
 }
 

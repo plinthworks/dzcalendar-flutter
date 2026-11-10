@@ -274,7 +274,12 @@ class CalendarKeyboard {
 
   // ——— words ———
 
-  String _day(PlainDate d) => formatTemporal(d, 'MMMMEEEEd', _env.locale);
+  /// "mercredi 18 février", in the display calendar, the secondary after it.
+  String _day(PlainDate d) {
+    final main = _env.date(d, 'MMMMEEEEd');
+    final second = _env.state.formatSecondary(d, 'MMMMd');
+    return second == null ? main : '$main ($second)';
+  }
 
   String _resourceTitle(ResourceId id) =>
       id == unassignedId ? _l.unassigned : (_env.controller.kernel.resources.byId[id]?.resource.title ?? id);

@@ -187,6 +187,27 @@ void main() {
     expect(gap, lessThan(40));
   });
 
+  testWidgets('settings: the Hijri date beside, then as the main calendar', (tester) async {
+    await pumpApp(tester, view: 'dayGridMonth');
+    expect(find.text('novembre 2026'), findsWidgets); // the title and the mini-month's
+    expect(find.textContaining('joum.'), findsNothing);
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Réglages'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('À côté'));
+    await tester.pumpAndSettle();
+    // November 2026 is Jumada I and II 1448: the Hijri date beside each day, and read with it.
+    expect(find.bySemanticsLabel(RegExp(r'novembre 2026 \(.*joumada.*1448 AH\)')), findsWidgets);
+    await tester.tap(find.text('Principal'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fermer'));
+    await tester.pumpAndSettle();
+    expect(find.text('novembre 2026'), findsNothing);
+    expect(find.textContaining('1448 AH'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the year: a day tapped opens it', (tester) async {
     await pumpApp(tester, view: 'multiMonthYear');
     expect(find.text('2026'), findsOneWidget);

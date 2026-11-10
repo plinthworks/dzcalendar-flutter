@@ -6,20 +6,31 @@ import 'home.dart';
 import 'strings.dart';
 
 /// What the person sets for the whole app.
+/// Where the Hijri calendar is written (owner's decision 53): not at all,
+/// beside the Gregorian dates, or instead of them.
+enum HijriMode { off, beside, main }
+
 class Settings extends ChangeNotifier {
-  Settings({this.locale = const Locale('fr'), this.zone = 'Africa/Algiers', this.mode = ThemeMode.system});
+  Settings({
+    this.locale = const Locale('fr'),
+    this.zone = 'Africa/Algiers',
+    this.mode = ThemeMode.system,
+    this.hijri = HijriMode.off,
+  });
 
   Locale locale;
   ZoneId zone;
   ThemeMode mode;
+  HijriMode hijri;
 
   static const zones = ['Africa/Algiers', 'Europe/Paris', 'America/Montreal', 'Asia/Tokyo'];
   static const locales = [Locale('fr'), Locale('en'), Locale('ar')];
 
-  void update({Locale? locale, ZoneId? zone, ThemeMode? mode}) {
+  void update({Locale? locale, ZoneId? zone, ThemeMode? mode, HijriMode? hijri}) {
     this.locale = locale ?? this.locale;
     this.zone = zone ?? this.zone;
     this.mode = mode ?? this.mode;
+    this.hijri = hijri ?? this.hijri;
     notifyListeners();
   }
 }

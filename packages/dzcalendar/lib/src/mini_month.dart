@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'controller.dart';
 import 'l10n/localizations.dart';
 import 'theme.dart';
+import 'views/common.dart' show monthTitleOf;
 
 /// A small month to pick a date: alone (a date field, a booking screen) or
 /// on a [CalendarController] — then it shows the calendar's period, marks
@@ -105,7 +106,12 @@ class _MiniMonthState extends State<MiniMonth> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsetsDirectional.only(start: 12),
-                child: Text(formatTemporal(month, 'yMMMM', locale), style: style.titleStyle),
+                child: Text(
+                  c == null ? formatTemporal(month, 'yMMMM', locale) : monthTitleOf(month, c.state),
+                  style: style.titleStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
             IconButton(
@@ -133,7 +139,18 @@ class _MiniMonthState extends State<MiniMonth> {
             children: [
               for (var i = 0; i < 7; i++)
                 Expanded(
-                  child: _day(context, start.addDays(w * 7 + i), month, today, selected, marked, locale, l10n, style),
+                  child: _day(
+                    context,
+                    start.addDays(w * 7 + i),
+                    month,
+                    today,
+                    selected,
+                    marked,
+                    locale,
+                    l10n,
+                    style,
+                    c?.state,
+                  ),
                 ),
             ],
           ),
@@ -162,7 +179,13 @@ class _MiniMonthState extends State<MiniMonth> {
     String locale,
     DzCalendarLocalizations l10n,
     DzCalendarStyle style,
+    KernelState? state,
   ) {
+    // On a calendar: its display calendar's numbers, its secondary's beside.
+    final number = state == null ? formatTemporal(d, 'd', locale) : state.formatDate(d, 'd');
+    final second = state?.formatSecondary(d, 'd');
+    final long = state == null ? formatTemporal(d, 'yMMMMEEEEd', locale) : state.formatDate(d, 'yMMMMEEEEd');
+    final longSecond = state?.formatSecondary(d, 'yMMMMd');
     final outside = d.month != month.month;
     final enabled = widget.isEnabled?.call(d) ?? true;
     final isSel = selected(d);
@@ -176,7 +199,7 @@ class _MiniMonthState extends State<MiniMonth> {
       button: enabled,
       selected: isSel,
       enabled: enabled,
-      label: l10n.dayLabel(formatTemporal(d, 'yMMMMEEEEd', locale), 0),
+      label: l10n.dayLabel(longSecond == null ? long : '$long ($longSecond)', 0),
       excludeSemantics: true,
       child: InkWell(
         customBorder: const CircleBorder(),
@@ -194,20 +217,35 @@ class _MiniMonthState extends State<MiniMonth> {
             color: isToday ? style.todayColor : (isSel ? style.selectionColor : null),
             shape: BoxShape.circle,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(formatTemporal(d, 'd', locale), style: style.dayNumberStyle.copyWith(color: color)),
-              Container(
-                width: 4,
-                height: 4,
-                margin: const EdgeInsets.only(top: 1),
-                decoration: BoxDecoration(
-                  color: marked.contains(d) ? (isToday ? style.onTodayColor : style.todayColor) : Colors.transparent,
-                  shape: BoxShape.circle,
+          // A larger text or a secondary date: the column shrinks, never overflows the circle.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(number, style: style.dayNumberStyle.copyWith(color: color)),
+                if (second != null)
+                  Text(
+                    second,
+                    maxLines: 1,
+                    style: style.secondaryDateStyle.copyWith(
+                      color: isToday ? style.onTodayColor : (outside ? style.outsideDayColor : null),
+                      fontSize: (style.secondaryDateStyle.fontSize ?? 10) * 0.9,
+                      height: 1,
+                    ),
+                  ),
+                Container(
+                  width: 4,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 1),
+                  decoration: BoxDecoration(
+                    color: marked.contains(d) ? (isToday ? style.onTodayColor : style.todayColor) : Colors.transparent,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

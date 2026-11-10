@@ -2,13 +2,9 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19h under way (2026-11-10)**: the Hijri calendar (decisions
-  50–53). **19h-1**, the core: Umm al-Qura conversion (ICU's table, civil
-  outside, the app's month starts), Hijri names and formatting (fr, en,
-  ar), the kernel's `displayCalendar` / `secondaryCalendar` and titles.
-  **19h-2**, the widgets: day numbers, headings, the mini-month and the
-  year in the display calendar, the secondary date beside; the showcase's
-  setting; screenshots. Then 19i (sources), 19j (timeline).
+- **Phase 19h done (2026-11-10)**, committed ("Phase 19h"): the Hijri
+  calendar (decisions 50–53). See its section below. **Next: 19i**, the
+  source manager (decision 50), then 19j, the timeline view.
 - **Phase 19g done (2026-11-10)**, committed ("Phase 19g"): the event
   filter (decision 48) and the tapped `Rect` (decision 49).
 - **Phase 19f done (2026-11-10)**, committed ("Phase 19f"): the showcase
@@ -629,6 +625,70 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19h — the Hijri calendar ✅ (2026-11-10)
+
+- **19h-1, the core** (decisions 51–53):
+  - `HijriCalendar.ummAlQura` (ICU's table 1300–1600 AH in
+    `calendars/umalqura.g.dart`, generated from ICU 76-1 `islamcal.cpp`,
+    Unicode licence; the civil reckoning outside — the two meet exactly at
+    both ends) and `HijriCalendar.civil`; `fromDate`, `toDate` (null for no
+    such day), `monthStart`, `monthLength`; `HijriDate` carries its
+    Gregorian `date`.
+  - `HijriCalendar.withMonthStarts` (decision 52): the months' announced
+    first days, never a throw — a start more than two days from the
+    reckoning's, out of order, outside the table (or civil 1–9999), or on
+    1 Muharram 1300 (where the table meets the civil reckoning) is an
+    error and left out; a month made shorter than 29 or longer than 30
+    days is a warning, once.
+  - Formatting: `formatTemporal` and `formatRangeTitle` take a
+    `HijriDate` — the locale's pattern for the skeleton, its digits (found
+    as digits: "10日", "١٠"), the Hijri year, month and day, the era after
+    the year and what is glued to it ("1447 AH", "١٤٤٧ هـ"); month names
+    for en, fr, ar (CLDR's), English for other languages.
+    `hijriMonthNames`.
+  - Ranges keep an abbreviation's point, for both calendars: "janv.–févr.
+    2026" (was "janv–févr."), German "15.–21. März".
+  - The kernel: `KernelOptions.displayCalendar` / `secondaryCalendar`,
+    `setDisplayCalendar` / `setSecondaryCalendar` (cause `calendar`),
+    `KernelState.formatDate` / `formatSecondary`, `formatInCalendar`;
+    titles in the display calendar ("chaa.–ram. 1447 AH" for February
+    2026: a Gregorian month spans two Hijri ones).
+- **19h-2, the widgets**: day numbers in the display calendar, a Hijri
+  month's first day marked ("1 ram."); the secondary day beside each
+  number (month cells, the time grid's heads) and under it (the
+  mini-month), dropped — its month first — where the cell is too narrow;
+  the year's and the mini-month's titles; screen readers hear both dates
+  ("mercredi 18 février 2026 (1 ramadan 1447 AH)"); `secondaryDateStyle`;
+  the controller's setters. The showcase: a "Calendrier hégirien" setting
+  (off, beside, main; `--dart-define=HIJRI=`).
+- **Verified**: iPad 13" (month, Hijri beside), Android phone (Arabic,
+  Hijri main, Arabic-Indic digits from Flutter's data).
+- **Tests**: core 912 (+21: `hijri_test`, every day 1290–1610 AH there
+  and back, the published Ramadans and Eids, corrections), library 78
+  (+10: `hijri_widgets_test`), showcase 27 (the setting).
+- **Reviews' fixes** (19h-1): digits read as digits (a `d日` locale got
+  garbage); a correction on a list's first month read a day twice (civil
+  lists start a year earlier; 1 Muharram 1300 not correctable); civil
+  years bounded (a far year built a list of billions); warnings once;
+  the era after a glued suffix ("1447年 AH"); `HijriDate ==` includes its
+  Gregorian day; patterns and formats cached; mixed range ends refused.
+  (19h-2): the keyboard said the day in Gregorian; a day number measured
+  narrower than its 24 px circle; every cell measured even without a
+  Hijri calendar; the mini-month overflowed with a large text; the year's
+  `FittedBox` hid its width, so nothing was ever dropped there.
+- **Later**:
+  - `TitleFormatArg` with the calendar (an app's own Hijri title);
+  - `HijriCalendar.fromId('islamic-umalqura')`, and `toJson`/`fromJson`
+    for the corrections (decision 15's typed input plus JSON);
+  - an abstract alternate calendar, if another than Hijri is ever asked;
+  - Hijri month names for more languages (fa, ur…), a guess reported;
+  - Hijri as the display calendar without a secondary: labels read the
+    Hijri date only (decision 53) — the Gregorian in parentheses too? (for
+    the owner); a shorter visible form than `dateLong` for the list's
+    headings and the day sheet's title; one shared long-label function for
+    the mini-month and the calendar;
+  - check the announcements by ear with TalkBack and VoiceOver.
 
 ## 19g — the event filter and the tapped Rect ✅ (2026-11-10)
 

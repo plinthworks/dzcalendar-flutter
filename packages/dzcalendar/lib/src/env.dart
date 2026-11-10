@@ -121,8 +121,31 @@ class CalendarEnv {
   String clock(PlainTime t, {bool short = false}) =>
       formatTemporal(t, use24h ? 'Hm' : (short && t.minute == 0 ? 'j' : 'jm'), locale);
 
-  /// "Wednesday 21 October 2026".
-  String dateLong(PlainDate d) => formatTemporal(d, 'yMMMMEEEEd', locale);
+  /// [d] in the display calendar (owner's decision 53), by [skeleton].
+  String date(PlainDate d, String skeleton) => state.formatDate(d, skeleton);
+
+  /// "Wednesday 21 October 2026", in the display calendar; with the
+  /// secondary date after it for a screen reader ("… (1 Ramadan 1447 AH)").
+  String dateLong(PlainDate d) {
+    final main = date(d, 'yMMMMEEEEd');
+    final second = state.formatSecondary(d, 'yMMMMd');
+    return second == null ? main : '$main ($second)';
+  }
+
+  /// A day's number in the display calendar: "18"; a Hijri month's first
+  /// day with its month ("1 Ram."), so the grid shows where months turn.
+  String dayNumber(PlainDate d) {
+    final c = state.displayCalendar;
+    return c != null && c.fromDate(d).day == 1 ? date(d, 'MMMd') : date(d, 'd');
+  }
+
+  /// The secondary calendar's day beside a number ("1", "1 Ram." on a
+  /// month's first day); null without one.
+  String? secondaryDay(PlainDate d) {
+    final c = state.secondaryCalendar;
+    if (c == null) return null;
+    return state.formatSecondary(d, c.fromDate(d).day == 1 ? 'MMMd' : 'd');
+  }
 
   String title(EventInstance i) => i.event.title.isEmpty ? l10n.untitled : i.event.title;
 

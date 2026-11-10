@@ -75,6 +75,8 @@ class CalendarController extends ChangeNotifier {
     resources: o.resources,
     options: o.options,
     onError: o.onError ?? _report,
+    displayCalendar: o.displayCalendar,
+    secondaryCalendar: o.secondaryCalendar,
   );
 
   static void _report(Object error, StackTrace stack) => FlutterError.reportError(
@@ -124,6 +126,11 @@ class CalendarController extends ChangeNotifier {
   void setTitleFormat(TitleFormat? format) => kernel.setTitleFormat(format);
   void setRules(CalendarRules? rules) => kernel.setRules(rules);
   void setOptions(ModelOptions next) => kernel.setOptions(next);
+
+  /// The calendar dates are written in (null: Gregorian), and the one
+  /// written beside them (null: none) — owner's decision 53.
+  void setDisplayCalendar(HijriCalendar? calendar) => kernel.setDisplayCalendar(calendar);
+  void setSecondaryCalendar(HijriCalendar? calendar) => kernel.setSecondaryCalendar(calendar);
   NormalizationReport setEvents(List<EventInput> events) => kernel.setEvents(events);
   List<Problem> setResources(List<ResourceInput> next) => kernel.setResources(next);
 

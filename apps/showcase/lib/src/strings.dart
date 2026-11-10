@@ -67,6 +67,10 @@ class S {
   String get system => _('system');
   String get light => _('light');
   String get dark => _('dark');
+  String get hijri => _('hijri');
+  String get hijriOff => _('hijriOff');
+  String get hijriBeside => _('hijriBeside');
+  String get hijriMain => _('hijriMain');
   String get settings => _('settings');
   String get refused => _('refused');
   String get changeWhich => _('changeWhich');
@@ -134,6 +138,10 @@ const _fr = {
   'system': 'Système',
   'light': 'Clair',
   'dark': 'Sombre',
+  'hijri': 'Calendrier hégirien',
+  'hijriOff': 'Non',
+  'hijriBeside': 'À côté',
+  'hijriMain': 'Principal',
   'settings': 'Réglages',
   'refused': 'Modification refusée',
   'changeWhich': 'Modifier quelles occurrences ?',
@@ -201,6 +209,10 @@ const _en = {
   'system': 'System',
   'light': 'Light',
   'dark': 'Dark',
+  'hijri': 'Hijri calendar',
+  'hijriOff': 'Off',
+  'hijriBeside': 'Beside',
+  'hijriMain': 'Main',
   'settings': 'Settings',
   'refused': 'Change refused',
   'changeWhich': 'Change which occurrences?',
@@ -268,6 +280,10 @@ const _ar = {
   'system': 'النظام',
   'light': 'فاتح',
   'dark': 'داكن',
+  'hijri': 'التقويم الهجري',
+  'hijriOff': 'لا',
+  'hijriBeside': 'بجانبه',
+  'hijriMain': 'رئيسي',
   'settings': 'الإعدادات',
   'refused': 'رُفض التعديل',
   'changeWhich': 'تعديل أي تكرارات؟',

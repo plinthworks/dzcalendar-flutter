@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'calendars/hijri.dart';
 import 'commands/history.dart';
 import 'commands/types.dart';
 import 'event/normalize.dart';
@@ -263,7 +264,18 @@ final class KernelOptions {
     this.resources = const [],
     this.options = const ModelOptions(),
     this.onError,
+    this.displayCalendar,
+    this.secondaryCalendar,
   });
+
+  /// The calendar dates are written in (owner's decision 53): titles, day
+  /// numbers, labels. The data and the grids stay Gregorian. Null: the
+  /// Gregorian calendar.
+  final HijriCalendar? displayCalendar;
+
+  /// A second calendar written beside the dates (a cell's day, a heading).
+  /// Null: none.
+  final HijriCalendar? secondaryCalendar;
 
   /// Where a subscriber's or a title builder's error goes (it never stops
   /// the others). Default: the current zone's uncaught-error handler; the
@@ -314,6 +326,8 @@ final class KernelState {
     required this.firstDay,
     required this.title,
     required this.today,
+    this.displayCalendar,
+    this.secondaryCalendar,
   });
   final PlainDate date;
   final ViewSpec view;
@@ -323,9 +337,28 @@ final class KernelState {
   final int firstDay;
   final String title;
   final PlainDate today;
+
+  /// The calendar dates are written in; null: Gregorian.
+  final HijriCalendar? displayCalendar;
+
+  /// The calendar written beside; null: none.
+  final HijriCalendar? secondaryCalendar;
+
+  /// [date] in the display calendar, by [skeleton] ("d", "yMMMM"…).
+  String formatDate(PlainDate date, String skeleton) => formatInCalendar(date, skeleton, locale, displayCalendar);
+
+  /// [date] in the secondary calendar; null when there is none.
+  String? formatSecondary(PlainDate date, String skeleton) {
+    final c = secondaryCalendar;
+    return c == null ? null : formatInCalendar(date, skeleton, locale, c);
+  }
 }
 
-enum StateCause { navigate, view, zone, locale, options, today, resources }
+/// [date] by [skeleton] in [locale], in [calendar] (null: Gregorian).
+String formatInCalendar(PlainDate date, String skeleton, String locale, HijriCalendar? calendar) =>
+    formatTemporal(calendar == null ? date : calendar.fromDate(date), skeleton, locale);
+
+enum StateCause { navigate, view, zone, locale, options, today, resources, calendar }
 
 enum StateDirection { prev, next, other }
 
@@ -415,6 +448,8 @@ final class CalendarKernel {
       _locale = o.locale,
       _firstDayGiven = o.firstDay,
       _titleFormat = o.titleFormat,
+      _displayCalendar = o.displayCalendar,
+      _secondaryCalendar = o.secondaryCalendar,
       _rulesGiven = o.rules,
       _options = o.options,
       _onErrorGiven = o.onError,
@@ -455,6 +490,8 @@ final class CalendarKernel {
   int? _firstDayGiven;
   late int _firstDay;
   TitleFormat? _titleFormat;
+  HijriCalendar? _displayCalendar;
+  HijriCalendar? _secondaryCalendar;
   CalendarRules? _rulesGiven;
   ModelOptions _options;
   late final Map<String, ViewSpec> _views;
@@ -596,6 +633,9 @@ final class CalendarKernel {
     return _problems = r.report;
   }
 
+  /// [d] as the display calendar writes it: itself (Gregorian), or its Hijri day.
+  Object _inCalendar(PlainDate d) => _displayCalendar?.fromDate(d) ?? d;
+
   String _title(ViewRange range, ViewSpec spec) {
     // A month's or a year's period is its own days, not the grid's padding ones.
     final own =
@@ -610,29 +650,29 @@ final class CalendarKernel {
             return build(TitleFormatArg(start: first, end: last, view: spec.type, locale: _locale));
           case TitleSkeleton(:final skeleton):
             return first == last
-                ? formatTemporal(first, skeleton, _locale)
-                : formatRangeTitle(first, last, skeleton, _locale);
+                ? formatTemporal(_inCalendar(first), skeleton, _locale)
+                : formatRangeTitle(_inCalendar(first), _inCalendar(last), skeleton, _locale);
         }
       } catch (e, st) {
         // The application's bug is reported; the title is written as by default.
         _onError(e, st);
       }
     }
+    // In the display calendar: a Gregorian month is two Hijri ones ("Shaʻ.–Ram. 1447 AH").
+    final start = _inCalendar(range.activeStart);
     switch (spec.alignment) {
       case ViewAlignment.month:
-        final end = range.activeEnd.addDays(-1);
-        final one = formatTemporal(range.activeStart, 'yMMMM', _locale);
-        return one == formatTemporal(end, 'yMMMM', _locale)
-            ? one
-            : formatRangeTitle(range.activeStart, end, 'yMMM', _locale);
+        final end = _inCalendar(range.activeEnd.addDays(-1));
+        final one = formatTemporal(start, 'yMMMM', _locale);
+        return one == formatTemporal(end, 'yMMMM', _locale) ? one : formatRangeTitle(start, end, 'yMMM', _locale);
       case ViewAlignment.year:
-        final end = range.activeEnd.addDays(-1);
-        final one = formatTemporal(range.activeStart, 'y', _locale);
-        return one == formatTemporal(end, 'y', _locale) ? one : formatRangeTitle(range.activeStart, end, 'y', _locale);
+        final end = _inCalendar(range.activeEnd.addDays(-1));
+        final one = formatTemporal(start, 'y', _locale);
+        return one == formatTemporal(end, 'y', _locale) ? one : formatRangeTitle(start, end, 'y', _locale);
       default:
         return first == last
-            ? formatTemporal(first, 'yMMMMEEEEd', _locale)
-            : formatRangeTitle(first, last, 'yMMMd', _locale);
+            ? formatTemporal(_inCalendar(first), 'yMMMMEEEEd', _locale)
+            : formatRangeTitle(_inCalendar(first), _inCalendar(last), 'yMMMd', _locale);
     }
   }
 
@@ -648,6 +688,8 @@ final class CalendarKernel {
       firstDay: _firstDay,
       title: _title(range, spec),
       today: ctx.today,
+      displayCalendar: _displayCalendar,
+      secondaryCalendar: _secondaryCalendar,
     );
   }
 
@@ -881,6 +923,23 @@ final class CalendarKernel {
     if (next == _firstDay) return;
     _firstDay = next;
     _changeState(StateCause.options);
+  }
+
+  /// The calendar dates are written in from now on (null: Gregorian): the
+  /// title follows (a state event, cause `calendar`).
+  void setDisplayCalendar(HijriCalendar? calendar) {
+    _live();
+    if (calendar == _displayCalendar) return;
+    _displayCalendar = calendar;
+    _changeState(StateCause.calendar);
+  }
+
+  /// The calendar written beside the dates (null: none).
+  void setSecondaryCalendar(HijriCalendar? calendar) {
+    _live();
+    if (calendar == _secondaryCalendar) return;
+    _secondaryCalendar = calendar;
+    _changeState(StateCause.calendar);
   }
 
   /// How the title is written from now on (null: the default again).

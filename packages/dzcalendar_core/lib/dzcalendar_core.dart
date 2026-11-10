@@ -7,6 +7,7 @@
 /// tests, without that promise.
 library;
 
+export 'src/calendars/hijri.dart' show HijriCalendar, HijriDate, HijriMonth, HijriReckoning;
 export 'src/commands/apply.dart' show applyCommand;
 export 'src/commands/history.dart' show History, RunResult;
 export 'src/commands/types.dart'
@@ -69,6 +70,7 @@ export 'src/format/format.dart'
         formatLocale,
         formatRangeTitle,
         formatTemporal,
+        hijriMonthNames,
         monthNames,
         weekNumber,
         weekRulesFor,
@@ -139,6 +141,7 @@ export 'src/kernel.dart'
         ModelOptions,
         MultiMonthViewModel,
         StateCause,
+        formatInCalendar,
         StateDirection,
         TimeGridSettings,
         TimeGridViewModel,
