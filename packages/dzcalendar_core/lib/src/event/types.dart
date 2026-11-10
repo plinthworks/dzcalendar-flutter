@@ -240,6 +240,44 @@ final class EventInput {
   /// or a `duration` given is the length expected. A timed event, not a series.
   final bool? ongoing;
 
+  /// [patch]'s fields laid over [base]'s (a live feed's update), under [id];
+  /// `extendedProps` merged one level; what reading either said kept. [end]
+  /// given: it ends there, its duration dropped (a run said finished).
+  static EventInput patchInput(EventInput base, EventInput patch, {required String id, Object? end}) {
+    final props = base.extendedProps;
+    final more = patch.extendedProps;
+    return EventInput._json(
+      [...base._readProblems, ...patch._readProblems],
+      id: id,
+      groupId: patch.groupId ?? base.groupId,
+      title: patch.title ?? base.title,
+      start: patch.start ?? base.start,
+      allDay: patch.allDay ?? base.allDay,
+      timeZone: patch.timeZone ?? base.timeZone,
+      resourceId: patch.resourceId ?? base.resourceId,
+      resourceIds: patch.resourceIds ?? base.resourceIds,
+      rrule: patch.rrule ?? base.rrule,
+      exdate: patch.exdate ?? base.exdate,
+      rdate: patch.rdate ?? base.rdate,
+      seriesId: patch.seriesId ?? base.seriesId,
+      recurrenceId: patch.recurrenceId ?? base.recurrenceId,
+      display: patch.display ?? base.display,
+      status: patch.status ?? base.status,
+      busy: patch.busy ?? base.busy,
+      editable: patch.editable ?? base.editable,
+      startEditable: patch.startEditable ?? base.startEditable,
+      durationEditable: patch.durationEditable ?? base.durationEditable,
+      resourceEditable: patch.resourceEditable ?? base.resourceEditable,
+      classNames: patch.classNames ?? base.classNames,
+      tone: patch.tone ?? base.tone,
+      url: patch.url ?? base.url,
+      ongoing: patch.ongoing ?? base.ongoing,
+      end: end ?? patch.end ?? base.end,
+      duration: end != null ? null : patch.duration ?? base.duration,
+      extendedProps: props != null && more != null ? {...props, ...more} : more ?? props,
+    );
+  }
+
   /// The web's JSON shape, the fields given only: moments, lengths and
   /// rules as ISO / RFC 5545 text (a [ZonedDateTime] as
   /// `2026-10-21T08:00:00+02:00[Europe/Paris]`, an [IsoDuration] as `PT1H`).

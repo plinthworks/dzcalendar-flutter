@@ -212,10 +212,15 @@ export 'src/rules/constraint.dart' show BusinessHoursConstraint, ConstraintSpec,
 export 'src/rules/validate.dart'
     show OverlapFn, Placement, RulesContext, ValidRange, Violation, ViolationCode, validateProposal;
 export 'src/source/chunks.dart' show Chunk, ChunkPolicy, ChunkUnit, chunkAt, chunksCovering;
+export 'src/source/json_source.dart' show JsonRequester, SourceHttpRequest, jsonSource, readEventList;
+export 'src/source/live.dart' show LiveCreate, LiveMessage, LiveRemove, LiveReset, LiveUpdate, liveSource;
 export 'src/source/manager.dart'
     show
         SourceFetchFailed,
         SourceHold,
+        SourceLiveFailed,
+        SourceSaveFailed,
+        SourceSaved,
         SourceLoading,
         SourceManager,
         SourceNotice,
@@ -227,10 +232,18 @@ export 'src/source/source.dart'
     show
         CancelSource,
         CancelToken,
+        EditKind,
+        EventEdit,
         EventSourceSpec,
         FetchRequest,
+        LiveConnect,
+        LiveContext,
         RetryPolicy,
+        SaveCause,
+        SaveRequest,
+        SeriesEdit,
         SourceAnswer,
+        SourceEdit,
         SourceFetch,
         arraySource,
         fnSource;

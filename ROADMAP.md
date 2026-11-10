@@ -2,11 +2,9 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19i under way (2026-11-10)**: the source manager (decisions
-  54–57). **19i-1 done**, committed ("Phase 19i-1"): the manager, reading
-  (see 19i below). **Next: 19i-2**: saves, live sources (`Stream`s),
-  `jsonSource`, `icalSource` — the room left for them is listed in 19i-1's
-  section. Then 19j, the timeline.
+- **Phase 19i done (2026-11-10)**, committed ("Phase 19i-1", "Phase
+  19i-2"): the source manager (decisions 54–60). See its section below.
+  **Next: 19j**, the timeline view (decision 50).
 - **Phase 19h done (2026-11-10)**, committed ("Phase 19h"): the Hijri
   calendar (decisions 50–53).
 - **Phase 19g done (2026-11-10)**, committed ("Phase 19g"): the event
@@ -34,6 +32,11 @@
   millisecond (decision 9), so a source writing past the millisecond gets
   different ids on web and mobile. Proposed there: hash the moment to the
   millisecond, and say `precision-truncated`.
+- **To propose to the main repository** (divergences, 19i): a source saves
+  a person's changes only (decision 58); a source can take what is made
+  here (`createsHere`, decision 59); a live feed's errors and end as a
+  notice (`SourceLiveFailed`); a JSON item that is not an object reported
+  at `answer[i]`.
 - **To propose to the main repository** (divergences, 19g): an event filter
   applied by the views' queries (`eventFilter`, decision 48), and the
   tapped thing's box given to the open/select/create callbacks (decision
@@ -278,6 +281,23 @@
       application ties to its client (dio's `CancelToken`); an answer that
       arrives after a cancel is ignored anyway. (The web: an
       `AbortSignal`.)
+  58. **A source saves a person's changes only (owner, 2026-11-10, 19i-2
+      review)**: a validated command, an undo, a redo — as
+      `onEventChange` hears them; the application's own commands (showing
+      a booking it saved itself) are not written back again. The web saves
+      every command: to propose there.
+  59. **A source can take what is made here (owner, 2026-11-10, 19i-2
+      review)**: `EventSourceSpec.createsHere` (one source): an event or a
+      series made in the calendar goes to its `save` (`before` null);
+      saved, it becomes the source's and the source is fetched again — the
+      server's version adopted under the same id, or, under another id,
+      replacing the local copy. Without one, the application persists
+      creations through `onEventChange`. Not in the web: to propose there.
+  60. **`save` writes, `onEventChange` informs (owner, 2026-11-10, 19i-2
+      review)**: a source's events with a `save` are written by it (a
+      refusal puts them back by itself); `onEventChange` is still told, to
+      inform; its `revert()` is an undo, saved in turn. Events of no source
+      are persisted through `onEventChange`.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -649,7 +669,7 @@
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
 
-## 19i — the source manager (under way)
+## 19i — the source manager ✅ (2026-11-10)
 
 - **19i-1, reading ✅ (2026-11-10)** — `source/{chunks,source,manager}.dart`,
   ported from the TS `source/manager.ts` (its reading part) and
@@ -683,7 +703,40 @@
     `SourceSaved` / `SourceSaveFailed` notices (`SourceNotice` is not
     sealed); the manager's store subscription, `pending`/`shielded` tags,
     the save chain counted by `idle`; `forgetBefore` calling `forgot`.
-  - Later: `sources.setAll` (declarative, by id), a per-source status
+- **19i-2, writing and live ✅ (2026-11-10)** — ported from the TS
+  `manager.ts` (saves), `live.ts`, `json-source.ts`, `ical/source.ts` and
+  their tests (`sources_write_test`, 31):
+  - optimistic saves: `EventSourceSpec.save(SaveRequest)` — edits in
+    order, one at a time per source; a refusal puts them back (nothing
+    left to undo), or, other changes in between, fetches again; a refetch
+    while a save is out keeps the edit, then asks again; a chunk with a
+    save out is not evicted. `SourceEdit.kind` and `input` (ready to send:
+    `edit.input!.toJson()`). Decisions 58–60 (a person's changes only;
+    `createsHere`; `save` writes, `onEventChange` informs).
+  - `liveSource(connect: () => Stream<LiveMessage>)` (decision 56):
+    created, changed (props merged, the app's own values kept), gone, all
+    anew; a burst one delivery; `forgot`; a run said finished ends at the
+    calendar's now; the feed's errors and end are `SourceLiveFailed`
+    notices; `save` too. `LiveContext` (changed, now, failed). No
+    `sseSource` (a browser's; a Dart app gives a Stream).
+  - `jsonSource(url, request:)` and `icalSource(url, request: | text:)`
+    (decision 55): the application's request function (dio) answers the
+    decoded JSON or the text, throws for an HTTP error;
+    `SourceHttpRequest` (url, path, queryParameters, method, headers,
+    body, cancel); `readEventList`.
+  - `forgetBefore` tells the sources what was forgotten.
+  - Reviews' fixes: saves of the app's own commands (decision 58);
+    creations never saved (decision 59); the two paths undocumented
+    (decision 60); a live error reported as a crash; a stream's end
+    unseen; a wedged save chain; a removed source's save not counted by
+    `idle`; a live spec replaced by key left its feed open; the live
+    update merge through JSON lost read problems and turned the app's
+    dates into text.
+  - Tests: core 980.
+  - Later: a reconnecting helper for live streams (backoff, last id);
+    partial results of a batch save; a JSON-body POST; deferred loading of
+    large lists (above 2000, decision 54); per-source status.
+  - Later (19i-1): `sources.setAll` (declarative, by id), a per-source status
     (loading, last error), shown chunks before prefetched ones in the
     queue, `ChunkPolicy.week`/`year` constants.
 

@@ -37,6 +37,12 @@ class CalendarController extends ChangeNotifier {
   /// the change is made (owner's decision 37); the server refusing it,
   /// [EventChange.revert] takes exactly that change back. The app's own
   /// commands (`run` without `validate`) and [setEvents] are not told.
+  ///
+  /// A source's events with a `save` are written back by the source
+  /// (owner's decision 60): it puts them back itself when the server
+  /// refuses. They are still told here, to inform (a message); a [revert]
+  /// asked for one of them is an undo, saved in turn. Here is where the
+  /// events of no source (the kernel's `events`) are persisted.
   void Function(EventChange change)? onEventChange;
 
   /// A person's command was refused (the rules, an event that is gone): why.
@@ -194,6 +200,8 @@ class CalendarController extends ChangeNotifier {
     // zone or set of resources clears it.
     if (e is KernelStateEvent && e.causes.any(_clears.contains)) _selection.value = null;
     if (e is KernelStoreEvent) _tell(e);
+    // The sources' notices (failed fetches, saves, problems) are the app's
+    // through `KernelOptions.onSource`; only loading is followed here.
     if (e is KernelSourceEvent) {
       // What a delivery changes comes as a store event; the notice alone redraws nothing.
       // Told after the current build, as the other changes (never a widget marked dirty during one).

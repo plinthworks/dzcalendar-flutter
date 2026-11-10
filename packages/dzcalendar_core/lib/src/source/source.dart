@@ -2,6 +2,9 @@ import 'dart:async';
 
 import '../event/problem.dart';
 import '../event/types.dart';
+import '../recurrence/series.dart';
+import '../store/export.dart';
+import '../time/instant.dart';
 import '../store/store.dart';
 import '../zone/zone_rules.dart';
 import 'chunks.dart';
@@ -69,6 +72,83 @@ final class SourceAnswer {
 
 typedef SourceFetch = FutureOr<SourceAnswer> Function(FetchRequest request);
 
+enum EditKind { created, updated, deleted }
+
+/// One thing a person changed in a source's events, as the store held it
+/// before and holds it now (null: made, or gone).
+sealed class SourceEdit {
+  const SourceEdit();
+  String get id;
+  EditKind get kind;
+
+  /// What to send: the item as it is now, written back as the web's input
+  /// (`input.toJson()` for a request body); null when it is gone.
+  EventInput? get input;
+}
+
+final class EventEdit extends SourceEdit {
+  const EventEdit(this.id, {this.before, this.after});
+  @override
+  final String id;
+  final CalEvent? before;
+  final CalEvent? after;
+  @override
+  EditKind get kind => before == null ? EditKind.created : (after == null ? EditKind.deleted : EditKind.updated);
+  @override
+  EventInput? get input => after == null ? null : eventInput(after!);
+}
+
+final class SeriesEdit extends SourceEdit {
+  const SeriesEdit(this.id, {this.before, this.after});
+  @override
+  final String id;
+  final Series? before;
+  final Series? after;
+  @override
+  EditKind get kind => before == null ? EditKind.created : (after == null ? EditKind.deleted : EditKind.updated);
+  @override
+  EventInput? get input => after == null ? null : seriesInput(after!);
+}
+
+enum SaveCause { command, undo, redo }
+
+/// A person's edits to write back (owner's decision 58: a person's only —
+/// a gesture, an undo, a redo; the application's own commands are not), in
+/// the order they happened. One request is all or nothing: a throw puts
+/// every edit back, even one the server took. Timeouts are the
+/// application's client's (dio's).
+///
+/// With `CalendarController.onEventChange` set too (decision 60): `save`
+/// writes the source's events (a refusal puts them back by itself);
+/// `onEventChange` is still told, to inform (a message) — and a `revert()`
+/// asked there is an undo, saved in turn.
+final class SaveRequest {
+  const SaveRequest({required this.sourceId, required this.edits, required this.cause});
+  final String sourceId;
+  final List<SourceEdit> edits;
+  final SaveCause cause;
+}
+
+/// What a live source is given when it is connected.
+final class LiveContext {
+  const LiveContext({required this.changed, required this.now, required this.failed});
+
+  /// Its events changed: the calendar fetches it again.
+  final void Function() changed;
+
+  /// The calendar's clock (what a message dates by itself).
+  final Instant Function() now;
+
+  /// The feed failed ([closed]: it ended — no more messages will come):
+  /// told to the application (`SourceLiveFailed`), never as a crash.
+  final void Function(Object error, StackTrace? stack, {bool closed}) failed;
+}
+
+/// A source that is told rather than asked: called once when it is added
+/// (again if it is given anew); answers how to stop — called when the
+/// source is removed or replaced, or the calendar disposed.
+typedef LiveConnect = void Function() Function(LiveContext context);
+
 /// Attempts after the first, each [backoff] × 2ⁿ later (at most
 /// [maxBackoff]); [retryIf] says which errors are worth another try (not a
 /// refusal: dio's 401, 403, 404).
@@ -93,7 +173,31 @@ final class EventSourceSpec {
     this.zoneDependent = false,
     this.defaults,
     this.key,
+    this.save,
+    this.live,
+    this.forgot,
+    this.createsHere = false,
   });
+
+  /// Where what a person makes here is saved (owner's decision 59): an
+  /// event or a series made in the calendar, no source's yet, goes to this
+  /// source's [save] (`before` null) — one source only, the first so marked.
+  /// Saved, the source is fetched again: the server's version is adopted
+  /// under the same id, or, under another id, replaces the local copy.
+  final bool createsHere;
+
+  /// Writes a person's edits back, optimistically: they show at once; a
+  /// throw (or a failed future) puts them back as they were; while it is
+  /// out, a refetch does not overwrite them. Without it, an edit lasts until
+  /// the source is fetched again.
+  final FutureOr<void> Function(SaveRequest request)? save;
+
+  /// A source told rather than asked (`liveSource`).
+  final LiveConnect? live;
+
+  /// Its events the calendar forgot (`forgetBefore`), by id: a source that
+  /// keeps its events lets these go.
+  final void Function(List<String> ids)? forgot;
 
   final String id;
 
@@ -134,8 +238,12 @@ EventSourceSpec fnSource(
   bool zoneDependent = false,
   EventInput? defaults,
   Object? key,
+  FutureOr<void> Function(SaveRequest request)? save,
+  bool createsHere = false,
 }) => EventSourceSpec(
   key: key,
+  save: save,
+  createsHere: createsHere,
   id: id,
   fetch: (r) {
     final v = fetch(r);

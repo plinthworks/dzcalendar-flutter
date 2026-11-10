@@ -6,4 +6,5 @@ library;
 
 export 'src/ical/parse.dart' show ICalCalendar, ParsedICal, parseICal;
 export 'src/ical/serialize.dart' show serializeICal;
+export 'src/ical/source.dart' show icalSource;
 export 'src/ical/zones.dart' show windowsZone;

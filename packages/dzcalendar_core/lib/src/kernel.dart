@@ -506,6 +506,9 @@ final class CalendarKernel {
       forgotten: () => _forgottenBefore,
       // The `events` option is its own source, loaded apart.
       reserved: const ['events'],
+      // A person's changes only (owner's decision 58), as `onEventChange` hears them: the application's own
+      // commands — showing a booking it already saved — are not written back again.
+      saves: (change) => change.cause != ChangeCause.command || _validating,
       notify: (n) {
         if (onSource != null) {
           try {
@@ -1105,6 +1108,7 @@ final class CalendarKernel {
     final was = _forgottenBefore;
     _forgottenBefore = was == null || ms > was ? ms : was;
     final gone = <Mutation>[];
+    final bySource = <String, List<String>>{};
     for (final e in store.snapshot.allEvents) {
       if (e is TimedEvent && e.ongoing) continue;
       final end = switch (e) {
@@ -1113,8 +1117,12 @@ final class CalendarKernel {
       };
       if (end > at.epochMilliseconds) continue;
       gone.add(EventMutation(before: e));
+      final src = e.sourceId;
+      if (src != null) (bySource[src] ??= []).add(e.id);
     }
     if (gone.isNotEmpty) store.apply(gone, ChangeCause.api);
+    // A source that keeps its events (a live feed) lets these go too.
+    if (bySource.isNotEmpty) sources.forgot(bySource);
     return gone.length;
   }
 

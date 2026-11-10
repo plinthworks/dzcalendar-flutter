@@ -204,6 +204,9 @@ final class StoreSnapshot {
   Iterable<Series> get allSeries => _series.values;
 
   /// True while some chunk of its source still delivers the event (or series).
+  /// What a source's chunk holds, as tags (`event:a`, `series:w`).
+  List<String> chunkTags(String sourceId, String chunk) => _chunks['$sourceId\u0000$chunk'] ?? const [];
+
   bool isSourceOwned(String id, {bool series = false}) => _owners.containsKey('${series ? 'series' : 'event'}:$id');
 
   /// The events a window shows: single events from the indexes, occurrences

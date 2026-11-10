@@ -3,6 +3,8 @@ import 'dart:async';
 import '../event/normalize.dart';
 import '../event/problem.dart';
 import '../event/types.dart';
+import '../recurrence/series.dart';
+import '../store/changes.dart';
 import '../store/store.dart';
 import '../time/instant.dart';
 import '../time/plain.dart';
@@ -11,7 +13,7 @@ import '../zone/zoned.dart';
 import 'chunks.dart';
 import 'source.dart';
 
-/// What the manager tells its owner. Not sealed: saves (19i-2) add kinds —
+/// What the manager tells its owner. Not sealed (owner's decision 26):
 /// keep a default branch.
 abstract class SourceNotice {
   const SourceNotice();
@@ -37,6 +39,35 @@ final class SourceProblems extends SourceNotice {
   const SourceProblems(this.sourceId, this.report);
   final String sourceId;
   final NormalizationReport report;
+}
+
+/// A person's edits were written back.
+final class SourceSaved extends SourceNotice {
+  const SourceSaved(this.sourceId, this.edits);
+  final String sourceId;
+  final List<SourceEdit> edits;
+}
+
+/// A save was refused: the edits were put back ([reverted]), or — other
+/// changes came in between — the source is fetched again.
+final class SourceSaveFailed extends SourceNotice {
+  const SourceSaveFailed(this.sourceId, this.edits, this.error, {required this.reverted, this.stack});
+  final String sourceId;
+  final List<SourceEdit> edits;
+  final Object error;
+  final StackTrace? stack;
+  final bool reverted;
+}
+
+/// A live source's feed failed ([closed]: it ended). Its events stay as
+/// they were; the application decides whether to connect it again
+/// (`sources.add` of a new spec).
+final class SourceLiveFailed extends SourceNotice {
+  const SourceLiveFailed(this.sourceId, this.error, {this.stack, this.closed = false});
+  final String sourceId;
+  final Object error;
+  final StackTrace? stack;
+  final bool closed;
 }
 
 /// Timers, injectable for tests.
@@ -101,7 +132,33 @@ class _Source {
   var gen = 0;
   final cache = <String, _Entry>{};
   final requests = <_Request>{};
+
+  /// What was made here and saved by this source (decision 59), until a
+  /// delivery brings the server's own: adopted under its id, or — the
+  /// server gave it another — the local copy goes.
+  final created = <String>{};
+
+  /// Tags (`event:id`) with a save out: a delivery does not overwrite them.
+  final pending = <String, int>{};
+
+  /// Pending tags a delivery wanted to overwrite: fetched again once the save settles.
+  final shielded = <String>{};
+  Future<void> saving = Future.value();
+  var saves = 0;
+
+  /// A live source's connection: how to close it.
+  void Function()? stop;
 }
+
+String _tagOf(Normalized n) => switch (n) {
+  NormalizedEvent(:final event) => 'event:${event.id}',
+  NormalizedSeries(:final series) => 'series:${series.id}',
+};
+
+String _editTag(SourceEdit e) => switch (e) {
+  EventEdit(:final id) => 'event:$id',
+  SeriesEdit(:final id) => 'series:$id',
+};
 
 /// The key of a source not cut: one chunk for all of time.
 const wholeChunk = '*';
@@ -123,10 +180,16 @@ final class SourceManager {
     this.keepChunks = 12,
     this.reserved = const [],
     int? Function()? forgotten,
-  }) : _notify = notify ?? ((_) {}),
+    bool Function(StoreChange change)? saves,
+  }) : _shouldSave = saves,
+       _notify = notify ?? ((_) {}),
        _now = now,
        _timers = timers,
-       _forgotten = forgotten;
+       _forgotten = forgotten {
+    _unsubscribe = store.subscribe(_onStore);
+  }
+
+  late final void Function() _unsubscribe;
 
   final EventStore store;
 
@@ -143,6 +206,11 @@ final class SourceManager {
   /// Ids the owner loads by other means (the kernel's `events`): refused,
   /// with a `duplicate-id` problem.
   final List<String> reserved;
+
+  /// Which commands are written back (owner's decision 58: the kernel says
+  /// a person's only — a validated command, an undo, a redo); null: every
+  /// command, undo and redo (the web's).
+  final bool Function(StoreChange change)? _shouldSave;
 
   final void Function(SourceNotice) _notify;
   final Instant Function()? _now;
@@ -181,13 +249,17 @@ final class SourceManager {
     }
   }
 
+  /// Saves out, all sources together (a removed source's too).
+  var _savesOut = 0;
+  bool get _saving => _savesOut > 0;
+
   void _settle() {
     final now = _busy;
     if (now != _loading) {
       _loading = now;
       _say(SourceLoading(now));
     }
-    if (!now && _idlers.isNotEmpty) {
+    if (!now && !_saving && _idlers.isNotEmpty) {
       final done = _idlers;
       _idlers = [];
       for (final c in done) {
@@ -279,9 +351,11 @@ final class SourceManager {
       _request(src, chunks);
     }
     // A few chunks kept for going back; the rest dropped.
+    // A chunk holding something with a save out stays until the save settles.
+    bool holdsPending(String k) => store.snapshot.chunkTags(src.spec.id, k).any(src.pending.containsKey);
     final spare = [
       for (final MapEntry(key: k, value: e) in src.cache.entries)
-        if (!keys.contains(k) && e.req == null && e.fetchedAt != null) (k, e),
+        if (!keys.contains(k) && e.req == null && e.fetchedAt != null && !holdsPending(k)) (k, e),
     ]..sort((a, b) => b.$2.lastUsed - a.$2.lastUsed);
     _drop(src, [for (final (k, _) in spare.skip(keepChunks)) k]);
     _dispatch();
@@ -491,17 +565,36 @@ final class SourceManager {
         ),
       );
     }
+    final snap = store.snapshot;
+    final shown = [
+      for (final item in items)
+        ...() {
+          final tag = _tagOf(item);
+          if (!src.pending.containsKey(tag)) return [item];
+          // A save is out for it: what the person sees stays until it settles.
+          src.shielded.add(tag);
+          // Whichever kind it is here now (made a series, or a single event again, by the edit being saved).
+          final key = switch (item) {
+            NormalizedEvent(:final event) => event.id,
+            NormalizedSeries(:final series) => series.id,
+          };
+          final ev = snap.getEvent(key);
+          if (ev != null && ev.sourceId == id) return <Normalized>[NormalizedEvent(ev)];
+          final sr = snap.getSeries(key);
+          return sr != null && sr.sourceId == id ? <Normalized>[NormalizedSeries(sr)] : const <Normalized>[];
+        }(),
+    ];
     final entries = [for (final c in chunks) (c.key, <Normalized>[])];
     if (chunks.length == 1) {
-      entries.first.$2.addAll(items);
+      entries.first.$2.addAll(shown);
     } else {
       final zone = _range?.zone ?? ctx.displayZone;
       final seriesIds = {
-        for (final n in items)
+        for (final n in shown)
           if (n is NormalizedSeries) n.series.id,
       };
       final spans = [for (final c in chunks) datesWindow(c.start, c.end, zone)];
-      for (final n in items) {
+      for (final n in shown) {
         final ev = n.event;
         final ref = ev.ref;
         final everywhere = n is NormalizedSeries || (ref != null && seriesIds.contains(ref.seriesId));
@@ -533,6 +626,253 @@ final class SourceManager {
       }
     }
     store.replaceSourceChunks(id, entries);
+    if (src.created.isNotEmpty) _settleCreated(src, chunks, shown);
+  }
+
+  /// The source's answer for [chunks] brought [shown]: what was made here
+  /// and saved is now the source's (adopted, same id), or — its date in
+  /// these chunks, its id not in the answer — the server named it otherwise:
+  /// the local copy goes, the server's stays.
+  void _settleCreated(_Source src, List<Chunk> chunks, List<Normalized> shown) {
+    final delivered = {for (final n in shown) _tagOf(n)};
+    final zone = _range?.zone ?? normalize().displayZone;
+    final whole = src.spec.chunk.unit == ChunkUnit.none;
+    bool covered(CalEvent ev) =>
+        whole ||
+        chunks.any(
+          (c) => switch (ev) {
+            AllDayEvent(:final start, :final end) => start.isBefore(c.end) && end.isAfter(c.start),
+            TimedEvent(:final start) => () {
+              final w = datesWindow(c.start, c.end, zone);
+              final s = start.epochMilliseconds;
+              return s >= w.start.epochMilliseconds && s < w.end.epochMilliseconds;
+            }(),
+          },
+        );
+    final snap = store.snapshot;
+    final gone = <Mutation>[];
+    for (final id in [...src.created]) {
+      if (src.pending.containsKey('event:$id') || src.pending.containsKey('series:$id')) continue;
+      if (delivered.contains('event:$id') || delivered.contains('series:$id')) {
+        src.created.remove(id);
+        continue;
+      }
+      final ev = snap.getEvent(id);
+      final sr = snap.getSeries(id);
+      // Made here, claimed, but no chunk of the source holds it: the server named it otherwise.
+      bool local(String? sourceId, {bool series = false}) =>
+          (sourceId == null || sourceId == src.spec.id) && !snap.isSourceOwned(id, series: series);
+      if (ev != null && local(ev.sourceId) && covered(ev)) {
+        gone.add(EventMutation(before: ev));
+        src.created.remove(id);
+      } else if (sr != null && local(sr.sourceId, series: true) && covered(sr.base)) {
+        gone.add(SeriesMutation(before: sr));
+        src.created.remove(id);
+      } else if (ev == null && sr == null) {
+        src.created.remove(id);
+      }
+    }
+    if (gone.isNotEmpty) store.apply(gone, ChangeCause.source);
+  }
+
+  // ——— writing edits back ———
+
+  void _onStore(StoreChange change) {
+    final cause = switch (change.cause) {
+      ChangeCause.command => SaveCause.command,
+      ChangeCause.undo => SaveCause.undo,
+      ChangeCause.redo => SaveCause.redo,
+      _ => null,
+    };
+    if (cause == null || _destroyed) return;
+    if (!(_shouldSave?.call(change) ?? true)) return;
+    // What a person made here, no source's yet, goes to the one that takes creations (decision 59).
+    final target = _sources.values.where((s) => s.spec.createsHere && s.spec.save != null).firstOrNull;
+    final bySource = <_Source, List<SourceEdit>>{};
+    // Series as this change left them (or had them), then as the store holds
+    // them: an override or a split made by this very command finds its series here.
+    final inChange = <String, Series>{
+      for (final m in change.applied)
+        if (m is SeriesMutation) (m.after ?? m.before)!.id: (m.after ?? m.before)!,
+    };
+    Series? seriesById(String id) => inChange[id] ?? store.snapshot.getSeries(id);
+    for (final m in change.applied) {
+      final obj = (m.after ?? m.before)!;
+      final sid = sourceOf(obj, seriesById);
+      final src = sid == null ? target : _sources[sid];
+      if (src == null || src.spec.save == null) continue;
+      final edit = switch (m) {
+        EventMutation(:final before, :final after) => EventEdit(m.id, before: before, after: after),
+        SeriesMutation(:final before, :final after) => SeriesEdit(m.id, before: before, after: after),
+      };
+      (bySource[src] ??= []).add(edit);
+    }
+    for (final MapEntry(key: src, value: edits) in bySource.entries) {
+      _save(src, edits, cause);
+    }
+  }
+
+  void _save(_Source src, List<SourceEdit> edits, SaveCause cause) {
+    final tags = [for (final e in edits) _editTag(e)];
+    for (final t in tags) {
+      src.pending[t] = (src.pending[t] ?? 0) + 1;
+    }
+    src.saves++;
+    _savesOut++;
+    final spec = src.spec;
+    // One at a time per source, in order: the server sees the edits as they happened.
+    src.saving = src.saving.then((_) async {
+      try {
+        await _saveOne(src, spec, edits, cause, tags);
+      } catch (e, st) {
+        // Never a wedged chain: the next saves still go, idle still completes.
+        Zone.current.handleUncaughtError(e, st);
+      } finally {
+        src.saves--;
+        _savesOut--;
+        _settle();
+      }
+    });
+  }
+
+  Future<void> _saveOne(
+    _Source src,
+    EventSourceSpec spec,
+    List<SourceEdit> edits,
+    SaveCause cause,
+    List<String> tags,
+  ) async {
+    {
+      Object? error;
+      StackTrace? stack;
+      try {
+        await spec.save!(SaveRequest(sourceId: spec.id, edits: List.unmodifiable(edits), cause: cause));
+      } catch (e, st) {
+        error = e;
+        stack = st;
+      }
+      var refetchAfter = false;
+      if (error != null && !_destroyed) {
+        final reverted = _revert(edits);
+        refetchAfter = !reverted;
+        _say(SourceSaveFailed(spec.id, edits, error, reverted: reverted, stack: stack));
+      } else if (error == null) {
+        _say(SourceSaved(spec.id, edits));
+        // Made here: now the source's (its delivery adopts it under the same
+        // id), and the server's version asked for (its id may be another).
+        final snap = store.snapshot;
+        final claim = <Mutation>[];
+        for (final e in edits) {
+          if (e.kind != EditKind.created) continue;
+          src.created.add(e.id);
+          refetchAfter = true;
+          switch (e) {
+            case EventEdit():
+              final now = snap.getEvent(e.id);
+              if (now != null && now.sourceId == null) {
+                claim.add(EventMutation(before: now, after: now.withIdentity(now.id, spec.id)));
+              }
+            case SeriesEdit():
+              final now = snap.getSeries(e.id);
+              if (now != null && now.sourceId == null) {
+                claim.add(
+                  SeriesMutation(
+                    before: now,
+                    after: now.copyWith(sourceId: spec.id),
+                  ),
+                );
+              }
+          }
+        }
+        if (claim.isNotEmpty && !_destroyed) store.apply(claim, ChangeCause.source);
+      }
+      for (final t in tags) {
+        final n = (src.pending[t] ?? 1) - 1;
+        if (n > 0) {
+          src.pending[t] = n;
+        } else {
+          src.pending.remove(t);
+          // The source sent something for it meanwhile: asked again for the truth.
+          if (src.shielded.remove(t)) refetchAfter = true;
+        }
+      }
+      if (refetchAfter && !_destroyed && identical(_sources[spec.id], src)) refetch(spec.id);
+    }
+  }
+
+  /// Puts back what [edits] changed, if nothing else changed it since. True when all of it went back.
+  bool _revert(List<SourceEdit> edits) {
+    final snap = store.snapshot;
+    final back = <Mutation>[];
+    var all = true;
+    for (final e in edits.reversed) {
+      switch (e) {
+        case EventEdit(:final id, :final before, :final after):
+          if (!identical(snap.getEvent(id), after)) {
+            all = false;
+            continue;
+          }
+          back.add(EventMutation(before: after, after: before));
+        case SeriesEdit(:final id, :final before, :final after):
+          if (!identical(snap.getSeries(id), after)) {
+            all = false;
+            continue;
+          }
+          back.add(SeriesMutation(before: after, after: before));
+      }
+    }
+    if (back.isNotEmpty) store.apply(back, ChangeCause.source);
+    return all;
+  }
+
+  /// A live source connected (its own spec's `live`), what it was before closed.
+  void _connect(_Source src) {
+    final stop = src.stop;
+    src.stop = null;
+    if (stop != null) _safely(stop);
+    final live = src.spec.live;
+    if (live == null) return;
+    final spec = src.spec;
+    try {
+      bool still() => !_destroyed && identical(_sources[spec.id], src) && identical(src.spec, spec);
+      src.stop = live(
+        LiveContext(
+          changed: () {
+            if (still()) refetch(spec.id);
+          },
+          now: () => _now?.call() ?? Instant.fromEpochMilliseconds(DateTime.now().millisecondsSinceEpoch),
+          failed: (error, stack, {closed = false}) {
+            if (still()) _say(SourceLiveFailed(spec.id, error, stack: stack, closed: closed));
+          },
+        ),
+      );
+    } catch (e) {
+      _say(
+        SourceProblems(
+          spec.id,
+          NormalizationReport(0, 0, [
+            Problem(ProblemCode.invalidEvent, Severity.error, 'sources.${spec.id}', 'live: $e').withSource(spec.id),
+          ]),
+        ),
+      );
+    }
+  }
+
+  static void _safely(void Function() fn) {
+    try {
+      fn();
+    } catch (e, st) {
+      Zone.current.handleUncaughtError(e, st);
+    }
+  }
+
+  /// Events of these sources were forgotten (`forgetBefore`): a source that
+  /// keeps them (`liveSource`) lets them go.
+  void forgot(Map<String, List<String>> bySource) {
+    for (final MapEntry(key: id, value: ids) in bySource.entries) {
+      final f = _sources[id]?.spec.forgot;
+      if (f != null) _safely(() => f(ids));
+    }
   }
 
   // ——— the owner's calls ———
@@ -556,12 +896,17 @@ final class SourceManager {
     if (prev != null) {
       if (identical(prev.spec, spec)) return;
       // The same source made again (a provider rebuilt): taken, nothing fetched.
-      if (spec.key != null && spec.key == prev.spec.key && spec.chunk == prev.spec.chunk) {
+      if (spec.key != null &&
+          spec.key == prev.spec.key &&
+          spec.chunk == prev.spec.chunk &&
+          spec.live == null &&
+          prev.spec.live == null) {
         prev.spec = spec;
         return;
       }
       final recut = prev.spec.chunk.unit != spec.chunk.unit;
       prev.spec = spec;
+      _connect(prev);
       if (recut) {
         // Other chunk keys: what the old ones hold would never be replaced.
         prev.gen++;
@@ -582,6 +927,7 @@ final class SourceManager {
     }
     final src = _Source(spec);
     _sources[spec.id] = src;
+    _connect(src);
     _sync(src);
   }
 
@@ -590,6 +936,9 @@ final class SourceManager {
     final src = _sources[id];
     if (src == null) return;
     src.gen++;
+    final stop = src.stop;
+    src.stop = null;
+    if (stop != null) _safely(stop);
     for (final req in [...src.requests]) {
       _abort(req);
     }
@@ -642,9 +991,9 @@ final class SourceManager {
     }
   }
 
-  /// Completes once nothing is fetching or waiting to retry.
+  /// Completes once nothing is fetching, waiting to retry, or saving.
   Future<void> idle() {
-    if (!_busy) return Future.value();
+    if (!_busy && !_saving) return Future.value();
     final c = Completer<void>();
     _idlers.add(c);
     return c.future;
@@ -682,7 +1031,11 @@ final class SourceManager {
   void destroy() {
     if (_destroyed) return;
     _destroyed = true;
+    _unsubscribe();
     for (final src in _sources.values) {
+      final stop = src.stop;
+      src.stop = null;
+      if (stop != null) _safely(stop);
       for (final req in [...src.requests]) {
         _abort(req);
       }
