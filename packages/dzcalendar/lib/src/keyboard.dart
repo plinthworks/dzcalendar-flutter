@@ -231,6 +231,24 @@ class CalendarKeyboard {
     _redraw();
   }
 
+  /// The events shown changed (a filter, a deletion, an undo): the cursor
+  /// on one no longer drawn, or holding it, goes back to its day; a held
+  /// one is let go — Enter or Delete never reach an event out of sight.
+  void dropGone() {
+    final s = _surface;
+    if (s == null || _committing) return;
+    final keys = {for (final i in s.items()) i.key};
+    final g = _grab;
+    if (g != null && !keys.contains(g.instance.key)) _letGo(said: true);
+    final held = _x.held.value;
+    if (held != null && !keys.contains(held)) _x.release();
+    final e = _event;
+    if (e == null || keys.contains(e.key)) return;
+    _event = null;
+    _cursor ??= s.home();
+    _redraw();
+  }
+
   /// A tap on an event: the keyboard goes on from it.
   void tappedEvent(EventInstance i) {
     _event = i;
@@ -518,7 +536,7 @@ class CalendarKeyboard {
       final sel = c.selection;
       if (sel != null && !identical(sel, _handed)) {
         _handed = sel;
-        _env.onSelect?.call(sel);
+        _env.selected(sel);
       } else if (sel == null) {
         _anchor = null;
       }
@@ -527,7 +545,7 @@ class CalendarKeyboard {
     _env.onDateTap?.call(at);
     final sel = selectionBetween(_ctx(), at, at);
     c.select(sel);
-    _env.onSelect?.call(sel);
+    _env.selected(sel);
     return true;
   }
 
@@ -577,7 +595,7 @@ class CalendarKeyboard {
       case CommandKeyIntent(kind: KeyCommand.open):
         final open = _env.onEventTap;
         if (open != null) {
-          open(i);
+          open(i, _x.rectOfEvent(i));
         } else {
           _x.openMenu(i, _anchorOf(i));
         }

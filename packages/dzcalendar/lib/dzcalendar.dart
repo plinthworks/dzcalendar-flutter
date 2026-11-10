@@ -120,7 +120,8 @@ export 'package:dzcalendar_core/slots.dart'
 
 export 'src/calendar.dart' show CalendarHeader, DzCalendar;
 export 'src/controller.dart' show CalendarController, ChangedItem, EventChange, EventChangeCause;
-export 'src/env.dart' show ActionsBuilder, EventBuilder, EventColor, EventInfo;
+export 'src/env.dart'
+    show ActionsBuilder, CreateRequestCallback, EventBuilder, EventColor, EventInfo, EventTapCallback, SelectCallback;
 export 'src/l10n/localizations.dart'
     show
         DzCalendarLocalizations,

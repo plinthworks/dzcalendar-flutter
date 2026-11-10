@@ -52,18 +52,23 @@ class DzCalendar extends StatefulWidget {
   /// The hour a time grid shows at the top at first.
   final int scrollHour;
 
-  /// An event tapped (and the menu's "Open").
-  final void Function(EventInstance instance)? onEventTap;
+  /// An event tapped (and the menu's "Open", Enter on a focused event, a
+  /// screen reader's tap). [rect] is where it is drawn, in global
+  /// coordinates — the piece tapped, for an event over several days — to
+  /// anchor a popover; the calendar's own box when it is not drawn.
+  final EventTapCallback? onEventTap;
 
   /// A slot of a time grid or a day tapped: where, in calendar terms (a
   /// moment, flagged when it fell in a skipped hour, or a date).
   final void Function(Hit hit)? onDateTap;
 
-  /// The selection a tap made (one slot, one day), also on the controller.
-  final void Function(CalendarSelection selection)? onSelect;
+  /// The selection a tap, a drag or the keyboard made (also on the
+  /// controller), and [rect]: where it is drawn (global; the part in view).
+  final SelectCallback? onSelect;
 
-  /// The menu's "New event here": the app opens its own form.
-  final void Function(CreateRequest request)? onCreateRequest;
+  /// The menu's "New event here": the app opens its own form, anchored on
+  /// [rect], the slot or the day (global).
+  final CreateRequestCallback? onCreateRequest;
 
   /// A bookable slot (`ModelOptions.availableSlots`) tapped.
   final void Function(AvailableSlot slot)? onSlotTap;
@@ -117,11 +122,18 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver, Ti
     _startClock();
   }
 
-  /// Another period, view or zone: the held event is let go.
+  /// Another period, view or zone: the held event is let go. Other options
+  /// (a filter) or the store changed: once drawn again, what the keyboard is
+  /// on or holds is let go if it is no longer drawn.
   void _changed() {
     const lets = {StateCause.navigate, StateCause.view, StateCause.zone, StateCause.resources};
-    if (widget.controller.changes.any((e) => e is KernelStateEvent && e.causes.any(lets.contains))) {
+    final changes = widget.controller.changes;
+    if (changes.any((e) => e is KernelStateEvent && e.causes.any(lets.contains))) {
       _letGo();
+    } else if (changes.any((e) => e is KernelStoreEvent || e is KernelStateEvent)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _interaction.keyboard.dropGone();
+      });
     }
   }
 

@@ -123,6 +123,7 @@ final class ModelOptions {
     this.resourceOrder,
     this.resourceGroupField,
     this.showUnassigned = false,
+    this.eventFilter,
   });
 
   final TimeGridSettings timeGrid;
@@ -146,6 +147,21 @@ final class ModelOptions {
   /// Resource views add an "Unassigned" column first, for events on no known resource.
   final bool showUnassigned;
 
+  /// Only the events it keeps are shown, in every view: calendars ticked
+  /// off, a practitioner's own patients. A series is asked once, with its
+  /// base event — its occurrences go or stay together; a changed occurrence
+  /// is asked with its own event (its `ref` names the series). So a test on
+  /// what all of a series shares (a prop, a resource, a tone) is exact; one
+  /// on a date or a title is the base's for every unchanged occurrence.
+  ///
+  /// It hides, nothing more: the store keeps every event, and the rules
+  /// (overlap, constraints) and slot searches still see them all — a drop on
+  /// a hidden event can be refused as an overlap. Compared with `==`: a new
+  /// closure when what it keeps changes; the same function (or a tear-off of
+  /// the same method) again changes nothing. One that throws is reported
+  /// once (`onError`) and shows its events: it is not a way to keep secrets.
+  final bool Function(CalEvent event)? eventFilter;
+
   ModelOptions copyWith({
     TimeGridSettings? timeGrid,
     DayGridSettings? dayGrid,
@@ -156,6 +172,8 @@ final class ModelOptions {
     ResourceOrder? resourceOrder,
     String? resourceGroupField,
     bool? showUnassigned,
+    bool Function(CalEvent event)? eventFilter,
+    bool clearEventFilter = false,
   }) => ModelOptions(
     timeGrid: timeGrid ?? this.timeGrid,
     dayGrid: dayGrid ?? this.dayGrid,
@@ -165,6 +183,7 @@ final class ModelOptions {
     resourceOrder: resourceOrder ?? this.resourceOrder,
     resourceGroupField: resourceGroupField ?? this.resourceGroupField,
     showUnassigned: showUnassigned ?? this.showUnassigned,
+    eventFilter: clearEventFilter ? null : eventFilter ?? this.eventFilter,
   );
 
   bool _sameDays(List<int> a, List<int> b) => deepEquals([...a]..sort(), [...b]..sort());
@@ -181,10 +200,11 @@ final class ModelOptions {
       _sameDays(other.hiddenDays, hiddenDays) &&
       other.resourceOrder == resourceOrder &&
       other.resourceGroupField == resourceGroupField &&
-      other.showUnassigned == showUnassigned;
+      other.showUnassigned == showUnassigned &&
+      other.eventFilter == eventFilter;
 
   @override
-  int get hashCode => Object.hash(timeGrid, dayGrid, businessHours, resourceGroupField, showUnassigned);
+  int get hashCode => Object.hash(timeGrid, dayGrid, businessHours, resourceGroupField, showUnassigned, eventFilter);
 }
 
 /// What a title written by the application is given: the first and last days shown.
@@ -460,6 +480,7 @@ final class CalendarKernel {
   var _externalRun = false;
   Command? _running;
   final _effective = Expando<({String key, ViewSpec spec})>();
+  ({bool Function(CalEvent) given, bool Function(CalEvent) safe})? _filter;
 
   // ——— reading ———
 
@@ -712,9 +733,35 @@ final class CalendarKernel {
     );
   }
 
+  /// The application's filter, its first error reported and the event
+  /// kept. The same wrapper while the filter is the same.
+  bool Function(CalEvent)? _filterOf(ModelOptions o) {
+    final f = o.eventFilter;
+    if (f == null) return null;
+    final hit = _filter;
+    if (hit != null && hit.given == f) return hit.safe;
+    var reported = false;
+    bool safe(CalEvent e) {
+      try {
+        return f(e);
+      } catch (err, st) {
+        // Once: a bad filter would say it for every event of every column.
+        if (!reported) {
+          reported = true;
+          _onError(err, st);
+        }
+        return true;
+      }
+    }
+
+    _filter = (given: f, safe: safe);
+    return safe;
+  }
+
   ViewModel _build(ViewRange range, ViewSpec view, ModelOptions o, void Function(Problem)? onProblem) {
     final snap = store.snapshot;
     final res = _resourceOpts(view);
+    final filter = _filterOf(o);
     switch (view.family) {
       case 'timeGrid':
         final t = o.timeGrid;
@@ -736,6 +783,7 @@ final class CalendarKernel {
               resources: res.resources,
               resourceGroups: res.groups,
               onProblem: onProblem,
+              eventFilter: filter,
             ),
           ),
         );
@@ -752,6 +800,7 @@ final class CalendarKernel {
               resources: res.resources,
               resourceGroups: res.groups,
               onProblem: onProblem,
+              eventFilter: filter,
             ),
           ),
         );
@@ -765,11 +814,14 @@ final class CalendarKernel {
               maxLanes: o.dayGrid.maxLanes,
               businessHours: o.businessHours,
               onProblem: onProblem,
+              eventFilter: filter,
             ),
           ),
         );
       default:
-        return ListViewModel(buildListModel(range, snap, ListOptions(displayZone: _timeZone, onProblem: onProblem)));
+        return ListViewModel(
+          buildListModel(range, snap, ListOptions(displayZone: _timeZone, onProblem: onProblem, eventFilter: filter)),
+        );
     }
   }
 

@@ -37,12 +37,16 @@ final class TimeGridOptions {
     this.businessHours,
     this.maxStack,
     this.onProblem,
+    this.eventFilter,
   });
 
   final ZoneId displayZone;
 
   /// Where the queries' problems go (a series cut short there).
   final void Function(Problem)? onProblem;
+
+  /// Only the events it keeps are shown (see `QueryOptions.where`).
+  final bool Function(CalEvent event)? eventFilter;
 
   /// `wall`: every day's rows aligned, a clock change marked; `elapsed`:
   /// real time drawn to scale.
@@ -295,8 +299,14 @@ ColumnAxis _axisFor(PlainDate date, TimeGridOptions o) =>
     buildColumnAxis(date, o.displayZone, mode: o.axis, slotMin: o.slotMin, slotMax: o.slotMax);
 
 List<EventInstance> _query(StoreSnapshot snap, ViewWindow w, TimeGridOptions o, Resource? resource) => resource != null
-    ? instancesOf(snap, w, resource, o.resources ?? const [], QueryOptions(onProblem: o.onProblem))
-    : snap.queryInstances(w, QueryOptions(resourceId: o.resourceId, onProblem: o.onProblem));
+    ? instancesOf(
+        snap,
+        w,
+        resource,
+        o.resources ?? const [],
+        QueryOptions(onProblem: o.onProblem, where: o.eventFilter),
+      )
+    : snap.queryInstances(w, QueryOptions(resourceId: o.resourceId, onProblem: o.onProblem, where: o.eventFilter));
 
 String _columnKey(PlainDate date, Resource? resource) => resource != null ? '$date|${resource.id}' : '$date';
 

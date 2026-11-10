@@ -134,9 +134,9 @@ class _HomeState extends State<Home> {
         ],
         editable: true,
         selectable: true,
-        onEventTap: (i) => _say(i.event.title),
-        onCreateRequest: (r) => _say('$r'),
-        onSelect: (s) => _say('$s'),
+        onEventTap: (i, _) => _say(i.event.title),
+        onCreateRequest: (r, _) => _say('$r'),
+        onSelect: (s, _) => _say('$s'),
       ),
     };
     return Scaffold(

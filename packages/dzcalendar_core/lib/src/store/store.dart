@@ -116,9 +116,14 @@ final class _Indexes {
 
 /// A view's query: one resource's events only, without background events.
 final class QueryOptions {
-  const QueryOptions({this.resourceId, this.includeBackground = true, this.onProblem});
+  const QueryOptions({this.resourceId, this.includeBackground = true, this.onProblem, this.where});
   final ResourceId? resourceId;
   final bool includeBackground;
+
+  /// Only the events it keeps: a series is asked once, with its base event
+  /// (its occurrences go or stay together); a changed occurrence is asked
+  /// with its own event.
+  final bool Function(CalEvent event)? where;
 
   /// Receives what expansion had to say (`too-many-occurrences`): the occurrences shown were cut.
   final void Function(Problem)? onProblem;
@@ -207,10 +212,12 @@ final class StoreSnapshot {
   List<EventInstance> queryInstances(ViewWindow w, [QueryOptions opts = const QueryOptions()]) {
     final resource = opts.resourceId;
     final ix = resource == null ? _all : _byResource[resource];
+    final where = opts.where;
     bool keep(CalEvent e) =>
         e.display != EventDisplay.none &&
         !(!opts.includeBackground &&
-            (e.display == EventDisplay.background || e.display == EventDisplay.inverseBackground));
+            (e.display == EventDisplay.background || e.display == EventDisplay.inverseBackground)) &&
+        (where == null || where(e));
     final found = <EventInstance>[];
     if (ix != null) {
       void take(String id, int _, int _) {

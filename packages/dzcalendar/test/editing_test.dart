@@ -117,7 +117,7 @@ void main() {
   testWidgets('not editable: a long press offers the menu, without editing entries', (t) async {
     final c = _controller(events: [_at('a', 'Bilan', '2026-11-09T09:00', '2026-11-09T10:00')]);
     addTearDown(c.dispose);
-    await _pump(t, DzCalendar(controller: c, scrollHour: 8, onEventTap: (_) {}));
+    await _pump(t, DzCalendar(controller: c, scrollHour: 8, onEventTap: (_, _) {}));
     await t.longPress(find.text('Bilan'));
     await t.pumpAndSettle();
     expect(find.text('Ouvrir'), findsOneWidget);
@@ -221,7 +221,7 @@ void main() {
     CalendarSelection? got;
     final c = _controller();
     addTearDown(c.dispose);
-    await _pump(t, DzCalendar(controller: c, scrollHour: 8, selectable: true, onSelect: (s) => got = s));
+    await _pump(t, DzCalendar(controller: c, scrollHour: 8, selectable: true, onSelect: (s, _) => got = s));
     // Find 09:00's line from the gutter's label, then press a little under it.
     final nine = t.getTopLeft(find.text('09 h'));
     final from = Offset(250, nine.dy + 7 + 5);
@@ -237,7 +237,7 @@ void main() {
   testWidgets('not selectable: a long press on empty time offers "New event"', (t) async {
     final c = _controller();
     addTearDown(c.dispose);
-    await _pump(t, DzCalendar(controller: c, scrollHour: 8, onCreateRequest: (_) {}));
+    await _pump(t, DzCalendar(controller: c, scrollHour: 8, onCreateRequest: (_, _) {}));
     final nine = t.getTopLeft(find.text('09 h'));
     await t.longPressAt(Offset(250, nine.dy + 7 + 5));
     await t.pumpAndSettle();

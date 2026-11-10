@@ -500,7 +500,7 @@ class _Cell extends StatelessWidget {
     final ctx = env.controller.kernel.interactionContext(snapMinutes: 1);
     final sel = selectionBetween(ctx, hit, hit);
     env.controller.select(sel);
-    env.onSelect?.call(sel);
+    env.selected(sel);
   }
 }
 

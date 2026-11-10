@@ -187,7 +187,8 @@ class CalendarInteraction {
     _menu(EventTarget(i), global);
   }
 
-  /// An event tapped: the app opens it; held, or no app to open it, its menu.
+  /// An event tapped at [global] on its widget: the app opens it (told
+  /// where that piece is); held, or no app to open it, its menu.
   void tapEvent(EventInstance i, Offset global) {
     // Held from the keyboard or a menu's "Move…": a tap puts it there (WCAG 2.5.7).
     final at = _surface?.hitAt(global);
@@ -197,7 +198,7 @@ class CalendarInteraction {
       _menu(EventTarget(i), global);
     } else {
       release();
-      open(i);
+      open(i, rectOfEvent(i, near: global));
     }
   }
 
@@ -368,7 +369,7 @@ class CalendarInteraction {
       case _Kind.select:
         final sel = d.selection;
         if (d.moved && sel != null) {
-          env.onSelect?.call(sel);
+          env.selected(sel);
         } else if (d.target != null) {
           _menu(d.target!, d.start);
         }
@@ -489,6 +490,108 @@ class CalendarInteraction {
 
   /// Where the view draws [ev] (global boxes; none when it is not drawn).
   List<GhostBox> boxesOf(CalEvent ev) => _surface?.boxesFor(ev) ?? const [];
+
+  // ——— where things are, for the app's popovers (decision 49) ———
+
+  /// The calendar's own box (global): the anchor when nothing better is drawn.
+  Rect get calendarRect {
+    final b = context?.findRenderObject();
+    return b is RenderBox && b.attached && b.hasSize ? b.localToGlobal(Offset.zero) & b.size : Rect.zero;
+  }
+
+  /// The parts of [boxes] in view, or none.
+  static List<Rect> _shown(List<GhostBox> boxes) => [
+    for (final b in boxes)
+      if (b.rect.overlaps(b.clip)) b.rect.intersect(b.clip),
+  ];
+
+  /// The events' widgets on screen, by instance key: where they really are
+  /// (their lane, their side of an overlap, a list's row, a day's sheet).
+  final _drawn = <String, Set<BuildContext>>{};
+
+  void drawnAt(String key, BuildContext context) => (_drawn[key] ??= {}).add(context);
+
+  void drawnNoMore(String key, BuildContext context) {
+    final set = _drawn[key];
+    if (set == null) return;
+    set.remove(context);
+    if (set.isEmpty) _drawn.remove(key);
+  }
+
+  /// Where [i] is drawn: the piece holding [near] (else the first in view) —
+  /// its widget's box, else where the view would draw it; the calendar's box
+  /// when no piece is in view (scrolled away, behind "+N").
+  Rect rectOfEvent(EventInstance i, {Offset? near}) {
+    final cal = calendarRect;
+    final drawn = [
+      for (final c in _drawn[i.key] ?? const <BuildContext>{})
+        if (c.mounted)
+          if (c.findRenderObject() case final RenderBox b when b.attached && b.hasSize)
+            if (b.localToGlobal(Offset.zero) & b.size case final r when r.overlaps(cal)) r.intersect(cal),
+    ];
+    final shown = drawn.isNotEmpty ? drawn : _shown(boxesOf(i.event));
+    if (shown.isEmpty) return cal;
+    if (near != null) {
+      for (final r in shown) {
+        if (r.contains(near)) return r;
+      }
+    }
+    return shown.first;
+  }
+
+  /// Where [s] is drawn: around its parts in view (several days' columns);
+  /// the calendar's box when none is.
+  Rect rectOfSelection(CalendarSelection s) {
+    final shown = _shown(boxesOf(_spanOf(s)));
+    return shown.isEmpty ? calendarRect : shown.reduce((a, b) => a.expandToInclude(b));
+  }
+
+  /// Where a "New event here" points: the slot (one snap long) or the day.
+  Rect rectOfRequest(CreateRequest r) => rectOfSelection(switch (r) {
+    CreateAt(:final start, :final resourceId) => TimeSelection(
+      start: ZonedDateTime(start, env.zone),
+      end: ZonedDateTime(start.addMs(env.config.snapMinutes * 60000), env.zone),
+      resourceId: resourceId,
+    ),
+    CreateOn(:final date, :final resourceId) => DaySelection(start: date, end: date.addDays(1), resourceId: resourceId),
+  });
+
+  /// A selection as an event the view can place.
+  static CalEvent _spanOf(CalendarSelection s) {
+    const perms = EventPerms(start: false, duration: false, resource: false);
+    final resources = [?s.resourceId];
+    return switch (s) {
+      TimeSelection(:final start, :final end) => TimedEvent(
+        id: '',
+        title: '',
+        resourceIds: resources,
+        display: EventDisplay.auto,
+        status: EventStatus.confirmed,
+        busy: false,
+        perms: perms,
+        classNames: const [],
+        props: const {},
+        revision: 0,
+        start: start,
+        end: end,
+        zoneGuessed: false,
+      ),
+      DaySelection(:final start, :final end) => AllDayEvent(
+        id: '',
+        title: '',
+        resourceIds: resources,
+        display: EventDisplay.auto,
+        status: EventStatus.confirmed,
+        busy: false,
+        perms: perms,
+        classNames: const [],
+        props: const {},
+        revision: 0,
+        start: start,
+        end: end,
+      ),
+    };
+  }
 
   /// Where the ghost is on screen (where a menu opens for a keyboard drop).
   Offset? get ghostAnchor {

@@ -46,8 +46,6 @@ class _HomePageState extends State<HomePage> {
   final _searchFocus = FocusNode();
   final _scaffold = GlobalKey<ScaffoldState>();
 
-  /// Where the last finger or pointer went down: the inspector opens beside it.
-  Offset? _anchor;
   late ZoneId _zone = widget.settings.zone;
 
   @override
@@ -112,27 +110,27 @@ class _HomePageState extends State<HomePage> {
 
   // --- Opening the inspector -------------------------------------------------
 
-  Future<void> _open(Draft draft, {EventInstance? instance}) async {
-    // A pointer's place serves once: a later open from the keyboard or a
-    // screen reader is centered, not beside an old click.
-    final anchor = _wide ? _anchor : null;
-    _anchor = null;
-    await showInspector(context, book: _book, draft: draft, instance: instance, anchor: anchor);
+  /// Opens the inspector beside [at] — what the calendar says was tapped,
+  /// by a finger, the keyboard or a screen reader (decision 49) — or
+  /// centered without it.
+  Future<void> _open(Draft draft, {EventInstance? instance, Rect? at}) async {
+    await showInspector(context, book: _book, draft: draft, instance: instance, anchor: at);
     if (mounted) _controller.select(null);
   }
 
-  void _openEvent(EventInstance instance) =>
-      _open(Draft.of(instance, _book, _controller.state.timeZone), instance: instance);
+  void _openEvent(EventInstance instance, Rect at) =>
+      _open(Draft.of(instance, _book, _controller.state.timeZone), instance: instance, at: at);
 
   String? get _calendarForNew {
     final shown = _book.writable.where((c) => c.visible);
     return (shown.isNotEmpty ? shown.first : _book.writable.firstOrNull)?.id;
   }
 
-  void _newAt(ZonedDateTime start, [ZonedDateTime? end]) {
+  void _newAt(ZonedDateTime start, {ZonedDateTime? end, Rect? at}) {
     final calendar = _calendarForNew;
     if (calendar == null) return;
     _open(
+      at: at,
       Draft.fresh(
         calendarId: calendar,
         title: S.of(context).untitled,
@@ -142,10 +140,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _newOn(PlainDate first, [PlainDate? last]) {
+  void _newOn(PlainDate first, {PlainDate? last, Rect? at}) {
     final calendar = _calendarForNew;
     if (calendar == null) return;
     _open(
+      at: at,
       Draft.freshDays(
         calendarId: calendar,
         title: S.of(context).untitled,
@@ -158,21 +157,20 @@ class _HomePageState extends State<HomePage> {
 
   /// The toolbar's "+": the next whole hour of the day shown.
   void _newEvent() {
-    _anchor = null;
     final s = _controller.state;
     final now = ZonedDateTime(_controller.now(), s.timeZone);
     final hour = s.date == now.date ? (now.time.hour + 1).clamp(0, 23) : 9;
     _newAt(ZonedDateTime.fromWall(PlainDateTime(s.date, PlainTime(hour)), s.timeZone)!);
   }
 
-  void _onSelect(CalendarSelection selection) => switch (selection) {
-    TimeSelection(:final start, :final end) => _newAt(start, end),
-    DaySelection(:final start, :final end) => _newOn(start, end.addDays(-1)),
+  void _onSelect(CalendarSelection selection, Rect at) => switch (selection) {
+    TimeSelection(:final start, :final end) => _newAt(start, end: end, at: at),
+    DaySelection(:final start, :final end) => _newOn(start, last: end.addDays(-1), at: at),
   };
 
-  void _onCreate(CreateRequest request) => switch (request) {
-    CreateAt(:final start) => _newAt(ZonedDateTime(start, _controller.state.timeZone)),
-    CreateOn(:final date) => _newOn(date),
+  void _onCreate(CreateRequest request, Rect at) => switch (request) {
+    CreateAt(:final start) => _newAt(ZonedDateTime(start, _controller.state.timeZone), at: at),
+    CreateOn(:final date) => _newOn(date, at: at),
   };
 
   void _onDateTap(Hit hit) {
@@ -287,21 +285,18 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final wide = _wide;
     final s = S.of(context);
-    final calendar = Listener(
-      onPointerDown: (e) => _anchor = e.position,
-      child: DzCalendar(
-        controller: _controller,
-        showHeader: false,
-        views: _views.keys.toList(),
-        editable: true,
-        selectable: true,
-        swipeToNavigate: !wide,
-        eventColor: (i) => _book.calendarOf(i.event)?.color,
-        onEventTap: _openEvent,
-        onSelect: _onSelect,
-        onCreateRequest: _onCreate,
-        onDateTap: _onDateTap,
-      ),
+    final calendar = DzCalendar(
+      controller: _controller,
+      showHeader: false,
+      views: _views.keys.toList(),
+      editable: true,
+      selectable: true,
+      swipeToNavigate: !wide,
+      eventColor: (i) => _book.calendarOf(i.event)?.color,
+      onEventTap: _openEvent,
+      onSelect: _onSelect,
+      onCreateRequest: _onCreate,
+      onDateTap: _onDateTap,
     );
     final searching = wide && _search.text.trim().isNotEmpty;
     final main = Column(

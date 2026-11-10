@@ -136,7 +136,7 @@ void main() {
       CalendarSelection? selected;
       await _pump(
         t,
-        DzCalendar(controller: c, scrollHour: 8, onDateTap: (h) => hit = h, onSelect: (s) => selected = s),
+        DzCalendar(controller: c, scrollHour: 8, onDateTap: (h) => hit = h, onSelect: (s, _) => selected = s),
       );
       // The gutter's "09 h" is centred on 09:00 (hours are 48 px tall); 12 minutes = 9.6 px below.
       final nine = t.getCenter(find.text('09 h'));

@@ -12,6 +12,15 @@ import 'theme.dart';
 /// in, the entries shown out (kept, reordered, replaced, added to).
 typedef ActionsBuilder = List<ActionItem> Function(ActionTarget target, List<ActionItem> builtIn);
 
+/// An event tapped, and where it is drawn (global coordinates).
+typedef EventTapCallback = void Function(EventInstance instance, Rect rect);
+
+/// A selection made, and where it is drawn (global coordinates).
+typedef SelectCallback = void Function(CalendarSelection selection, Rect rect);
+
+/// "New event here", and the slot or day it is for (global coordinates).
+typedef CreateRequestCallback = void Function(CreateRequest request, Rect rect);
+
 /// An event's color: null leaves the theme's (its tone, else the default).
 typedef EventColor = Color? Function(EventInstance instance);
 
@@ -78,10 +87,14 @@ class CalendarEnv {
   final ValueListenable<Instant> now;
 
   CalendarController get controller => config.controller;
-  void Function(EventInstance instance)? get onEventTap => config.onEventTap;
+  EventTapCallback? get onEventTap => config.onEventTap;
   void Function(Hit hit)? get onDateTap => config.onDateTap;
-  void Function(CalendarSelection selection)? get onSelect => config.onSelect;
-  void Function(CreateRequest request)? get onCreateRequest => config.onCreateRequest;
+  CreateRequestCallback? get onCreateRequest => config.onCreateRequest;
+
+  /// The app told of [selection], with where it is drawn ([rect] when the
+  /// caller knows better).
+  void selected(CalendarSelection selection, [Rect? rect]) =>
+      config.onSelect?.call(selection, rect ?? interaction.rectOfSelection(selection));
   ActionsBuilder? get actionsBuilder => config.actionsBuilder;
   EventColor? get eventColor => config.eventColor;
   EventBuilder? get eventBuilder => config.eventBuilder;
@@ -153,8 +166,9 @@ class CalendarEnv {
     scopeAll: l10n.scopeAll,
   );
 
-  /// The menu's entries for [target]: the core's, then the app's say.
-  List<ActionItem> menuFor(ActionTarget target) {
+  /// The menu's entries for [target]: the core's, then the app's say. [at]:
+  /// where the menu was asked (global), to tell "Open" which piece.
+  List<ActionItem> menuFor(ActionTarget target, {Offset? at}) {
     final open = onEventTap;
     final create = onCreateRequest;
     final hasDayView = controller.kernel.viewSpec(dayView) != null;
@@ -165,9 +179,9 @@ class CalendarEnv {
         labels: _labels,
         formatTime: (at, withOffset) => time(at, withOffset: withOffset),
         formatDate: dateLong,
-        onCreateRequest: create,
+        onCreateRequest: create == null ? null : (r) => create(r, interaction.rectOfRequest(r)),
         onGoToDay: hasDayView && state.view.type != dayView ? (d) => controller.setView(dayView, d) : null,
-        onOpen: open,
+        onOpen: open == null ? null : (i) => open(i, interaction.rectOfEvent(i, near: at)),
         // Editing entries only where a person may edit (as the TS: `editable`).
         onCommand: config.editable ? (c) => controller.run(c, validate: true) : null,
         // "Move…", "Change duration…": the keyboard's grab, a tap then puts it down.
@@ -182,7 +196,7 @@ class CalendarEnv {
 
   /// Opens the menu for [target] at [position] (global), if it has entries.
   Future<void> showActions(BuildContext context, ActionTarget target, Offset position) async {
-    final items = menuFor(target);
+    final items = menuFor(target, at: position);
     if (items.isEmpty) return;
     await _showItems(context, items, position, l10n.actions);
   }

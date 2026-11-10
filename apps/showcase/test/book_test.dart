@@ -1,5 +1,5 @@
 import 'package:dzcalendar/dzcalendar.dart';
-import 'package:dzcalendar_core/dzcalendar_core.dart' show viewWindow;
+import 'package:dzcalendar_core/dzcalendar_core.dart' show QueryOptions, TimeGridViewModel, viewWindow;
 import 'package:dzcalendar_showcase/src/book.dart';
 import 'package:dzcalendar_showcase/src/demo.dart';
 import 'package:dzcalendar_showcase/src/draft.dart';
@@ -20,8 +20,10 @@ Future<CalendarBook> demoBook() async {
   return book;
 }
 
+/// The week as the views show it: through the filter the book gave the kernel.
 List<EventInstance> week(CalendarBook b) => b.controller.kernel.store.snapshot.queryInstances(
   viewWindow(PlainDate(2026, 11, 8), PlainDate(2026, 11, 15), 'Africa/Algiers'),
+  QueryOptions(where: b.controller.options.eventFilter),
 );
 
 List<String> titlesIn(CalendarBook b, String calendar) => [
@@ -47,14 +49,26 @@ void main() {
     expect(b.calendarOf(revolution)?.id, 'holidays');
   });
 
-  test('unticking a calendar takes its events out; ticking brings them back', () async {
+  test('unticking a calendar hides its events, in the store still; ticking shows them again', () async {
     final b = await demoBook();
     final before = titlesIn(b, 'work');
     final work = b.byId('work')!;
+    final stored = b.controller.kernel.store.snapshot.allEvents.length;
     b.setVisible(work, false);
+    expect(b.controller.options.eventFilter, isNotNull);
     expect(titlesIn(b, 'work'), isEmpty);
     expect(titlesIn(b, 'home'), isNotEmpty);
+    expect(b.controller.kernel.store.snapshot.allEvents.length, stored);
+    // The views are filtered too: the week shown has none of them.
+    final model = b.controller.kernel.viewModel() as TimeGridViewModel;
+    final shown = {
+      for (final c in model.model.columns)
+        for (final e in c.events) b.calendarOf(e.segment.instance.event)?.id,
+    };
+    expect(shown, isNot(contains('work')));
+    expect(shown, contains('home'));
     b.setVisible(work, true);
+    expect(b.controller.options.eventFilter, isNull, reason: 'all ticked: no filter');
     expect(titlesIn(b, 'work'), before);
   });
 
@@ -152,17 +166,19 @@ void main() {
     expect(titlesIn(b, 'sport')..sort(), ['Footing', 'Fractionné', 'Piscine']);
   });
 
-  test('review: undo after a calendar hidden and shown again refuses, and changes nothing', () async {
+  test('the history stays whole: an edit undone while its calendar is hidden, shown undone', () async {
     final b = await demoBook();
     final benali = find(b, 'Consultation — M. Benali');
     final before = Draft.of(benali, b, 'Africa/Algiers');
     b.controller.run(editCommand(benali, before, before.copy()..title = 'Benali (bilan)', b)!, validate: true);
     b.setVisible(b.byId('work')!, false);
+    expect(b.controller.undo(), isTrue);
+    expect(titlesIn(b, 'work'), isEmpty);
     b.setVisible(b.byId('work')!, true);
-    final shown = titlesIn(b, 'work');
-    expect(shown, contains('Benali (bilan)'));
-    expect(b.controller.undo(), isFalse);
-    expect(titlesIn(b, 'work'), shown);
+    expect(titlesIn(b, 'work'), contains('Consultation — M. Benali'));
+    expect(titlesIn(b, 'work'), isNot(contains('Benali (bilan)')));
+    expect(b.controller.redo(), isTrue);
+    expect(titlesIn(b, 'work'), contains('Benali (bilan)'));
   });
 
   test('the repeat presets: a single event made weekly, a series made daily, then never', () async {

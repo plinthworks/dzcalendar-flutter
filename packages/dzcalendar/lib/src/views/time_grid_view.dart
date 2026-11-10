@@ -827,7 +827,7 @@ class _AllDayRow extends StatelessWidget {
     env.onDateTap?.call(hit);
     final sel = selectionBetween(env.controller.kernel.interactionContext(snapMinutes: 1), hit, hit);
     env.controller.select(sel);
-    env.onSelect?.call(sel);
+    env.selected(sel);
   }
 }
 
@@ -1088,7 +1088,7 @@ class _Column extends StatelessWidget {
     final ctx = env.controller.kernel.interactionContext(snapMinutes: snap);
     final sel = selectionBetween(ctx, hit, hit);
     env.controller.select(sel);
-    env.onSelect?.call(sel);
+    env.selected(sel);
   }
 }
 

@@ -54,6 +54,7 @@ final class DayGridOptions {
     this.businessHours,
     this.showNonCurrentDates = true,
     this.onProblem,
+    this.eventFilter,
   });
 
   final ZoneId displayZone;
@@ -61,6 +62,9 @@ final class DayGridOptions {
   /// Where the queries' problems go (a series cut short there): what the
   /// kernel's `viewProblems` reports.
   final void Function(Problem)? onProblem;
+
+  /// Only the events it keeps are shown (see `QueryOptions.where`).
+  final bool Function(CalEvent event)? eventFilter;
 
   /// Rows of bars per day before "+N"; null: as many as needed.
   final int? maxLanes;
@@ -89,6 +93,7 @@ final class DayGridOptions {
     businessHours: businessHours,
     showNonCurrentDates: showNonCurrentDates ?? this.showNonCurrentDates,
     onProblem: onProblem,
+    eventFilter: eventFilter,
   );
 }
 
@@ -269,8 +274,14 @@ DayGridModel buildDayGridModel(ViewRange range, StoreSnapshot snap, DayGridOptio
   for (var k = 0; k < owners.length; k++) {
     final resource = owners[k];
     final instances = resource != null
-        ? instancesOf(snap, w, resource, o.resources ?? const [], QueryOptions(onProblem: o.onProblem))
-        : snap.queryInstances(w, QueryOptions(resourceId: o.resourceId, onProblem: o.onProblem));
+        ? instancesOf(
+            snap,
+            w,
+            resource,
+            o.resources ?? const [],
+            QueryOptions(onProblem: o.onProblem, where: o.eventFilter),
+          )
+        : snap.queryInstances(w, QueryOptions(resourceId: o.resourceId, onProblem: o.onProblem, where: o.eventFilter));
     final segs = <Segment>[];
     final bgSegs = <Segment>[];
     for (var i = 0; i < instances.length; i++) {

@@ -2,6 +2,7 @@ import 'package:dzcalendar/dzcalendar.dart';
 import 'package:dzcalendar_showcase/src/app.dart';
 import 'package:dzcalendar_showcase/src/book.dart';
 import 'package:dzcalendar_showcase/src/home.dart';
+import 'package:dzcalendar_showcase/src/inspector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -170,6 +171,20 @@ void main() {
     expect(find.text('Piscine'), findsNothing);
     expect(before, greaterThan(1));
     expect(find.text('Aucun événement trouvé'), findsOneWidget);
+  });
+
+  testWidgets('wide: the inspector opens beside the event tapped, not over it', (tester) async {
+    await pumpApp(tester);
+    final event = tester.getRect(find.text('Piscine'));
+    await tester.tap(find.text('Piscine'));
+    await tester.pumpAndSettle();
+    final popover = tester.getRect(
+      find.ancestor(of: find.byType(EventInspector), matching: find.byType(Material)).first,
+    );
+    expect(popover.overlaps(event), isFalse);
+    // Beside it: after it if there is room, else before it, and the gap small.
+    final gap = popover.left >= event.right ? popover.left - event.right : event.left - popover.right;
+    expect(gap, lessThan(40));
   });
 
   testWidgets('the year: a day tapped opens it', (tester) async {

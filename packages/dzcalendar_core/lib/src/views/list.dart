@@ -51,11 +51,14 @@ final class ListModel {
 }
 
 final class ListOptions {
-  const ListOptions({required this.displayZone, this.includeEmpty = false, this.onProblem});
+  const ListOptions({required this.displayZone, this.includeEmpty = false, this.onProblem, this.eventFilter});
   final ZoneId displayZone;
 
   /// Where the queries' problems go (a series cut short there).
   final void Function(Problem)? onProblem;
+
+  /// Only the events it keeps are listed (see `QueryOptions.where`).
+  final bool Function(CalEvent event)? eventFilter;
 
   /// Every shown date, events or not (a custom view's days). Default: only days with events.
   final bool includeEmpty;
@@ -78,7 +81,7 @@ ListModel buildListModel(ViewRange range, StoreSnapshot snap, ListOptions opts) 
 
   for (final instance in snap.queryInstances(
     viewWindow(range.start, range.end, zone),
-    QueryOptions(onProblem: opts.onProblem),
+    QueryOptions(onProblem: opts.onProblem, where: opts.eventFilter),
   )) {
     if (isBackground(instance.event.display)) continue;
     switch (instance.event) {

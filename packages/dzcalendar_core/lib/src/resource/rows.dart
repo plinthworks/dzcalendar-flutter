@@ -157,7 +157,12 @@ List<EventInstance> instancesOf(
   if (resource.id != unassignedId) {
     return snap.queryInstances(
       w,
-      QueryOptions(resourceId: resource.id, includeBackground: opts.includeBackground, onProblem: opts.onProblem),
+      QueryOptions(
+        resourceId: resource.id,
+        includeBackground: opts.includeBackground,
+        onProblem: opts.onProblem,
+        where: opts.where,
+      ),
     );
   }
   final known = _known[all] ??= {for (final r in all) r.id};

@@ -10,18 +10,19 @@ import 'strings.dart';
 /// inspector is a popover (macOS, tablets); narrower, a drawer and a sheet.
 const wideFrom = 800.0;
 
-/// Opens the inspector (owner's decision 47): a popover beside [anchor] on
-/// wide screens, a sheet on phones ([anchor] null). It runs its commands
-/// itself, validated, so each save is one step of the history.
+/// Opens the inspector (owner's decision 47): on wide screens a popover
+/// beside [anchor] (global; centered without), a sheet on phones. It runs
+/// its commands itself, validated, so each save is one step of the history.
 Future<void> showInspector(
   BuildContext context, {
   required CalendarBook book,
   required Draft draft,
   EventInstance? instance,
-  Offset? anchor,
+  Rect? anchor,
 }) {
-  final inspector = EventInspector(book: book, draft: draft, instance: instance, sheet: anchor == null);
-  if (anchor == null && MediaQuery.sizeOf(context).width < wideFrom) {
+  final narrow = MediaQuery.sizeOf(context).width < wideFrom;
+  final inspector = EventInspector(book: book, draft: draft, instance: instance, sheet: narrow);
+  if (narrow) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -39,7 +40,8 @@ Future<void> showInspector(
     transitionBuilder: (context, a, _, child) => FadeTransition(opacity: a, child: child),
     pageBuilder: (context, _, _) => SafeArea(
       child: CustomSingleChildLayout(
-        delegate: _Popover(anchor, Directionality.of(context)),
+        // The layout is inside the safe area: the anchor moved by its padding.
+        delegate: _Popover(anchor?.shift(-MediaQuery.paddingOf(context).topLeft), Directionality.of(context)),
         child: Material(
           elevation: 12,
           borderRadius: BorderRadius.circular(14),
@@ -51,12 +53,13 @@ Future<void> showInspector(
   );
 }
 
-/// Beside the point: after it in the reading direction when there is room,
-/// else before it; centered when there is no point.
+/// Beside the box: after it in the reading direction when there is room,
+/// else before it, its top near the box's; centered when there is no box or
+/// none fits (the box as wide as the screen).
 class _Popover extends SingleChildLayoutDelegate {
   _Popover(this.anchor, this.direction);
 
-  final Offset? anchor;
+  final Rect? anchor;
   final TextDirection direction;
   static const width = 380.0;
   static const gap = 14.0;
@@ -69,9 +72,10 @@ class _Popover extends SingleChildLayoutDelegate {
   @override
   Offset getPositionForChild(Size size, Size child) {
     final a = anchor;
-    if (a == null) return Offset((size.width - child.width) / 2, (size.height - child.height) / 3);
-    final after = a.dx + gap;
-    final before = a.dx - gap - child.width;
+    // No box (nothing laid out yet): centered, not in a corner.
+    if (a == null || a.isEmpty) return Offset((size.width - child.width) / 2, (size.height - child.height) / 3);
+    final after = a.right + gap;
+    final before = a.left - gap - child.width;
     final fitsAfter = after + child.width <= size.width - margin;
     final fitsBefore = before >= margin;
     final ltr = direction == TextDirection.ltr;
@@ -81,9 +85,9 @@ class _Popover extends SingleChildLayoutDelegate {
     } else if (fitsBefore) {
       x = before;
     } else {
-      x = (size.width - child.width) / 2;
+      return Offset((size.width - child.width) / 2, (size.height - child.height) / 3);
     }
-    final y = (a.dy - 120).clamp(margin, (size.height - child.height - margin).clamp(margin, double.infinity));
+    final y = (a.top - 40).clamp(margin, (size.height - child.height - margin).clamp(margin, double.infinity));
     return Offset(x, y.toDouble());
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../env.dart';
+import '../interaction.dart';
 import '../keyboard.dart';
 
 /// The segments of [week] over cell [cell], drawn or not.
@@ -139,7 +140,13 @@ class EventGestures extends StatelessWidget {
   final Axis? resizeAxis;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _Drawn(
+    x: env.interaction,
+    id: instance.key,
+    child: Builder(builder: _build),
+  );
+
+  Widget _build(BuildContext context) {
     final x = env.interaction;
     final k = x.keyboard;
     final key = instance.key;
@@ -240,6 +247,44 @@ class EventGestures extends StatelessWidget {
     final box = context.findRenderObject();
     return box is RenderBox && box.hasSize ? box.localToGlobal(box.size.center(Offset.zero)) : Offset.zero;
   }
+}
+
+/// Tells the gestures where an event's widget is, while it is (for the
+/// app's popovers: its true lane and width, decision 49).
+class _Drawn extends StatefulWidget {
+  const _Drawn({required this.x, required this.id, required this.child});
+  final CalendarInteraction x;
+  final String id;
+  final Widget child;
+
+  @override
+  State<_Drawn> createState() => _DrawnState();
+}
+
+class _DrawnState extends State<_Drawn> {
+  @override
+  void initState() {
+    super.initState();
+    widget.x.drawnAt(widget.id, context);
+  }
+
+  @override
+  void didUpdateWidget(_Drawn old) {
+    super.didUpdateWidget(old);
+    if (old.id != widget.id || !identical(old.x, widget.x)) {
+      old.x.drawnNoMore(old.id, context);
+      widget.x.drawnAt(widget.id, context);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.x.drawnNoMore(widget.id, context);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 /// A held event: outlined, its end's handle, its menu button.

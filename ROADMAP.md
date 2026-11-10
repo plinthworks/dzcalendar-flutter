@@ -2,12 +2,12 @@
 
 ## Resume here (if a session is lost)
 
+- **Phase 19g done (2026-11-10)**, committed ("Phase 19g"): the event
+  filter (decision 48) and the tapped `Rect` (decision 49). See its section
+  below. **Next**: the Hijri calendar, the source manager, the timeline
+  (to choose with the owner). The "Later" lists stay open.
 - **Phase 19f done (2026-11-10)**, committed ("Phase 19f"): the showcase
-  app `apps/showcase` (decisions 44–47). See its section below. **Next:
-  19g** — decisions 48 (`eventFilter`; the showcase's stash removed) and
-  49 (the tapped `Rect` in the callbacks; the showcase's pointer tracking
-  removed); then the Hijri calendar, the source manager, the timeline. The
-  "Later" lists stay open.
+  app `apps/showcase` (decisions 44–47).
 - **Phase 19e-2b-2 done (2026-11-09)**, committed ("Phase 19e-2b-2"): the
   keyboard and screen readers (decisions 41–43).
 - **Phase 19e-2b-1 done (2026-11-09)**, committed ("Phase 19e-2b-1"): the
@@ -29,6 +29,10 @@
   millisecond (decision 9), so a source writing past the millisecond gets
   different ids on web and mobile. Proposed there: hash the moment to the
   millisecond, and say `precision-truncated`.
+- **To propose to the main repository** (divergences, 19g): an event filter
+  applied by the views' queries (`eventFilter`, decision 48), and the
+  tapped thing's box given to the open/select/create callbacks (decision
+  49). Their defaults change nothing: the conformance cases are unaffected.
 - **Owner's decisions (2026-11-08)**, the plan accepted:
   1. **Our own time types** stand for Temporal's (`Instant`, `PlainDate`,
      `PlainTime`, `PlainDateTime`, `ZonedDateTime`, immutable, ISO calendar);
@@ -603,6 +607,64 @@
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
 
+## 19g — the event filter and the tapped Rect ✅ (2026-11-10)
+
+- **Decision 48**, `ModelOptions.eventFilter` (core): a predicate the
+  views' queries apply (`QueryOptions.where`, threaded through the time
+  grid, the day grid and the year, the list, the resource columns and
+  "Unassigned"), before layout — lanes and "+N" count only what is shown.
+  - A series is asked once, with its base; a changed occurrence with its
+    own event. Exact for what a series shares (a prop, a resource), the
+    base's for a date or a title.
+  - Display only: the store, the rules (overlap, constraints), `findSlots`
+    and export see everything.
+  - Compared with `==` (a closure each change; a method tear-off is the
+    same); a new one remakes the model (state cause `options`); one that
+    throws is reported once and shows its events.
+  - **A divergence from the TS core** (it has none): to propose there.
+- **Decision 49**: `onEventTap(instance, rect)`, `onSelect(selection,
+  rect)`, `onCreateRequest(request, rect)` (typedefs `EventTapCallback`,
+  `SelectCallback`, `CreateRequestCallback`) — breaking, before 1.0.
+  - An event: its widget's own box (each `EventGestures` registers with
+    the interaction), the piece nearest the finger, clipped to the
+    calendar; else where the view would draw it; else the calendar's box.
+    The same from a finger, the menu's "Open", Enter and a screen reader.
+  - A selection or a "New event here": the boxes the view would draw for
+    it (a synthetic event through `boxesFor`), joined.
+- **The showcase**: unticking a calendar sets a new filter (none when all
+  are ticked); the stash, `_movedOut` and the hand-made removals are gone,
+  and the history stays whole (an edit undone while hidden shows undone).
+  The pointer `Listener` is gone; the popover sits beside the `Rect`
+  (after it in the reading direction, else before, else centered).
+- **Verified**: iPad 13" (week, month, Arabic), Android phone (sheet).
+  The `Pixel_9a` emulator is full (Android wants ~500 MB free to install):
+  a dedicated AVD `DzCalendar_Test` (same system image, 8 GB data) is ours
+  for screenshots; `Pixel_9a` and `Sehhaty_Test` are left alone.
+- **Tests**: core 891 (+11, `event_filter_test`), library 68 (+9,
+  `tapped_rect_test`), showcase 26.
+- **Reviews' fixes**, all done:
+  - the filter compared by identity (a tear-off remade the model each
+    build) → `==`, in `hashCode` too;
+  - a throwing filter reported for every event of every column → once;
+  - the menu's and the keyboard's rect approximated a month bar's lane
+    and an overlap's width → the drawn widget's box;
+  - the keyboard could stay on, hold, open or delete an event the filter
+    hid → `dropGone` after each store or options change;
+  - an empty anchor put the popover in a corner → centered;
+  - a stale doc comment.
+- **Later**:
+  - `onSlotTap` and `onDateTap` with a `Rect` too;
+  - a selection's rect from the surface itself (`boxesForSpan`) instead of
+    a synthetic event; a day selection anchored on the whole cell;
+  - the showcase popover converting with `globalToLocal` (a nested
+    navigator), not only the safe area;
+  - the filter given the series for an occurrence (`(e, {series})`), or a
+    per-occurrence mode, if an app needs dates;
+  - a rules option to ignore hidden events (a drop refused by an
+    invisible overlap);
+  - more rect tests: RTL, the year, resources, a list's menu, a reader's
+    tap, a scrolled-away event.
+
 ## 19f — the showcase app ✅ (2026-11-10)
 
 - **`apps/showcase`** (decisions 44–47), iOS, Android and macOS:
@@ -674,7 +736,8 @@
      tracking pointers.
 - **Later**:
   - export per calendar (one file now; the calendar is lost on re-import);
-  - say when hiding a calendar drops undo steps (`History.onDropped`);
+  - ~~say when hiding a calendar drops undo steps~~ — gone with 19g: hiding
+    no longer touches the store;
   - the refusal's detail in the inspector (a `Violation`, not "refused");
   - a dot under a busy day of the mini-month;
   - the year view's keyboard;

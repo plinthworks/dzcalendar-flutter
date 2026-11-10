@@ -116,7 +116,7 @@ void main() {
     final c = _controller();
     addTearDown(c.dispose);
     final handed = <CalendarSelection>[];
-    await _pump(t, DzCalendar(controller: c, scrollHour: 8, selectable: true, onSelect: handed.add));
+    await _pump(t, DzCalendar(controller: c, scrollHour: 8, selectable: true, onSelect: (s, _) => handed.add(s)));
     await _tapHour(t, '09 h');
     handed.clear(); // the tap's own selection
     for (var k = 0; k < 3; k++) {
