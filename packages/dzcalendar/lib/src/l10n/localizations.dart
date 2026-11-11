@@ -234,6 +234,10 @@ abstract class DzCalendarLocalizations {
   String get nextDay;
   String get previousWeek;
   String get nextWeek;
+
+  /// A resource view's held event: to the row (or column) before or after.
+  String get previousResource;
+  String get nextResource;
   String get putDown;
   String get cancelMove;
 }
@@ -419,6 +423,10 @@ class DzCalendarLocalizationsEn extends DzCalendarLocalizations {
   String get previousWeek => 'Previous week';
   @override
   String get nextWeek => 'Next week';
+  @override
+  String get previousResource => 'Previous resource';
+  @override
+  String get nextResource => 'Next resource';
   @override
   String get putDown => 'Put down';
   @override
@@ -609,6 +617,10 @@ class DzCalendarLocalizationsFr extends DzCalendarLocalizations {
   String get previousWeek => 'Semaine précédente';
   @override
   String get nextWeek => 'Semaine suivante';
+  @override
+  String get previousResource => 'Ressource précédente';
+  @override
+  String get nextResource => 'Ressource suivante';
   @override
   String get putDown => 'Poser';
   @override
@@ -845,6 +857,10 @@ class DzCalendarLocalizationsAr extends DzCalendarLocalizations {
   String get previousWeek => 'الأسبوع السابق';
   @override
   String get nextWeek => 'الأسبوع التالي';
+  @override
+  String get previousResource => 'المورد السابق';
+  @override
+  String get nextResource => 'المورد التالي';
   @override
   String get putDown => 'وضع';
   @override

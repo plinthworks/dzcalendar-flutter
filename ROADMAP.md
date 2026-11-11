@@ -2,11 +2,12 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19j-2 done (2026-11-11)**: the timeline widget, reading
-  (decisions 61–63). See its section below. **Next: 19j-3**, editing on
-  the timeline: move and resize across rows (bars `draggable`, `canResize`,
-  the ghost at a lane's height, autoscroll both ways), the keyboard's
-  surface (`KeySurface`, `KeyGrid.timeline`), screen readers.
+- **Phase 19j-3 done (2026-11-11)**: editing on the timeline — 19j (the
+  timeline, decisions 61–64) is complete. See its section below. **Next:
+  to decide with the owner** (decision 64's later items — pinch to zoom,
+  `timeline.follow`, `timeline.ticks` — or another phase).
+- **Phase 19j-2 done (2026-11-11)**, committed ("Phase 19j-2"): the
+  timeline widget, reading (decisions 61–63).
 - **Phase 19j-1 done (2026-11-10)**, committed ("Phase 19j-1"): the
   timeline's core (decisions 61–64).
 - **Phase 19i done (2026-11-10)**, committed ("Phase 19i-1", "Phase
@@ -42,6 +43,19 @@
   timeline's `hitAt` clamps to `axis.length - 1e-6` slots, which on a
   5-minute scale is 0.3 ms and rounds to `axis.end` — the next midnight, a
   day outside the axis. The port clamps in milliseconds (`end - 1`).
+- **To propose to the main repository** (divergences, 19j-3): a timed
+  event on a timeline counted in days shows no end handle (the web shows
+  one that changes nothing); a screen reader holding an event in a
+  resource view has "Previous/Next resource" actions; a held bar's menu
+  button at its start (clear of the end handle); the cursor's first place
+  is now if in view, else the moment at the view's start edge on the first
+  row in view (the web: now, else the axis's start); a drag over a group's
+  band lands on the row of events under it (the web: no place); ◀ ▶ slide
+  with an animation, PageUp/PageDown at once. **Known limits**: an event on
+  several resources is reached by the keyboard on its first row only; the
+  row heads cannot take the keyboard's cursor (the web's `pendingHome`);
+  at the axis's edge PageDown changes the period by the view's duration
+  (the web: the period holding where the step would go).
 - **To propose to the main repository** (divergences, 19j-2): a phone's
   resource area of one narrow column with an initials mode (decision 63);
   "+N" opens the day's sheet; the day's name kept in view inside its day;
@@ -708,6 +722,47 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19j-3 — the timeline, editing ✅ (2026-11-11)
+
+- **Pointer**: bars are `draggable`; a long press grabs one, moved along
+  time and across rows (onto another resource: `proposeMove` swaps the one
+  it was taken from); the ghost on the rows it would take (the row's
+  height, as the web). Held, its end's handle along time
+  (`pullHandle(axis: horizontal)`: the edge keeps its distance from the
+  finger); `canResize` — all-day, or a scale in minutes. Near an edge the
+  timeline scrolls both ways (`autoscroll`, as the time grid). A held
+  bar's ⋮ button at its start (on a 24 px bar it covered the handle).
+- **Keyboard** (`KeySurface`, `KeyGrid.timeline`): ← → along time by the
+  snap (a day on a day scale), ↑ ↓ the rows, Home/End the row's ends,
+  Shift to select, Tab through the events (rows, then time), the cursor
+  drawn in its row. Held: ← → move, ↑ ↓ to the next row, Shift+arrows its
+  end. PageUp/PageDown with `timeline.step` slide by it, the cursor with
+  it; else (and at the axis's edge) the period changes. The keyboard
+  navigates periods through the kernel, not the step's slide.
+- **Shared changes**: `KeySurface.hitGrid` (an event's edges as moments
+  or days, the web's `hitGrid`) beside `keyGrid`; `KeySurface.slide`;
+  `_focusEvent` reveals `cursorFor` (where the view draws it); after a
+  grab the cursor stays on the resource it was put down on (or taken
+  from). **Screen readers**: the held event's swipes step a snap (a day
+  on a day scale); "Previous/Next day", and in resource views
+  "Previous/Next resource" (`GrabInfo.across`; words fr/en/ar).
+- **Reviews**: architect — the cursor kept on its row after a grab; the
+  period by the kernel; divergences and limits written above. Code — a
+  step past midnight kept the day before (the hit's date now the
+  moment's); a period the keyboard went to was placed back on 07:00 after
+  its reveal (revealed once placed); a drag over a group's band had no
+  place; PageDown that moved the view less than a snap said "no further".
+- **Seen**: iPhone 17 Pro simulator (a drag from Ali's row onto Sara's,
+  the edge scrolling on; a held bar, its menu and handle), Android
+  `DzCalendar_Test` (Arabic, right to left: dragged rightwards is
+  earlier). The example's `DEMO_DX` moves the finger along time. The
+  keyboard's cursor: widget tests only (no hardware keyboard driven).
+- **Tests**: library 109 (+15 `timeline_editing_test`: drags both
+  directions, the handle, day scales, autoscroll both ways, the cursor,
+  grab across rows, Escape, Shift+arrows, RTL keys, PageDown slide and
+  period, past midnight, a group's band, a screen reader); core 1000,
+  showcase 27.
 
 ## 19j-2 — the timeline widget, reading ✅ (2026-11-11)
 

@@ -365,6 +365,12 @@ class _TimeGridViewState extends State<TimeGridView> implements DragSurface, Key
   KeyGrid get keyGrid => KeyGrid.time;
 
   @override
+  KeyGrid get hitGrid => KeyGrid.time;
+
+  @override
+  Hit? slide(Hit at, int direction) => null;
+
+  @override
   bool get allDayRow => _now.allDay.lanes > 0;
 
   @override

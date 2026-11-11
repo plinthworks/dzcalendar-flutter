@@ -201,6 +201,12 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface, KeySu
   KeyGrid get keyGrid => KeyGrid.day;
 
   @override
+  KeyGrid get hitGrid => KeyGrid.day;
+
+  @override
+  Hit? slide(Hit at, int direction) => null;
+
+  @override
   bool get allDayRow => false;
 
   @override

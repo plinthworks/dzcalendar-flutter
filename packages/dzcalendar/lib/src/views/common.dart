@@ -213,7 +213,8 @@ class EventGestures extends StatelessWidget {
       builder: (context, grab, child) {
         final l = env.l10n;
         if (grab != null && grab.key == key) {
-          final time = grab.grid == KeyGrid.time;
+          // A month steps by weeks; a time grid and a timeline by days.
+          final days = grab.grid != KeyGrid.day;
           return Semantics(
             label: label,
             value: grab.value,
@@ -226,8 +227,12 @@ class EventGestures extends StatelessWidget {
             onTap: k.readerPutDown,
             customSemanticsActions: {
               if (!k.grabbingLength) ...{
-                CustomSemanticsAction(label: time ? l.previousDay : l.previousWeek): () => k.readerDay(-1),
-                CustomSemanticsAction(label: time ? l.nextDay : l.nextWeek): () => k.readerDay(1),
+                CustomSemanticsAction(label: days ? l.previousDay : l.previousWeek): () => k.readerDay(-1),
+                CustomSemanticsAction(label: days ? l.nextDay : l.nextWeek): () => k.readerDay(1),
+                if (grab.across) ...{
+                  CustomSemanticsAction(label: l.previousResource): () => k.readerAcross(-1),
+                  CustomSemanticsAction(label: l.nextResource): () => k.readerAcross(1),
+                },
               },
               CustomSemanticsAction(label: l.putDown): k.readerPutDown,
               CustomSemanticsAction(label: l.cancelMove): k.readerCancel,
@@ -345,7 +350,9 @@ class _Held extends StatelessWidget {
                     // Where the finger went down: the edge keeps its distance from it.
                     dragStartBehavior: DragStartBehavior.down,
                     onVerticalDragStart: vertical ? (d) => x.pullHandle(instance, d.globalPosition) : null,
-                    onHorizontalDragStart: vertical ? null : (d) => x.pullHandle(instance, d.globalPosition),
+                    onHorizontalDragStart: vertical
+                        ? null
+                        : (d) => x.pullHandle(instance, d.globalPosition, axis: Axis.horizontal),
                     child: Center(
                       child: Container(
                         width: vertical ? 20 : 4,
@@ -356,10 +363,12 @@ class _Held extends StatelessWidget {
                   ),
                 ),
               ),
+            // Its menu at the top end; a bar along time (as tall as the button) at its start, clear of the handle.
             if (box.maxHeight >= 24 && box.maxWidth >= 40)
               PositionedDirectional(
                 top: 0,
-                end: 0,
+                start: vertical || axis == null ? null : 0,
+                end: vertical || axis == null ? 0 : null,
                 width: 24,
                 height: 24,
                 child: Semantics(

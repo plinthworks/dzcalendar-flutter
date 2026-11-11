@@ -9,6 +9,7 @@ import 'package:flutter/rendering.dart';
 import '../controller.dart' show timelineSliders;
 import '../env.dart';
 import '../interaction.dart';
+import '../keyboard.dart';
 import 'common.dart';
 
 /// A column of a timeline's resource area: a field of the resources, its
@@ -125,7 +126,7 @@ const _maxCol = 480.0;
 const _phoneArea = 112.0;
 const _initialsArea = 44.0;
 
-class _TimelineViewState extends State<TimelineView> implements DragSurface {
+class _TimelineViewState extends State<TimelineView> implements DragSurface, KeySurface {
   final _h = ScrollController();
   final _v = ScrollController();
   final _viewportKey = GlobalKey();
@@ -153,6 +154,9 @@ class _TimelineViewState extends State<TimelineView> implements DragSurface {
   /// Where a period brought in by ◀ ▶ (`timeline.step`) lands — its end going back, its start going on —
   /// tied to the period it left: if that period stays (navigation refused), it is never used.
   ({int direction, PlainDate from, String view})? _landing;
+
+  /// What the keyboard asked to see in a period not yet built: revealed once it is placed.
+  Hit? _revealLater;
 
   /// Narrower than a tablet: one narrow column (decision 63), by the calendar's own width — a narrow
   /// pane on a tablet is laid out as a phone.
@@ -188,6 +192,7 @@ class _TimelineViewState extends State<TimelineView> implements DragSurface {
   @override
   void dispose() {
     env.interaction.detach(this);
+    env.interaction.keyboard.detach(this);
     if (timelineSliders[env.controller] == _slide) timelineSliders[env.controller] = null;
     _h.dispose();
     _v.dispose();
@@ -241,23 +246,29 @@ class _TimelineViewState extends State<TimelineView> implements DragSurface {
 
   // ——— ◀ ▶ by `timeline.step` ———
 
-  bool _slide(int direction) {
+  bool _slide(int direction) => _slideBy(direction) != null;
+
+  /// Slides along time by `timeline.step` (short of it at the axis's edge):
+  /// where the scroll was and where it goes, in pixels. Null: no step, or
+  /// already at that edge — the period changes instead.
+  (double, double)? _slideBy(int direction, {bool animate = true}) {
     final step = env.controller.options.timeline.step;
-    if (step == null || !_h.hasClients || !mounted) return false;
+    if (step == null || !_h.hasClients || !mounted) return null;
     final p = _h.position;
     final px = step.inMilliseconds / (axis.slotMinutes * 60000) * _slotW;
     final atEdge = direction > 0 ? p.pixels >= p.maxScrollExtent - 0.5 : p.pixels <= p.minScrollExtent + 0.5;
     if (atEdge) {
       _landing = (direction: direction, from: env.state.date, view: env.state.view.type);
-      return false;
+      return null;
     }
-    final to = (p.pixels + direction * px).clamp(p.minScrollExtent, p.maxScrollExtent);
-    if (MediaQuery.disableAnimationsOf(context)) {
+    final from = p.pixels;
+    final to = (from + direction * px).clamp(p.minScrollExtent, p.maxScrollExtent);
+    if (!animate || MediaQuery.disableAnimationsOf(context)) {
       _h.jumpTo(to);
     } else {
       _h.animateTo(to, duration: const Duration(milliseconds: 250), curve: Curves.easeOutCubic);
     }
-    return true;
+    return (from, to);
   }
 
   /// Where the scroll goes for a new axis: a period brought in by ◀ ▶ at its
@@ -331,6 +342,7 @@ class _TimelineViewState extends State<TimelineView> implements DragSurface {
   @override
   Widget build(BuildContext context) {
     env.interaction.attach(this);
+    env.interaction.keyboard.attach(this);
     final scale = _scale(context);
     _laneH = env.style.laneHeight * scale;
     final headH = 52 * scale;
@@ -361,6 +373,14 @@ class _TimelineViewState extends State<TimelineView> implements DragSurface {
         _geo = _Geo(areaW: areaW, headH: headH, axisW: axis.length * _slotW, tops: tops);
         _moveWindow();
         _place();
+        if (_revealLater != null) {
+          // After the placing (its callback was added first).
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final r = _revealLater;
+            _revealLater = null;
+            if (r != null && mounted) reveal(r);
+          });
+        }
         _fillLanes(bodyH);
         if (_resources && model.rows.isEmpty) {
           return Center(child: Text(env.l10n.noResources));
@@ -425,6 +445,7 @@ class _TimelineViewState extends State<TimelineView> implements DragSurface {
       laneH: _laneH,
       window: _window,
       groupStarts: _groupStarts,
+      snapMs: _snapMs,
       onTap: (pos) => _tap(i, pos),
       onPress: (pos, global) => _press(i, pos, global),
     );
@@ -506,7 +527,22 @@ class _TimelineViewState extends State<TimelineView> implements DragSurface {
     final l = box.globalToLocal(global);
     final p = Offset(l.dx.clamp(body.left, body.right - 0.5), l.dy.clamp(body.top, body.bottom - 0.5));
     final along = (_rtl ? box.size.width - p.dx : p.dx) - _geo.areaW + _vx;
-    final row = _geo.rowAt(p.dy - _geo.headH + _vy);
+    var row = _geo.rowAt(p.dy - _geo.headH + _vy);
+    // Over a group's band: the row of events under it (the last band: the one above), so a drag goes on.
+    if (row < model.rows.length && model.rows[row] is TimelineGroupRow) {
+      var r = row + 1;
+      while (r < model.rows.length && model.rows[r] is TimelineGroupRow) {
+        r++;
+      }
+      if (r >= model.rows.length) {
+        r = row - 1;
+        while (r >= 0 && model.rows[r] is TimelineGroupRow) {
+          r--;
+        }
+      }
+      if (r < 0) return null;
+      row = r;
+    }
     return timelineHitAt(model, row, along / _slotW);
   }
 
@@ -544,12 +580,272 @@ class _TimelineViewState extends State<TimelineView> implements DragSurface {
     return out;
   }
 
+  /// Near an edge of the rows' time, the timeline scrolls that way: along
+  /// time at the start or end edge, through the rows at the top or bottom.
   @override
-  bool autoscroll(Offset global, double seconds) => false;
+  bool autoscroll(Offset g, double seconds) {
+    final box = _box;
+    if (box == null || !box.hasSize) return false;
+    final body = _bodyRect(box.size);
+    if (body.isEmpty) return false;
+    final area = box.localToGlobal(body.topLeft) & body.size;
+    const edge = 40.0;
+    const speed = 900.0; // pixels a second at the very edge
+    double push(double towardStart, double towardEnd) =>
+        towardStart < edge ? -(edge - towardStart) / edge : (towardEnd < edge ? (edge - towardEnd) / edge : 0);
+    bool scroll(ScrollController c, double by) {
+      if (by == 0 || !c.hasClients || c.positions.length != 1) return false;
+      final p = c.position;
+      final to = (p.pixels + by).clamp(p.minScrollExtent, p.maxScrollExtent);
+      if (to == p.pixels) return false;
+      c.jumpTo(to);
+      return true;
+    }
 
-  /// Lengths are changed on a timeline from 19j-3 (decision 61).
+    var moved = scroll(_v, push(g.dy - area.top, area.bottom - g.dy).clamp(-1.5, 1.5) * speed * seconds);
+    final toStart = _rtl ? area.right - g.dx : g.dx - area.left;
+    final toEnd = _rtl ? g.dx - area.left : area.right - g.dx;
+    moved |= scroll(_h, push(toStart, toEnd).clamp(-1.5, 1.5) * speed * seconds);
+    return moved;
+  }
+
+  /// A timeline counted in days draws a timed event's days only: its length is not changed there.
   @override
-  bool canResize(CalEvent event) => false;
+  bool canResize(CalEvent event) => event is AllDayEvent || axis.unit != TimelineUnit.day;
+
+  // ——— the keyboard's surface (decision 41): a cursor on a row, at a moment (or a day) ———
+
+  /// The model as the controller has it now: a period the keyboard just went to is known before it is built.
+  TimelineModel get _now => switch (env.controller.model) {
+    TimelineViewModel(:final model) => model,
+    _ => model,
+  };
+
+  int get _snapMs => math.max(1, env.config.snapMinutes) * 60000;
+
+  static ResourceId? _ownerOf(TimelineRow r) => r is TimelineResourceRow ? r.resource.id : null;
+
+  /// The row of [id] (a timeline without resources: its one row); not found, the first row drawn.
+  static int _rowOf(TimelineModel m, ResourceId? id) {
+    var first = -1;
+    for (var i = 0; i < m.rows.length; i++) {
+      final r = m.rows[i];
+      if (r is TimelineGroupRow) continue;
+      if (first < 0) first = i;
+      if (_ownerOf(r) == id) return i;
+    }
+    return first;
+  }
+
+  Hit _hitAtRow(TimelineModel m, int row, Instant at) {
+    final date = ZonedDateTime(at, env.zone).date;
+    final owner = _ownerOf(m.rows[row]);
+    return m.axis.unit == TimelineUnit.day
+        ? DayHit(date: date, resourceId: owner)
+        : SlotHit(date: date, instant: at, resourceId: owner);
+  }
+
+  Instant _instantOf(Hit h) => switch (h) {
+    SlotHit(:final instant) => instant,
+    DayHit(:final date) => date.startOfDayIn(env.zone),
+  };
+
+  Hit? _fitted(Hit h) => switch (fit(h)) {
+    FitAt(:final hit) => hit,
+    _ => null,
+  };
+
+  @override
+  KeyGrid get keyGrid => KeyGrid.timeline;
+
+  @override
+  KeyGrid get hitGrid => _now.axis.unit == TimelineUnit.day ? KeyGrid.day : KeyGrid.time;
+
+  @override
+  bool get allDayRow => false;
+
+  @override
+  bool get resourceView => _now.options.rows != null;
+
+  /// Now when it is in view; else the moment at the view's start edge, on the first row in view.
+  @override
+  Hit? home() {
+    final m = _now;
+    if (m.axis.slots.isEmpty) return null;
+    var i = _rowOf(m, null);
+    if (i < 0) return null;
+    if (identical(m, model) && _v.hasClients) {
+      for (var r = i; r < m.rows.length && r < _geo.rows; r++) {
+        if (m.rows[r] is! TimelineGroupRow && _geo.tops[r] >= _vy - 0.5) {
+          i = r;
+          break;
+        }
+      }
+    }
+    final along = identical(m, model) && _slotW > 0 ? _vx / _slotW : 0.0;
+    final shown = math.max(0.0, _room.width - _geo.areaW) / math.max(1.0, _slotW);
+    final now = env.controller.now();
+    final at = timelineNow(m, now);
+    final snap = _snapMs;
+    final Instant t;
+    if (at != null && at >= along && at < along + shown) {
+      t = Instant.fromEpochMilliseconds(now.epochMilliseconds ~/ snap * snap);
+    } else {
+      final edge = m.axis.fromPosition(math.min(along, math.max(0, m.axis.length - 1e-6))).epochMilliseconds;
+      t = Instant.fromEpochMilliseconds((edge + snap - 1) ~/ snap * snap);
+    }
+    return _fitted(_hitAtRow(m, i, t));
+  }
+
+  @override
+  KeyFit? fit(Hit hit) {
+    final m = _now;
+    if (m.axis.slots.isEmpty) return null;
+    final i = _rowOf(m, hit.resourceId);
+    if (i < 0) return null;
+    final t = _instantOf(hit).epochMilliseconds;
+    final s = m.axis.start.epochMilliseconds;
+    final e = m.axis.end.epochMilliseconds;
+    if (t < s) return const FitOff(next: false);
+    if (t >= e) return const FitOff(next: true);
+    final owner = _ownerOf(m.rows[i]);
+    if (m.axis.unit == TimelineUnit.day) {
+      final date = hit is DayHit ? hit.date : ZonedDateTime(Instant.fromEpochMilliseconds(t), env.zone).date;
+      return FitAt(DayHit(date: date, resourceId: owner));
+    }
+    final ms = math.max(s, math.min(t, e - _snapMs));
+    // A step along time keeps the hit's date (a time grid's column): here the date is the moment's own.
+    if (hit is SlotHit && ms == t && hit.resourceId == owner && hit.date == ZonedDateTime(hit.instant, env.zone).date) {
+      return FitAt(hit);
+    }
+    return FitAt(_hitAtRow(m, i, Instant.fromEpochMilliseconds(ms)));
+  }
+
+  @override
+  Hit lineEdge(Hit hit, Edge edge) {
+    final m = _now;
+    final i = _rowOf(m, hit.resourceId);
+    if (i < 0) return hit;
+    final at = edge == Edge.start
+        ? m.axis.start
+        : Instant.fromEpochMilliseconds(m.axis.end.epochMilliseconds - (m.axis.unit == TimelineUnit.day ? 1 : _snapMs));
+    return _fitted(_hitAtRow(m, i, at)) ?? hit;
+  }
+
+  @override
+  List<EventInstance> itemsAt(Hit hit) => const [];
+
+  /// A row's events in reading order: along time, then down its lanes.
+  static List<TimelineBar> _barsOf(TimelineRow r) {
+    final body = switch (r) {
+      TimelineResourceRow(:final body) => body,
+      TimelineAllRow(:final body) => body,
+      TimelineGroupRow() => null,
+    };
+    if (body == null) return const [];
+    return [...body.events]..sort((a, b) => a.from != b.from ? a.from.compareTo(b.from) : a.lane - b.lane);
+  }
+
+  @override
+  List<EventInstance> items() {
+    final seen = <String>{};
+    return [
+      for (final r in _now.rows)
+        for (final b in _barsOf(r))
+          if (seen.add(b.segment.instance.key)) b.segment.instance,
+    ];
+  }
+
+  @override
+  List<EventInstance> itemsAround(EventInstance instance) {
+    for (final r in _now.rows) {
+      final bars = _barsOf(r);
+      if (bars.any((b) => b.segment.instance.key == instance.key)) {
+        return [for (final b in bars) b.segment.instance];
+      }
+    }
+    return const [];
+  }
+
+  @override
+  Hit? cursorFor(EventInstance instance) {
+    final m = _now;
+    for (var i = 0; i < m.rows.length; i++) {
+      final bar = _barsOf(m.rows[i]).where((b) => b.segment.instance.key == instance.key).firstOrNull;
+      if (bar != null) return _fitted(_hitAtRow(m, i, m.axis.fromPosition(bar.from)));
+    }
+    return null;
+  }
+
+  @override
+  Hit? firstSlot(PlainDate date, ResourceId? resourceId) => null;
+
+  @override
+  Hit? stepAcross(Hit hit, int delta) {
+    final m = _now;
+    final drawn = [
+      for (var i = 0; i < m.rows.length; i++)
+        if (m.rows[i] is! TimelineGroupRow) i,
+    ];
+    final k = drawn.indexWhere((i) => _ownerOf(m.rows[i]) == hit.resourceId);
+    final n = (k < 0 ? 0 : k) + delta;
+    if (n < 0 || n >= drawn.length) return null;
+    return _fitted(_hitAtRow(m, drawn[n], _instantOf(hit)));
+  }
+
+  @override
+  void reveal(Hit hit) {
+    final m = _now;
+    // A period the keyboard just went to: once it is built and placed.
+    if (!identical(m, model)) {
+      _revealLater = hit;
+      return;
+    }
+    final i = _rowOf(m, hit.resourceId);
+    if (i < 0 || _slotW <= 0) return;
+    if (_h.hasClients) {
+      // Along time: a slot of room before it, two after.
+      final x = m.axis.toPosition(_instantOf(hit)) * _slotW;
+      final laneW = math.max(0.0, _room.width - _geo.areaW);
+      final p = _h.position;
+      double? to;
+      if (x < p.pixels + _slotW) {
+        to = x - _slotW;
+      } else if (x > p.pixels + laneW - 2 * _slotW) {
+        to = x - laneW + 2 * _slotW;
+      }
+      if (to != null) _h.jumpTo(to.clamp(p.minScrollExtent, p.maxScrollExtent));
+    }
+    if (_v.hasClients && identical(m, model) && i < _geo.rows) {
+      final top = _geo.tops[i];
+      final bottom = _geo.tops[i + 1];
+      final viewH = math.max(0.0, _room.height - _geo.headH);
+      final p = _v.position;
+      double? to;
+      if (top < p.pixels) {
+        to = top;
+      } else if (bottom > p.pixels + viewH) {
+        to = bottom - viewH;
+      }
+      if (to != null) _v.jumpTo(to.clamp(p.minScrollExtent, p.maxScrollExtent));
+    }
+  }
+
+  /// A timeline with a step slides by it (as ◀ ▶ do), the cursor by as much on the same row.
+  @override
+  Hit? slide(Hit at, int direction) {
+    // A cursor on days, or a period not yet built: the period changes.
+    if (at is! SlotHit || !identical(_now, model) || _slotW <= 0) return null;
+    final moved = _slideBy(direction, animate: false);
+    if (moved == null) return null;
+    final (from, to) = moved;
+    final ms = axis.fromPosition(to / _slotW).epochMilliseconds - axis.fromPosition(from / _slotW).epochMilliseconds;
+    final snap = _snapMs;
+    // Rounded away from nothing: a view that moved takes the cursor with it.
+    final by = ms.sign * (ms.abs() / snap).ceil() * snap;
+    if (by == 0) return at;
+    return _fitted(SlotHit(date: at.date, instant: at.instant.addMs(by), resourceId: at.resourceId)) ?? at;
+  }
 }
 
 // ——— the scroller and its viewport ———
@@ -1125,12 +1421,16 @@ class _RowBody extends StatelessWidget {
     required this.laneH,
     required this.window,
     required this.groupStarts,
+    required this.snapMs,
     required this.onTap,
     required this.onPress,
   });
   final CalendarEnv env;
   final TimelineModel model;
   final Set<int> groupStarts;
+
+  /// The keyboard cursor's length on a scale in minutes.
+  final int snapMs;
   final int index;
   final double slotW;
   final double laneH;
@@ -1220,6 +1520,21 @@ class _RowBody extends StatelessWidget {
                     height: laneH - 2,
                     child: _More(env: env, axis: axis, more: m),
                   ),
+              // The keyboard's cursor, when it is on this row.
+              ValueListenableBuilder<Hit?>(
+                valueListenable: env.interaction.keyboard.cursor,
+                builder: (context, hit, _) {
+                  final span = hit == null || hit.resourceId != owner ? null : _cursorSpan(hit);
+                  if (span == null) return const SizedBox.shrink();
+                  return PositionedDirectional(
+                    start: span.from * slotW,
+                    width: math.max(4, (span.to - span.from) * slotW),
+                    top: 1,
+                    bottom: 1,
+                    child: IgnorePointer(child: CursorBox(radius: style.eventRadius)),
+                  );
+                },
+              ),
               ValueListenableBuilder<Instant>(
                 valueListenable: env.now,
                 builder: (context, now, _) {
@@ -1239,6 +1554,26 @@ class _RowBody extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// The cursor's stretch, in positions: its slot on a scale in days, a snap's length on one in minutes.
+  TimelineSpan? _cursorSpan(Hit hit) {
+    final Instant at = switch (hit) {
+      SlotHit(:final instant) => instant,
+      DayHit(:final date) => date.startOfDayIn(env.zone),
+    };
+    if (at.isBefore(axis.start) || !at.isBefore(axis.end)) return null;
+    final from = axis.toPosition(at);
+    final double to;
+    if (hit is DayHit) {
+      final s = axis.slotAt(at);
+      to = s < 0 ? from + 1 : axis.toPosition(axis.slots[s].end);
+    } else {
+      to = axis.toPosition(
+        Instant.fromEpochMilliseconds(math.min(at.epochMilliseconds + snapMs, axis.end.epochMilliseconds)),
+      );
+    }
+    return TimelineSpan(from, math.max(to, from + 0.05));
   }
 
   /// The selection's stretch on this row, in positions; null when it is elsewhere.
@@ -1333,8 +1668,9 @@ class _RowPainter extends CustomPainter {
 }
 
 /// An event on its lane: a bar with its title (and its start, room
-/// permitting); a marker its line and its flag. Tap opens it, a long press
-/// its menu (moving on a timeline comes in 19j-3).
+/// permitting); a marker its line and its flag. Tap opens it; a long press
+/// grabs it (across rows: to another resource), held its end's handle
+/// changes its length along time.
 class _Bar extends StatelessWidget {
   const _Bar({required this.env, required this.bar});
   final CalendarEnv env;
@@ -1344,77 +1680,86 @@ class _Bar extends StatelessWidget {
   Widget build(BuildContext context) {
     final seg = bar.segment;
     final i = seg.instance;
-    final colors = env.colorsOf(i);
-    final style = env.style;
     final title = env.title(i);
     final when = env.span(i);
-    final radius = Radius.circular(style.eventRadius);
-    final marker = i.event.display == EventDisplay.marker;
     return EventGestures(
       env: env,
       instance: i,
       label: env.l10n.eventLabel(title, when),
-      child: LayoutBuilder(
-        builder: (context, box) {
-          final own = env.eventBuilder?.call(
-            context,
-            i,
-            EventInfo(
-              segment: seg,
-              size: box.biggest,
-              compact: box.maxWidth < 80,
-              color: colors.fill,
-              onColor: colors.on,
-              when: when,
-              held: false,
+      draggable: true,
+      resizeAxis: seg.endsHere ? Axis.horizontal : null,
+      // An app's look hears the held state itself (the gestures' builder reuses this child).
+      child: env.eventBuilder == null
+          ? LayoutBuilder(builder: (context, box) => _look(context, box, title, when))
+          : ValueListenableBuilder<String?>(
+              valueListenable: env.interaction.held,
+              builder: (context, _, _) => LayoutBuilder(builder: (context, box) => _look(context, box, title, when)),
             ),
-          );
-          if (own != null) return own;
-          if (marker) {
-            return Row(
-              children: [
-                Container(width: 2, color: colors.fill),
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    alignment: AlignmentDirectional.centerStart,
-                    decoration: BoxDecoration(
-                      color: colors.fill.withValues(alpha: 0.2),
-                      borderRadius: BorderRadiusDirectional.horizontal(end: radius),
-                    ),
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      softWrap: false,
-                      overflow: TextOverflow.clip,
-                      style: style.eventStyle.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }
-          final timed = i.event is TimedEvent;
-          final text = timed && seg.startsHere && box.maxWidth >= 96 ? '${env.time(seg.from)} $title' : title;
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            alignment: AlignmentDirectional.centerStart,
-            decoration: BoxDecoration(
-              color: colors.fill,
-              borderRadius: BorderRadiusDirectional.horizontal(
-                start: seg.startsHere ? radius : Radius.zero,
-                end: seg.endsHere ? radius : Radius.zero,
+    );
+  }
+
+  Widget _look(BuildContext context, BoxConstraints box, String title, String when) {
+    final seg = bar.segment;
+    final i = seg.instance;
+    final colors = env.colorsOf(i);
+    final style = env.style;
+    final radius = Radius.circular(style.eventRadius);
+    final own = env.eventBuilder?.call(
+      context,
+      i,
+      EventInfo(
+        segment: seg,
+        size: box.biggest,
+        compact: box.maxWidth < 80,
+        color: colors.fill,
+        onColor: colors.on,
+        when: when,
+        held: env.interaction.held.value == i.key,
+      ),
+    );
+    if (own != null) return own;
+    if (i.event.display == EventDisplay.marker) {
+      return Row(
+        children: [
+          Container(width: 2, color: colors.fill),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              alignment: AlignmentDirectional.centerStart,
+              decoration: BoxDecoration(
+                color: colors.fill.withValues(alpha: 0.2),
+                borderRadius: BorderRadiusDirectional.horizontal(end: radius),
+              ),
+              child: Text(
+                title,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.clip,
+                style: style.eventStyle.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            child: Text(
-              text,
-              maxLines: 1,
-              softWrap: false,
-              overflow: TextOverflow.clip,
-              style: style.eventStyle.copyWith(color: colors.on),
-            ),
-          );
-        },
+          ),
+        ],
+      );
+    }
+    final timed = i.event is TimedEvent;
+    final text = timed && seg.startsHere && box.maxWidth >= 96 ? '${env.time(seg.from)} $title' : title;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      alignment: AlignmentDirectional.centerStart,
+      decoration: BoxDecoration(
+        color: colors.fill,
+        borderRadius: BorderRadiusDirectional.horizontal(
+          start: seg.startsHere ? radius : Radius.zero,
+          end: seg.endsHere ? radius : Radius.zero,
+        ),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.clip,
+        style: style.eventStyle.copyWith(color: colors.on),
       ),
     );
   }

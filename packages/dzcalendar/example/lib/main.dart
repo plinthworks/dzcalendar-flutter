@@ -3,6 +3,7 @@
 //   SCREEN=calendar|mini|slots  VIEW=timeGridWeek  LOCALE=fr|en|ar
 //   DATE=2026-11-09  ZONE=Europe/Paris  DARK=true  SCROLL=7 (the hour at the top)
 //   VIEW=resourceTimelineDay|resourceTimelineWeek: the doctors under their departments
+//   DEMO=drag|held|drop|select  DEMO_ON=<title start>  DEMO_BY=96 (down)  DEMO_DX=0 (along)
 // The clock is frozen at DATE 10:20 in ZONE.
 import 'package:dzcalendar/dzcalendar.dart';
 import 'package:flutter/gestures.dart';
@@ -22,6 +23,9 @@ const _scroll = int.fromEnvironment('SCROLL', defaultValue: 7);
 const _demo = String.fromEnvironment('DEMO');
 const _demoOn = String.fromEnvironment('DEMO_ON', defaultValue: 'Consultation');
 const _demoBy = int.fromEnvironment('DEMO_BY', defaultValue: 96);
+
+/// How far the finger goes sideways (a timeline: along time).
+const _demoDx = int.fromEnvironment('DEMO_DX');
 
 void main() => runApp(const ExampleApp());
 
@@ -204,7 +208,7 @@ class _HomeState extends State<Home> {
     }
     var p = from;
     for (var k = 1; k <= 12; k++) {
-      final next = from + Offset(0, _demoBy * k / 12);
+      final next = from + Offset(_demoDx * k / 12, _demoBy * k / 12);
       send(PointerMoveEvent(pointer: 7, position: next, delta: next - p, timeStamp: t));
       p = next;
       await wait(30);

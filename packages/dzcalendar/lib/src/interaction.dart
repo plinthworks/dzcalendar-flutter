@@ -202,9 +202,10 @@ class CalendarInteraction {
     }
   }
 
-  /// A held event's handle pulled: its end follows the finger.
-  void pullHandle(EventInstance i, Offset global) {
-    if (mayResize(i.event)) _start(_Kind.resize, global, instance: i, moved: true);
+  /// A held event's handle pulled: its end follows the finger. [axis]: the
+  /// way its length runs (down a time grid, along a timeline or a week row).
+  void pullHandle(EventInstance i, Offset global, {Axis axis = Axis.vertical}) {
+    if (mayResize(i.event)) _start(_Kind.resize, global, instance: i, moved: true, along: axis);
   }
 
   /// The held event's button.
@@ -234,6 +235,7 @@ class CalendarInteraction {
     Hit? hit,
     ActionTarget? target,
     bool moved = false,
+    Axis along = Axis.vertical,
   }) {
     final s = _surface;
     final pointer = _pointerAt(global);
@@ -252,9 +254,15 @@ class CalendarInteraction {
       instance: instance,
       target: target,
     )..moved = moved;
-    if (kind == _Kind.resize && instance != null && !instance.event.allDay) {
+    if (kind == _Kind.resize && instance != null) {
+      // The edge keeps its distance from the finger: read at the end's box, a pixel inside it.
       final boxes = s.boxesFor(instance.event);
-      if (boxes.isNotEmpty) _drag!.shift = Offset(0, boxes.last.rect.bottom - 1 - global.dy);
+      if (boxes.isNotEmpty && along == Axis.horizontal) {
+        final r = boxes.last.rect;
+        _drag!.shift = Offset((env.textDirection == TextDirection.rtl ? r.left + 1 : r.right - 1) - global.dx, 0);
+      } else if (boxes.isNotEmpty && !instance.event.allDay) {
+        _drag!.shift = Offset(0, boxes.last.rect.bottom - 1 - global.dy);
+      }
     }
     // A landing cut short leaves nothing lifted but this gesture's event.
     lifted.value = instance?.key;

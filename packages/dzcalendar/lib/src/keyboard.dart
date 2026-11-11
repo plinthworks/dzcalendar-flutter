@@ -35,7 +35,12 @@ final class FitOff extends KeyFit {
 /// [CalendarKeyboard.cursor]. Read from the controller's current model, so
 /// a period the keyboard just went to is known before it is built.
 abstract interface class KeySurface {
+  /// How keys read here (a timeline: left and right along time, up and down the rows).
   KeyGrid get keyGrid;
+
+  /// What an event's edges are as hits: moments ([KeyGrid.time]) or days
+  /// ([KeyGrid.day]: a month, a timeline counted in days).
+  KeyGrid get hitGrid;
 
   /// Where the cursor stands when the calendar first takes the focus: today
   /// if shown (the slot of now when in view), else the first day.
@@ -74,6 +79,10 @@ abstract interface class KeySurface {
 
   /// Scrolls so that [hit] is in view.
   void reveal(Hit hit);
+
+  /// PageUp or PageDown on a timeline with a `timeline.step`: the view slides
+  /// along time by it, and [at] with it. Null: the period changes instead.
+  Hit? slide(Hit at, int direction);
 }
 
 /// What the held event's semantics say and do while the keyboard or a
@@ -86,6 +95,7 @@ final class GrabInfo {
     required this.increased,
     required this.decreased,
     required this.grid,
+    this.across = false,
   });
   final String key;
 
@@ -97,9 +107,13 @@ final class GrabInfo {
   final String decreased;
   final KeyGrid grid;
 
+  /// A resource view: it can go to the resource before or after.
+  final bool across;
+
   @override
   bool operator ==(Object other) =>
       other is GrabInfo &&
+      other.across == across &&
       other.key == key &&
       other.value == value &&
       other.increased == increased &&
@@ -107,11 +121,13 @@ final class GrabInfo {
       other.grid == grid;
 
   @override
-  int get hashCode => Object.hash(key, value, increased, decreased, grid);
+  int get hashCode => Object.hash(key, value, increased, decreased, grid, across);
 }
 
 class _Grab {
-  _Grab({required this.instance, required this.mode, required this.resourceId}) : event = instance.event;
+  _Grab({required this.instance, required this.mode, required this.resourceId})
+    : event = instance.event,
+      takenFrom = resourceId;
   final EventInstance instance;
 
   /// The event as the last step left it.
@@ -127,6 +143,9 @@ class _Grab {
 
   /// In a resource view, the column it is in now.
   ResourceId? resourceId;
+
+  /// In a resource view, the column it was taken from (where a let-go returns the cursor).
+  final ResourceId? takenFrom;
 
   /// The calendar had the focus while it was held: losing it lets go.
   var focused = false;
@@ -404,8 +423,8 @@ class CalendarKeyboard {
       case LineKeyIntent(:final edge, :final extend):
         return _moveCursor(at, s.lineEdge(at, edge), extend, s);
       case AcrossKeyIntent(:final delta):
-        // Not a resource view: Alt+arrows are not the calendar's.
-        if (!s.resourceView) return false;
+        // Not a resource view: Alt+arrows are not the calendar's (a timeline's up and down are: one row, said).
+        if (!s.resourceView && s.keyGrid != KeyGrid.timeline) return false;
         return _moveCursor(at, s.stepAcross(at, delta), false, s);
       case PeriodKeyIntent(:final next):
         return _period(at, next, s);
@@ -498,7 +517,8 @@ class CalendarKeyboard {
     final c = _env.controller;
     final before = c.state.range.start;
     _ownNavs++;
-    next ? c.next() : c.previous();
+    // The period itself, as the web's keyboard: not a timeline's slide by its step (PageUp/Down asked for that first).
+    c.kernel.navigate(next ? NavDirection.next : NavDirection.prev);
     // Nowhere to go (a valid range's end): nothing will be told, nothing to wait for.
     if (c.state.range.start == before) _ownNavs--;
   }
@@ -506,6 +526,9 @@ class CalendarKeyboard {
   /// PageUp / PageDown: the period before or after, the cursor's date moved by
   /// the view's own step (a month: the 31st becomes the 30th).
   bool _period(Hit at, bool next, KeySurface s) {
+    // A timeline with a step slides by it, as ◀ ▶ do; the cursor goes on by as much, on the same row.
+    final slid = s.slide(at, next ? 1 : -1);
+    if (slid != null) return _moveCursor(at, slid, false, s);
     final c = _env.controller;
     final before = c.state;
     final spec = before.view;
@@ -559,7 +582,8 @@ class CalendarKeyboard {
   void _focusEvent(EventInstance i, KeySurface s, {bool quiet = false}) {
     _event = i;
     final ev = i.event;
-    s.reveal(eventHit(ev, Edge.start, displayZone: _zone, grid: s.keyGrid));
+    // Where the view draws it (its row, its first day in view); else where it starts.
+    s.reveal(s.cursorFor(i) ?? eventHit(ev, Edge.start, displayZone: _zone, grid: s.hitGrid));
     _redraw();
     if (!quiet) _say(_l.eventLabel(_env.title(i), _env.span(i)));
   }
@@ -714,22 +738,15 @@ class CalendarKeyboard {
       increased: _readerOn ? _readerPreview(g, s, 1) : _l.noFurther,
       decreased: _readerOn ? _readerPreview(g, s, -1) : _l.noFurther,
       grid: s.keyGrid,
+      across: s.resourceView,
     );
     final edge = eventHit(
       g.event,
       g.kind == GrabKind.resize ? g.edge : Edge.start,
       displayZone: _zone,
-      grid: s.keyGrid,
+      grid: s.hitGrid,
     );
-    final r = g.resourceId;
-    s.reveal(
-      r == null
-          ? edge
-          : switch (edge) {
-              SlotHit() => SlotHit(date: edge.date, instant: edge.instant, gap: edge.gap, resourceId: r),
-              DayHit() => DayHit(date: edge.date, allDayRow: edge.allDayRow, resourceId: r),
-            },
-    );
+    s.reveal(_onResource(edge, g.resourceId));
   }
 
   /// The proposal against the event as it was taken (what `isUnchanged`,
@@ -799,7 +816,7 @@ class CalendarKeyboard {
     Hit? landed;
     final p = grabStep(
       _ctx(),
-      s.keyGrid,
+      s.hitGrid,
       g.event,
       by,
       edge: kind == GrabKind.resize ? edge : null,
@@ -839,7 +856,7 @@ class CalendarKeyboard {
     Hit? landed;
     final p = grabStep(
       _ctx(),
-      s.keyGrid,
+      s.hitGrid,
       g.event,
       const KeyStep(),
       fit: (_, from) => landed = s.resourceView ? s.stepAcross(from, delta) : null,
@@ -860,7 +877,7 @@ class CalendarKeyboard {
     final resize = g.kind == GrabKind.resize;
     final p = grabStep(
       _ctx(),
-      s.keyGrid,
+      s.hitGrid,
       g.event,
       const KeyStep(),
       edge: resize ? g.edge : null,
@@ -898,9 +915,13 @@ class CalendarKeyboard {
     }
     if (_disposed) return;
     final ev = done ? p.proposed : g.instance.event;
+    // On the resource it was put down on (refused: the one it was taken from).
     _refocus(
       g.instance.event.id,
-      eventHit(ev, Edge.start, displayZone: _zone, grid: _surface?.keyGrid ?? KeyGrid.time),
+      _onResource(
+        eventHit(ev, Edge.start, displayZone: _zone, grid: _surface?.hitGrid ?? KeyGrid.time),
+        done ? g.resourceId : g.takenFrom,
+      ),
     );
   }
 
@@ -913,7 +934,10 @@ class CalendarKeyboard {
     if (said) _say(_l.grabCancelled);
     _refocus(
       g.instance.event.id,
-      eventHit(g.instance.event, Edge.start, displayZone: _zone, grid: _surface?.keyGrid ?? KeyGrid.time),
+      _onResource(
+        eventHit(g.instance.event, Edge.start, displayZone: _zone, grid: _surface?.hitGrid ?? KeyGrid.time),
+        g.takenFrom,
+      ),
     );
   }
 
@@ -949,17 +973,25 @@ class CalendarKeyboard {
     _step(kind, kind == GrabKind.resize ? Edge.end : Edge.start, step, mayNavigate: false);
   }
 
-  /// A swipe's step: a slot in a time grid, a day for an all-day event or in a month.
+  /// A swipe's step: a slot in a time grid or a timeline counted in time, a
+  /// day for an all-day event, in a month or a timeline counted in days.
   static KeyStep _readerStepOf(_Grab g, KeySurface s, int dir) =>
-      s.keyGrid == KeyGrid.time && !g.event.allDay ? KeyStep(slots: dir) : KeyStep(days: dir);
+      s.hitGrid == KeyGrid.time && !g.event.allDay ? KeyStep(slots: dir) : KeyStep(days: dir);
 
   /// The day (a month: the week) before or after; held to change its length, none.
   void readerDay(int dir) {
     final g = _grab;
     final s = _surface;
     if (g == null || s == null || _committing || g.mode == GrabKind.resize) return;
-    final step = KeyStep(days: s.keyGrid == KeyGrid.time ? dir : 7 * dir);
+    final step = KeyStep(days: s.keyGrid == KeyGrid.day ? 7 * dir : dir);
     _step(GrabKind.move, Edge.start, step, mayNavigate: false);
+  }
+
+  /// The resource before or after (a resource view); held to change its length, none.
+  void readerAcross(int dir) {
+    final g = _grab;
+    if (g == null || _committing || g.mode == GrabKind.resize) return;
+    _across(dir);
   }
 
   /// A double tap on the held event: put down.
@@ -977,6 +1009,14 @@ class CalendarKeyboard {
     held.dispose();
   }
 }
+
+/// [h] in [resource]'s column or row (none: as it is).
+Hit _onResource(Hit h, ResourceId? resource) => resource == null
+    ? h
+    : switch (h) {
+        SlotHit() => SlotHit(date: h.date, instant: h.instant, gap: h.gap, resourceId: resource),
+        DayHit() => DayHit(date: h.date, allDayRow: h.allDayRow, resourceId: resource),
+      };
 
 const _repeats = {'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'};
 
