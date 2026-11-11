@@ -16,6 +16,11 @@ import 'package:flutter/foundation.dart';
 ///
 /// Configuration errors (an unknown zone or view) throw an [ArgumentError]
 /// when given, as the kernel's; data never does.
+/// The timeline on screen slides by its step (direction -1 or 1): true when
+/// it moved, false at the period's edge (the period changes then). Set by
+/// the calendar's timeline while it is shown, per controller; not exported.
+final timelineSliders = Expando<bool Function(int direction)>('timeline slider');
+
 class CalendarController extends ChangeNotifier {
   CalendarController(KernelOptions options, {this.followAppLocale = true, this.onEventChange, this.onCommandRefused})
     : kernel = CalendarKernel(_withErrors(options)),
@@ -134,8 +139,20 @@ class CalendarController extends ChangeNotifier {
   // ——— changing ———
 
   void setView(String type, [PlainDate? at]) => kernel.setView(type, at);
-  void previous() => kernel.navigate(NavDirection.prev);
-  void next() => kernel.navigate(NavDirection.next);
+
+  /// The previous period — or, on a timeline with `timeline.step`, the
+  /// axis slid back by it; at the period's start, the period before.
+  void previous() {
+    if (timelineSliders[this]?.call(-1) ?? false) return;
+    kernel.navigate(NavDirection.prev);
+  }
+
+  /// The next period — or the axis slid on by `timeline.step` (see [previous]).
+  void next() {
+    if (timelineSliders[this]?.call(1) ?? false) return;
+    kernel.navigate(NavDirection.next);
+  }
+
   void today() => kernel.navigate(NavDirection.today);
   void goTo(PlainDate date) => kernel.navigate(NavDirection.to(date));
   void setTimeZone(ZoneId zone) => kernel.setTimeZone(zone);

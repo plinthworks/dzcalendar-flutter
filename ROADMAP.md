@@ -2,12 +2,13 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19j-1 done (2026-11-10)**: the timeline's core (decisions
-  61–64). See its section below. **Next: 19j-2**, the timeline widget
-  reading (decisions 61–63): `DzCalendar` draws the family, our own
-  `TwoDimensionalViewport`, the resource area narrow on phones; it applies
-  `timeline.step` (◀ ▶ slide) and `timeline.span` (slot width), and adds
-  `onResourceToggle` over `kernel.toggleResourceRow`/`toggleGroupRow`.
+- **Phase 19j-2 done (2026-11-11)**: the timeline widget, reading
+  (decisions 61–63). See its section below. **Next: 19j-3**, editing on
+  the timeline: move and resize across rows (bars `draggable`, `canResize`,
+  the ghost at a lane's height, autoscroll both ways), the keyboard's
+  surface (`KeySurface`, `KeyGrid.timeline`), screen readers.
+- **Phase 19j-1 done (2026-11-10)**, committed ("Phase 19j-1"): the
+  timeline's core (decisions 61–64).
 - **Phase 19i done (2026-11-10)**, committed ("Phase 19i-1", "Phase
   19i-2"): the source manager (decisions 54–60). See its section below.
 - **Phase 19h done (2026-11-10)**, committed ("Phase 19h"): the Hijri
@@ -41,6 +42,13 @@
   timeline's `hitAt` clamps to `axis.length - 1e-6` slots, which on a
   5-minute scale is 0.3 ms and rounds to `axis.end` — the next midnight, a
   day outside the axis. The port clamps in milliseconds (`end - 1`).
+- **To propose to the main repository** (divergences, 19j-2): a phone's
+  resource area of one narrow column with an initials mode (decision 63);
+  "+N" opens the day's sheet; the day's name kept in view inside its day;
+  slot labels thinned to about 40 px; a period brought in by ◀ ▶
+  (`timeline.step`) opens at its start (or its end going back), not where
+  the slide would have gone. As the web: `fillLanes` written into the
+  options from the view's height.
 - **To propose to the main repository** (divergences, 19j-1): folding rows
   in the kernel (`toggleResourceRow`, `toggleGroupRow`; the web's view does
   it); a fold reuses rows only for the same event filter and problem
@@ -700,6 +708,63 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19j-2 — the timeline widget, reading ✅ (2026-11-11)
+
+- **`TimelineView`** (`lib/src/views/timeline_view.dart`), drawn by
+  `DzCalendar` for the `timeline` family (decision 61): our own
+  `TwoDimensionalScrollView` and `RenderTwoDimensionalViewport` (decision
+  62) — (0, 0) the area's head, (1, 0) the time heads pinned on top,
+  (0, r+1) the area cells pinned at the start, (1, r+1) the row bodies;
+  paint and hit order put what is pinned over what scrolls; right to left
+  through the horizontal axis direction. Rows built where seen (and the
+  cache extent); along time, bars, labels and lines only in a window (the
+  view and half a view each side, moved by half views; slots found by the
+  axis's search, not a walk).
+- **What it draws**: days (or months) over slots, the day's name kept in
+  view; bars on lanes (title, its start when there is room; markers a line
+  and a flag), backgrounds, "+N" (the day's sheet), off hours, the
+  selection, the now line; the area — the tree's depth, folds
+  (`kernel.toggleResourceRow`/`toggleGroupRow`, then
+  `DzCalendar.onResourceToggle`), groups, "Unassigned". Tablets and
+  desktops: `resourceAreaColumns` with width handles (40–480 px, the area
+  at most 60 % of the width). Under 600 px of the calendar's own width (a
+  phone, a narrow pane): one column, a button for initials (decision 63).
+  Without resources: one row as tall as the view, `fillLanes` from it.
+- **Gestures (reading)**: a tap on empty time selects its slot (a day on a
+  day scale), told to `onDateTap`/`onSelect`; a long press the menu (or a
+  drag-select with `selectable`); bars open on tap, their menu on a long
+  press (moving them: 19j-3). The view is the gestures' `DragSurface`
+  (`hitAt`, `boxesFor`); no `autoscroll`, no resize yet.
+- **◀ ▶ with `timeline.step`**: the axis slides by it; at the period's
+  edge the next (previous) period opens at its start (end). Through an
+  unexported registry on the controller (`timelineSliders`, an `Expando`).
+  The scroll opens on today's `scrollHour` (a day scale: today, two
+  columns in), placed again for another axis, kept at another slot width.
+- **Theme**: `timelineSlotWidth` 44, `timelineDayWidth` 36, `laneHeight`
+  26, `resourceAreaWidth` 160 (the web's sizes). **Words**: resources,
+  show/hide under a row, names/initials; the views named "Chronologie
+  (jour)", "Timeline (day)", "خط زمني (يوم)". **Exports**:
+  `TimelineSettings`, `TimelineScale`, `DayScale`, `MinuteScale`,
+  `timelineViews`, `ResourceAreaColumn`, `ResourceToggleCallback`.
+- **Reviews**: code — the scroll never placed when the first drawing had
+  no rows (placed only once a scroller exists); every slot walked on each
+  row's paint (the window's range by search, day starts once per axis);
+  the keyboard not following a tap. Architect — the controller's hook made
+  unexported; phone or tablet by the calendar's width; the landing tied to
+  the period it left (never used if navigation is refused); the scroll
+  kept at another slot width. Kept as the web: `fillLanes` in the options.
+  For 19j-3: the ghost at a lane's height, autoscroll, the fold buttons
+  (28 px, above the 24 px minimum) to grow with the row heads' semantics.
+- **Seen**: iPhone 17 Pro simulator (French day, Arabic dark week: the
+  area at the right, time leftwards), Android emulator `DzCalendar_Test`
+  (French week). The example app shows the timeline views
+  (`VIEW=resourceTimelineDay`: doctors under their departments).
+- **Tests**: library 94 (+14 `timeline_widgets_test`: places and lengths
+  reasoned in pixels, taps in both directions, folds, the step's slide and
+  the next period, fill lanes, "+N", the phone and a narrow pane, 200
+  resources windowed, resources arriving late, a resize); core 1000,
+  showcase 27.
 
 ## 19j-1 — the timeline's core ✅ (2026-11-10)
 

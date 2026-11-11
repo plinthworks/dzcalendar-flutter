@@ -37,6 +37,10 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
     this.barHeight,
     this.eventRadius,
     this.gutterWidth,
+    this.timelineSlotWidth,
+    this.timelineDayWidth,
+    this.laneHeight,
+    this.resourceAreaWidth,
     this.tones,
   });
 
@@ -102,6 +106,18 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
   /// The time grid's hours column.
   final double? gutterWidth;
 
+  /// A timeline's slot on a scale of minutes (unless `timeline.span` sets it). Default 44.
+  final double? timelineSlotWidth;
+
+  /// A timeline's day on a scale of days. Default 36.
+  final double? timelineDayWidth;
+
+  /// A timeline's lane: room for one bar (at least 24 px tall, a target's size). Default 26.
+  final double? laneHeight;
+
+  /// A timeline's resource area on tablets and desktops (a phone's is narrow). Default 160.
+  final double? resourceAreaWidth;
+
   /// Every field filled: this extension of [context]'s theme over the
   /// values taken from its color scheme and text theme.
   static DzCalendarStyle of(BuildContext context) {
@@ -139,6 +155,10 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
       barHeight: ext?.barHeight ?? 18,
       eventRadius: ext?.eventRadius ?? 4,
       gutterWidth: ext?.gutterWidth ?? 48,
+      timelineSlotWidth: ext?.timelineSlotWidth ?? 44,
+      timelineDayWidth: ext?.timelineDayWidth ?? 36,
+      laneHeight: ext?.laneHeight ?? 26,
+      resourceAreaWidth: ext?.resourceAreaWidth ?? 160,
       tones: ext?.tones ?? const {},
     );
   }
@@ -170,6 +190,10 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
     double? barHeight,
     double? eventRadius,
     double? gutterWidth,
+    double? timelineSlotWidth,
+    double? timelineDayWidth,
+    double? laneHeight,
+    double? resourceAreaWidth,
     Map<String, Color>? tones,
   }) => DzCalendarTheme(
     eventColor: eventColor ?? this.eventColor,
@@ -197,6 +221,10 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
     barHeight: barHeight ?? this.barHeight,
     eventRadius: eventRadius ?? this.eventRadius,
     gutterWidth: gutterWidth ?? this.gutterWidth,
+    timelineSlotWidth: timelineSlotWidth ?? this.timelineSlotWidth,
+    timelineDayWidth: timelineDayWidth ?? this.timelineDayWidth,
+    laneHeight: laneHeight ?? this.laneHeight,
+    resourceAreaWidth: resourceAreaWidth ?? this.resourceAreaWidth,
     tones: tones ?? this.tones,
   );
 
@@ -232,6 +260,10 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
       barHeight: d(barHeight, other.barHeight),
       eventRadius: d(eventRadius, other.eventRadius),
       gutterWidth: d(gutterWidth, other.gutterWidth),
+      timelineSlotWidth: d(timelineSlotWidth, other.timelineSlotWidth),
+      timelineDayWidth: d(timelineDayWidth, other.timelineDayWidth),
+      laneHeight: d(laneHeight, other.laneHeight),
+      resourceAreaWidth: d(resourceAreaWidth, other.resourceAreaWidth),
       tones: t < 0.5 ? tones : other.tones,
     );
   }
@@ -266,6 +298,10 @@ class DzCalendarStyle {
     required this.barHeight,
     required this.eventRadius,
     required this.gutterWidth,
+    required this.timelineSlotWidth,
+    required this.timelineDayWidth,
+    required this.laneHeight,
+    required this.resourceAreaWidth,
     required this.tones,
   });
   final Map<String, Color> tones;
@@ -294,4 +330,8 @@ class DzCalendarStyle {
   final double barHeight;
   final double eventRadius;
   final double gutterWidth;
+  final double timelineSlotWidth;
+  final double timelineDayWidth;
+  final double laneHeight;
+  final double resourceAreaWidth;
 }

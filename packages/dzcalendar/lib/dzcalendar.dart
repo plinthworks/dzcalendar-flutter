@@ -23,6 +23,7 @@ export 'package:dzcalendar_core/dzcalendar_core.dart'
         ModelOptions,
         TimeGridSettings,
         DayGridSettings,
+        TimelineSettings,
         AxisMode,
         CalendarRules,
         TitleFormat,
@@ -161,6 +162,7 @@ export 'package:dzcalendar_core/slots.dart'
         busyFromEvents,
         checkSlot,
         findSlots;
+export 'package:dzcalendar_core/timeline.dart' show DayScale, MinuteScale, TimelineScale, timelineViews;
 
 export 'src/calendar.dart' show CalendarHeader, DzCalendar;
 export 'src/controller.dart' show CalendarController, ChangedItem, EventChange, EventChangeCause;
@@ -176,3 +178,4 @@ export 'src/l10n/localizations.dart'
 export 'src/mini_month.dart' show MiniMonth;
 export 'src/slot_picker.dart' show SlotPicker;
 export 'src/theme.dart' show DzCalendarStyle, DzCalendarTheme;
+export 'src/views/timeline_view.dart' show ResourceAreaColumn, ResourceToggleCallback;

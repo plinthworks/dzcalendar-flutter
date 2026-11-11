@@ -2,6 +2,7 @@
 // screenshot can be made again exactly:
 //   SCREEN=calendar|mini|slots  VIEW=timeGridWeek  LOCALE=fr|en|ar
 //   DATE=2026-11-09  ZONE=Europe/Paris  DARK=true  SCROLL=7 (the hour at the top)
+//   VIEW=resourceTimelineDay|resourceTimelineWeek: the doctors under their departments
 // The clock is frozen at DATE 10:20 in ZONE.
 import 'package:dzcalendar/dzcalendar.dart';
 import 'package:flutter/gestures.dart';
@@ -80,11 +81,19 @@ class _HomeState extends State<Home> {
       initialView: _view,
       now: () => _now,
       events: _events(_day),
-      resources: const [
-        ResourceInput(id: 'ali', title: 'Dr Ali'),
-        ResourceInput(id: 'sara', title: 'Dr Sara'),
-        ResourceInput(id: 'nour', title: 'Dr Nour'),
-      ],
+      resources: _view.contains('imeline')
+          ? const [
+              ResourceInput(id: 'cardio', title: 'Cardiologie'),
+              ResourceInput(id: 'ali', title: 'Dr Ali Benali', parentId: 'cardio'),
+              ResourceInput(id: 'sara', title: 'Dr Sara Haddad', parentId: 'cardio'),
+              ResourceInput(id: 'pedia', title: 'Pédiatrie'),
+              ResourceInput(id: 'nour', title: 'Dr Nour Kaci', parentId: 'pedia'),
+            ]
+          : const [
+              ResourceInput(id: 'ali', title: 'Dr Ali'),
+              ResourceInput(id: 'sara', title: 'Dr Sara'),
+              ResourceInput(id: 'nour', title: 'Dr Nour'),
+            ],
       options: ModelOptions(
         timeGrid: const TimeGridSettings(slotMinutes: 30),
         businessHours: BusinessHours([
@@ -131,6 +140,8 @@ class _HomeState extends State<Home> {
           'listWeek',
           'multiMonthYear',
           'resourceTimeGridDay',
+          'resourceTimelineDay',
+          'resourceTimelineWeek',
         ],
         editable: true,
         selectable: true,

@@ -13,10 +13,11 @@ import 'views/day_grid_view.dart';
 import 'views/list_view.dart';
 import 'views/multi_month_view.dart';
 import 'views/time_grid_view.dart';
+import 'views/timeline_view.dart';
 
 /// The calendar: a header (previous, next, today, the title, the views) over
-/// the controller's current view — month, week, day, list or year (owner's
-/// decision 30, 2026-11-09). A horizontal swipe goes to the previous or next
+/// the controller's current view — month, week, day, list, year or timeline
+/// (owner's decisions 30 and 61). A horizontal swipe goes to the previous or next
 /// period. The words come from [DzCalendarLocalizations], the style from
 /// [DzCalendarTheme].
 class DzCalendar extends StatefulWidget {
@@ -40,6 +41,8 @@ class DzCalendar extends StatefulWidget {
     this.snapMinutes = 15,
     this.dayView = 'timeGridDay',
     this.keyboardUndo = true,
+    this.resourceAreaColumns = const [],
+    this.onResourceToggle,
   }) : assert(snapMinutes > 0);
 
   final CalendarController controller;
@@ -103,6 +106,15 @@ class DzCalendar extends StatefulWidget {
   /// the app.
   /// `controller.undo()` is never gated.
   final bool keyboardUndo;
+
+  /// A resource timeline's area: its columns (tablets, desktops; a phone
+  /// shows the title alone). Empty: one column, the title.
+  final List<ResourceAreaColumn> resourceAreaColumns;
+
+  /// A timeline's row folded or unfolded: what is collapsed now, for an
+  /// application that keeps it (`ModelOptions.collapsedResources`,
+  /// `collapsedGroups`).
+  final ResourceToggleCallback? onResourceToggle;
 
   @override
   State<DzCalendar> createState() => _DzCalendarState();
@@ -234,7 +246,8 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver, Ti
         ..env = env
         ..context = context;
       Widget body = _body(env);
-      if (widget.swipeToNavigate) {
+      // A timeline scrolls sideways itself: no swipe between periods there.
+      if (widget.swipeToNavigate && widget.controller.model is! TimelineViewModel) {
         final x = _interaction;
         // No swipe while an event is held or dragged (decision 35).
         body = ListenableBuilder(
@@ -287,7 +300,14 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver, Ti
     DayGridViewModel(:final model) => DayGridView(env: env, model: model),
     ListViewModel(:final model) => CalendarListView(env: env, model: model),
     MultiMonthViewModel(:final model) => MultiMonthView(env: env, model: model),
-    // A family these widgets do not draw (the timeline, an app's own): said in debug builds.
+    TimelineViewModel(:final model) => TimelineView(
+      env: env,
+      model: model,
+      scrollHour: widget.scrollHour,
+      columns: widget.resourceAreaColumns,
+      onResourceToggle: widget.onResourceToggle,
+    ),
+    // A family these widgets do not draw (an app's own): said in debug builds.
     final other =>
       kDebugMode
           ? Center(child: Text('DzCalendar: the ${other.family} family is not drawn', textAlign: TextAlign.center))

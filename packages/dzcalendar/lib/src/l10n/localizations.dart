@@ -155,6 +155,17 @@ abstract class DzCalendarLocalizations {
   /// The column of events on no known resource.
   String get unassigned;
 
+  /// A timeline's resource area, over its rows.
+  String get resources;
+
+  /// A resource's or a group's row: show what is under it, or hide it.
+  String showRows(String name);
+  String hideRows(String name);
+
+  /// A phone's resource area: names in full, or initials only.
+  String get widenResources;
+  String get narrowResources;
+
   /// A week number, short (in a cell) and spoken.
   String weekShort(int week);
   String weekLabel(int week);
@@ -275,7 +286,7 @@ class DzCalendarLocalizationsEn extends DzCalendarLocalizations {
     _ViewKind.list => 'List',
     _ViewKind.year => 'Year',
     null => type,
-  };
+  }.timeline(type, (k) => 'Timeline ($k)', lower: true);
   @override
   String get viewSwitcher => 'View';
   @override
@@ -324,6 +335,16 @@ class DzCalendarLocalizationsEn extends DzCalendarLocalizations {
   String get noResources => 'No resources to display';
   @override
   String get unassigned => 'Unassigned';
+  @override
+  String get resources => 'Resources';
+  @override
+  String showRows(String name) => 'Show under $name';
+  @override
+  String hideRows(String name) => 'Hide under $name';
+  @override
+  String get widenResources => 'Show names';
+  @override
+  String get narrowResources => 'Initials only';
   @override
   String weekShort(int week) => 'W${number(week)}';
   @override
@@ -454,7 +475,7 @@ class DzCalendarLocalizationsFr extends DzCalendarLocalizations {
     _ViewKind.list => 'Liste',
     _ViewKind.year => 'Année',
     null => type,
-  };
+  }.timeline(type, (k) => 'Chronologie ($k)', lower: true);
   @override
   String get viewSwitcher => 'Affichage';
   @override
@@ -503,6 +524,16 @@ class DzCalendarLocalizationsFr extends DzCalendarLocalizations {
   String get noResources => 'Aucune ressource à afficher';
   @override
   String get unassigned => 'Non attribué';
+  @override
+  String get resources => 'Ressources';
+  @override
+  String showRows(String name) => 'Déplier $name';
+  @override
+  String hideRows(String name) => 'Replier $name';
+  @override
+  String get widenResources => 'Afficher les noms';
+  @override
+  String get narrowResources => 'Initiales seulement';
   @override
   String weekShort(int week) => 'S${number(week)}';
   @override
@@ -664,7 +695,7 @@ class DzCalendarLocalizationsAr extends DzCalendarLocalizations {
     _ViewKind.list => 'قائمة',
     _ViewKind.year => 'سنة',
     null => type,
-  };
+  }.timeline(type, (k) => 'خط زمني ($k)');
   @override
   String get viewSwitcher => 'العرض';
   @override
@@ -721,6 +752,16 @@ class DzCalendarLocalizationsAr extends DzCalendarLocalizations {
   String get noResources => 'لا توجد موارد لعرضها';
   @override
   String get unassigned => 'غير مُسنَد';
+  @override
+  String get resources => 'الموارد';
+  @override
+  String showRows(String name) => 'إظهار ما تحت $name';
+  @override
+  String hideRows(String name) => 'إخفاء ما تحت $name';
+  @override
+  String get widenResources => 'إظهار الأسماء';
+  @override
+  String get narrowResources => 'الأحرف الأولى فقط';
   @override
   String weekShort(int week) => 'أ${number(week)}';
   @override
@@ -822,6 +863,12 @@ String _hm(DzCalendarLocalizations l, int minutes, String h, String min) {
 enum _ViewKind { month, week, day, list, year }
 
 /// What the view switcher calls a view, from its type's name.
+extension on String {
+  /// A timeline view's name: its span's ("Day") inside the timeline's own.
+  String timeline(String type, String Function(String kind) name, {bool lower = false}) =>
+      type.contains('imeline') && _viewKind(type) != null ? name(lower ? toLowerCase() : this) : this;
+}
+
 _ViewKind? _viewKind(String type) {
   if (type.startsWith('list')) return _ViewKind.list;
   if (type.startsWith('multiMonth') || type.endsWith('Year')) return _ViewKind.year;
