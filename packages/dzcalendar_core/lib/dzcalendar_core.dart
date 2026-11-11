@@ -150,6 +150,8 @@ export 'src/kernel.dart'
         TitleFormat,
         TitleFormatArg,
         TitleSkeleton,
+        TimelineSettings,
+        TimelineViewModel,
         ViewModel;
 export 'src/project/segment.dart' show AllDaySegment, Segment, TimedSegment;
 export 'src/project/time_axis.dart'

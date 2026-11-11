@@ -2,9 +2,14 @@
 
 ## Resume here (if a session is lost)
 
+- **Phase 19j-1 done (2026-11-10)**: the timeline's core (decisions
+  61–64). See its section below. **Next: 19j-2**, the timeline widget
+  reading (decisions 61–63): `DzCalendar` draws the family, our own
+  `TwoDimensionalViewport`, the resource area narrow on phones; it applies
+  `timeline.step` (◀ ▶ slide) and `timeline.span` (slot width), and adds
+  `onResourceToggle` over `kernel.toggleResourceRow`/`toggleGroupRow`.
 - **Phase 19i done (2026-11-10)**, committed ("Phase 19i-1", "Phase
   19i-2"): the source manager (decisions 54–60). See its section below.
-  **Next: 19j**, the timeline view (decision 50).
 - **Phase 19h done (2026-11-10)**, committed ("Phase 19h"): the Hijri
   calendar (decisions 50–53).
 - **Phase 19g done (2026-11-10)**, committed ("Phase 19g"): the event
@@ -32,6 +37,14 @@
   millisecond (decision 9), so a source writing past the millisecond gets
   different ids on web and mobile. Proposed there: hash the moment to the
   millisecond, and say `precision-truncated`.
+- **To bring back to the main repository** (finding, 19j-1): the
+  timeline's `hitAt` clamps to `axis.length - 1e-6` slots, which on a
+  5-minute scale is 0.3 ms and rounds to `axis.end` — the next midnight, a
+  day outside the axis. The port clamps in milliseconds (`end - 1`).
+- **To propose to the main repository** (divergences, 19j-1): folding rows
+  in the kernel (`toggleResourceRow`, `toggleGroupRow`; the web's view does
+  it); a fold reuses rows only for the same event filter and problem
+  reporter; "+N" ties kept in event order (Dart's sort is not stable).
 - **To propose to the main repository** (divergences, 19i): a source saves
   a person's changes only (decision 58); a source can take what is made
   here (`createsHere`, decision 59); a live feed's errors and end as a
@@ -298,6 +311,25 @@
       refusal puts them back by itself); `onEventChange` is still told, to
       inform; its `revert()` is an undo, saved in turn. Events of no source
       are persisted through `onEventChange`.
+  61. **19j in three parts (owner, 2026-11-10)**: 19j-1, the core (the
+      timeline model: rows, lanes, "+N", off hours, the incremental update;
+      the kernel's `timeline` options and folded rows; hit-tests); 19j-2,
+      the widget reading (axis, resource area, tree, "+N", now,
+      virtualization, RTL, iOS and Android screens); 19j-3, editing (move
+      and resize across rows, keyboard, screen readers). Each its reviews
+      and its commit. `DzCalendar(controller)` draws the family (decision
+      30), no widget of its own.
+  62. **One scroller both ways (owner, 2026-11-10)**: our own
+      `TwoDimensionalViewport` (in the SDK, no dependency) — time heads
+      pinned at the top, the resource area at the start, built only where
+      seen, as the web's one scroller with sticky heads.
+  63. **The resource area on phones (owner, 2026-11-10)**: one narrow
+      column (the title), a button to shrink it or widen it; several
+      columns (`areaColumns`) and their width handles on tablets and macOS.
+  64. **Later (owner, 2026-11-10)**: pinch to zoom (`span`; not in the
+      web, to propose there), following the present (`timeline.follow`),
+      the ruler's ticks (`timeline.ticks`). Not offered as options until
+      built.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -668,6 +700,43 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19j-1 — the timeline's core ✅ (2026-11-10)
+
+- **Model** (`lib/src/timeline/model.dart`, exported by `timeline.dart`):
+  the port of the Pro's `model.ts` — `buildTimelineModel`,
+  `updateTimelineModel` (only the rows of the resources an event left or
+  joined; every row on a touched series), `timelineNow`. Rows are sealed
+  (`TimelineResourceRow`, `TimelineGroupRow`, `TimelineAllRow`); a row's
+  events, background, "+N" (`TimelineMore`) and shading (`TimelineSpan`)
+  are in a `TimelineRowBody` kept (same object) when the row did not
+  change, and lent across a fold on the same snapshot. Bars carry a
+  `TimedSegment` cut to the axis (all-day events too: their dates'
+  midnights in the calendar's zone).
+- **Hit-test** (decision 29): `timelineHitAt(model, row, position)` — a
+  `SlotHit` on a scale of minutes, a `DayHit` on days, the row's resource;
+  null on a group head. Clamped in milliseconds to the axis.
+- **Kernel**: `ModelOptions.timeline` (`TimelineSettings`: `scale`,
+  `maxLanes` 3, `fillLanes` 12, `step` under a day, `span`; checked when
+  given), `collapsedResources`, `collapsedGroups` (copied, compared as
+  sets), `toggleResourceRow`, `toggleGroupRow`; `TimelineViewModel`; the
+  eight timeline views known to every kernel; `modelAt(timeline:)`. The
+  kernel's problem reporter is one tear-off, so a fold's reuse holds.
+  `follow` and `ticks` not offered (decision 64).
+- **Reviews**: architect — toggles in the core, bar and "+N" documented
+  (one bar per row, `to` is where it is drawn, not the event's end).
+  Code — the right-edge hit on a 5-minute scale fell on the next midnight
+  (the TS too: to bring back); a `modelAt` lent its silent rows to the
+  shown model (the reporter is now in the build key); "+N" ties made
+  stable; the collapsed sets copied. Points kept as the TS: the marker's
+  three-slot flag, the quarter-slot minimum in packing, "+N" in the last
+  lane, a day shaded only with no open hour, the double in "+N"'s key.
+- **Tests**: core 1000 (+20: the TS's 7 model and kernel tests ported, 13
+  by hand — markers, backgrounds, the fall-back night's second 02:30, the
+  axis's edges, days shaded on a day scale, the filter, `now`, hits, the
+  right edge, toggles, fold reuse, settings refused, the silent build);
+  library 80, showcase 27 unchanged. The widget still shows its debug
+  placeholder for the family until 19j-2.
 
 ## 19i — the source manager ✅ (2026-11-10)
 

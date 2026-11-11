@@ -18,6 +18,8 @@ import 'rules/constraint.dart';
 import 'rules/validate.dart';
 import 'store/changes.dart';
 import 'store/store.dart';
+import 'timeline/axis.dart';
+import 'timeline/model.dart';
 import 'time/instant.dart';
 import 'time/plain.dart';
 import 'util/equality.dart';
@@ -114,23 +116,101 @@ final class DayGridSettings {
   int get hashCode => maxLanes.hashCode;
 }
 
+/// A timeline's scale, lanes and moves (the web's `timeline` options;
+/// `follow` and `ticks` come later, owner's decision 64).
+final class TimelineSettings {
+  const TimelineSettings({this.scale, this.maxLanes = 3, this.fillLanes = 12, this.step, this.span});
+
+  /// Minutes per slot (dividing a day) or days. Null: 30 minutes for a day,
+  /// an hour up to a week, days beyond.
+  final TimelineScale? scale;
+
+  /// Lanes a resource row shows before "+N".
+  final int maxLanes;
+
+  /// Lanes of a timeline without resources (its one row fills the view).
+  final int fillLanes;
+
+  /// What ◀ ▶ slide the timeline by (the axis scrolls; the next or previous
+  /// period comes in at its end), under a day. Null: they change period.
+  final Duration? step;
+
+  /// The time shown at once: a slot's width is the room shared by that
+  /// much time. Longer than the period, the period fits. Null: the theme's
+  /// slot width.
+  final Duration? span;
+
+  /// Throws an [ArgumentError] on settings no timeline can draw.
+  void check() {
+    final s = scale;
+    if (s != null && !s.isValid) {
+      throw ArgumentError.value(s, 'timeline.scale', 'minutes dividing a day (5, 15, 30, 60…)');
+    }
+    if (maxLanes < 1) throw ArgumentError.value(maxLanes, 'timeline.maxLanes', 'at least 1');
+    if (fillLanes < 1) throw ArgumentError.value(fillLanes, 'timeline.fillLanes', 'at least 1');
+    final st = step;
+    if (st != null && (st <= Duration.zero || st >= const Duration(days: 1))) {
+      throw ArgumentError.value(
+        st,
+        'timeline.step',
+        'longer than nothing, under a day (a day or more is a view\'s dateIncrement)',
+      );
+    }
+    final sp = span;
+    if (sp != null && sp <= Duration.zero) throw ArgumentError.value(sp, 'timeline.span', 'longer than nothing');
+  }
+
+  TimelineSettings copyWith({
+    TimelineScale? scale,
+    bool clearScale = false,
+    int? maxLanes,
+    int? fillLanes,
+    Duration? step,
+    bool clearStep = false,
+    Duration? span,
+    bool clearSpan = false,
+  }) => TimelineSettings(
+    scale: clearScale ? null : scale ?? this.scale,
+    maxLanes: maxLanes ?? this.maxLanes,
+    fillLanes: fillLanes ?? this.fillLanes,
+    step: clearStep ? null : step ?? this.step,
+    span: clearSpan ? null : span ?? this.span,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is TimelineSettings &&
+      other.scale == scale &&
+      other.maxLanes == maxLanes &&
+      other.fillLanes == fillLanes &&
+      other.step == step &&
+      other.span == span;
+
+  @override
+  int get hashCode => Object.hash(scale, maxLanes, fillLanes, step, span);
+}
+
 /// What shapes the models; replaced whole with [CalendarKernel.setOptions]
 /// (`kernel.options.copyWith(...)`): equal options change nothing.
 final class ModelOptions {
   const ModelOptions({
     this.timeGrid = const TimeGridSettings(),
     this.dayGrid = const DayGridSettings(),
+    this.timeline = const TimelineSettings(),
     this.businessHours,
     this.availableSlots = const [],
     this.hiddenDays = const [],
     this.resourceOrder,
     this.resourceGroupField,
     this.showUnassigned = false,
+    this.collapsedResources = const {},
+    this.collapsedGroups = const {},
     this.eventFilter,
   });
 
   final TimeGridSettings timeGrid;
   final DayGridSettings dayGrid;
+  final TimelineSettings timeline;
 
   /// The hours a place is open: shaded outside in the time grid and checked by the rules.
   final BusinessHours? businessHours;
@@ -150,6 +230,14 @@ final class ModelOptions {
   /// Resource views add an "Unassigned" column first, for events on no known resource.
   final bool showUnassigned;
 
+  /// A timeline's rows: the resources (by id) whose children are hidden.
+  /// Default: everything open.
+  final Set<ResourceId> collapsedResources;
+
+  /// A timeline's rows: the groups (by their `resourceGroupField` value)
+  /// shut. Default: everything open.
+  final Set<String> collapsedGroups;
+
   /// Only the events it keeps are shown, in every view: calendars ticked
   /// off, a practitioner's own patients. A series is asked once, with its
   /// base event — its occurrences go or stay together; a changed occurrence
@@ -168,6 +256,7 @@ final class ModelOptions {
   ModelOptions copyWith({
     TimeGridSettings? timeGrid,
     DayGridSettings? dayGrid,
+    TimelineSettings? timeline,
     BusinessHours? businessHours,
     bool clearBusinessHours = false,
     List<AvailableSlot>? availableSlots,
@@ -175,17 +264,23 @@ final class ModelOptions {
     ResourceOrder? resourceOrder,
     String? resourceGroupField,
     bool? showUnassigned,
+    Set<ResourceId>? collapsedResources,
+    Set<String>? collapsedGroups,
     bool Function(CalEvent event)? eventFilter,
     bool clearEventFilter = false,
   }) => ModelOptions(
     timeGrid: timeGrid ?? this.timeGrid,
     dayGrid: dayGrid ?? this.dayGrid,
+    timeline: timeline ?? this.timeline,
     businessHours: clearBusinessHours ? null : businessHours ?? this.businessHours,
     availableSlots: availableSlots ?? this.availableSlots,
     hiddenDays: hiddenDays ?? this.hiddenDays,
     resourceOrder: resourceOrder ?? this.resourceOrder,
     resourceGroupField: resourceGroupField ?? this.resourceGroupField,
     showUnassigned: showUnassigned ?? this.showUnassigned,
+    // Copied: a set changed in place afterwards cannot be the same option as before.
+    collapsedResources: collapsedResources != null ? Set.unmodifiable(collapsedResources) : this.collapsedResources,
+    collapsedGroups: collapsedGroups != null ? Set.unmodifiable(collapsedGroups) : this.collapsedGroups,
     eventFilter: clearEventFilter ? null : eventFilter ?? this.eventFilter,
   );
 
@@ -198,16 +293,20 @@ final class ModelOptions {
       other is ModelOptions &&
       other.timeGrid == timeGrid &&
       other.dayGrid == dayGrid &&
+      other.timeline == timeline &&
       other.businessHours == businessHours &&
       deepEquals(other.availableSlots, availableSlots) &&
       _sameDays(other.hiddenDays, hiddenDays) &&
       other.resourceOrder == resourceOrder &&
       other.resourceGroupField == resourceGroupField &&
       other.showUnassigned == showUnassigned &&
+      deepEquals(other.collapsedResources, collapsedResources) &&
+      deepEquals(other.collapsedGroups, collapsedGroups) &&
       other.eventFilter == eventFilter;
 
   @override
-  int get hashCode => Object.hash(timeGrid, dayGrid, businessHours, resourceGroupField, showUnassigned, eventFilter);
+  int get hashCode =>
+      Object.hash(timeGrid, dayGrid, timeline, businessHours, resourceGroupField, showUnassigned, eventFilter);
 }
 
 /// What a title written by the application is given: the first and last days shown.
@@ -451,8 +550,15 @@ final class MultiMonthViewModel extends ViewModel {
   String get family => 'multiMonth';
 }
 
+final class TimelineViewModel extends ViewModel {
+  const TimelineViewModel(this.model);
+  final TimelineModel model;
+  @override
+  String get family => 'timeline';
+}
+
 /// The families the kernel draws models for.
-const kernelFamilies = {'timeGrid', 'dayGrid', 'list', 'multiMonth'};
+const kernelFamilies = {'timeGrid', 'dayGrid', 'list', 'multiMonth', 'timeline'};
 
 Instant _systemNow() => Instant.fromEpochMilliseconds(DateTime.now().millisecondsSinceEpoch);
 
@@ -484,7 +590,8 @@ final class CalendarKernel {
     if (title is TitleSkeleton) checkSkeleton(title.skeleton);
     final given = o.firstDay;
     if (given != null && (given < 1 || given > 7)) throw ArgumentError.value(given, 'firstDay', 'an ISO weekday 1–7');
-    _views = {...builtinViews};
+    // The eight timeline views are known to every kernel, as on the web.
+    _views = {...builtinViews, ...timelineViews};
     for (final MapEntry(key: type, value: spec) in o.views.entries) {
       final named = spec.type == type ? spec : spec.copyWith(type: type);
       assertViewSpec(named);
@@ -658,6 +765,7 @@ final class CalendarKernel {
   void _checkOptions(ModelOptions o) {
     o.timeGrid.check();
     o.dayGrid.check();
+    o.timeline.check();
     if (o.hiddenDays.toSet().length >= 7) throw ArgumentError('hiddenDays: every day of the week is hidden');
     for (final d in o.hiddenDays) {
       if (d < 1 || d > 7) throw ArgumentError.value(o.hiddenDays, 'hiddenDays', 'ISO weekdays 1–7');
@@ -815,6 +923,10 @@ final class CalendarKernel {
         final next = updateMultiMonthModel(model, store.snapshot, change);
         return identical(next, model) ? m : MultiMonthViewModel(next);
       }(),
+      TimelineViewModel(:final model) => () {
+        final next = updateTimelineModel(model, store.snapshot, change);
+        return identical(next, model) ? m : TimelineViewModel(next);
+      }(),
       _ => null,
     };
     final running = _running;
@@ -834,6 +946,16 @@ final class CalendarKernel {
       groups: [for (final g in groups) ResourceGroupHead(value: g.value, from: g.from + 1, count: g.count)],
     );
   }
+
+  /// A resource timeline's rows: "Unassigned" first when asked, then the
+  /// tree as folded.
+  List<ResourceRow> _timelineRows(ModelOptions o) => [
+    if (o.showUnassigned) const ResourceItemRow(resource: unassignedResource, depth: 0, expanded: null),
+    ...flattenRows(
+      _resourceTree,
+      RowState(collapsed: o.collapsedResources, groupBy: o.resourceGroupField, collapsedGroups: o.collapsedGroups),
+    ),
+  ];
 
   /// The application's filter, its first error reported and the event
   /// kept. The same wrapper while the filter is the same.
@@ -917,6 +1039,25 @@ final class CalendarKernel {
               businessHours: o.businessHours,
               onProblem: onProblem,
               eventFilter: filter,
+            ),
+          ),
+        );
+      case 'timeline':
+        final t = o.timeline;
+        return TimelineViewModel(
+          buildTimelineModel(
+            range,
+            snap,
+            TimelineOptions(
+              displayZone: _timeZone,
+              scale: t.scale,
+              rows: view.resources ? _timelineRows(o) : null,
+              resources: _resourceTree.order,
+              maxLanes: t.maxLanes,
+              fillLanes: t.fillLanes,
+              businessHours: o.businessHours,
+              eventFilter: filter,
+              onProblem: onProblem,
             ),
           ),
         );
@@ -1052,6 +1193,23 @@ final class CalendarKernel {
     }
   }
 
+  /// A resource timeline's row shows its children or hides them (the web's
+  /// view does this; here the core, so the widget and an application share
+  /// it). The fold is an option (`collapsedResources`): it survives a view
+  /// or a period changed, and a state event says it.
+  void toggleResourceRow(ResourceId id) {
+    final now = {..._options.collapsedResources};
+    if (!now.remove(id)) now.add(id);
+    setOptions(_options.copyWith(collapsedResources: now));
+  }
+
+  /// A group's head opens or shuts its group (`collapsedGroups`).
+  void toggleGroupRow(String value) {
+    final now = {..._options.collapsedGroups};
+    if (!now.remove(value)) now.add(value);
+    setOptions(_options.copyWith(collapsedGroups: now));
+  }
+
   /// Replaces the "events" source. Unchanged events keep their objects and
   /// revisions (the store diffs), so the same content again redraws nothing.
   NormalizationReport setEvents(List<EventInput> events) {
@@ -1131,8 +1289,13 @@ final class CalendarKernel {
     final m = _model;
     if (m != null) return m;
     _cut = {};
-    return _model = _build(_state.range, _view, _options, (p) => _cut[p.path] = p);
+    return _model = _build(_state.range, _view, _options, _report);
   }
+
+  /// One function for every build (a tear-off of the same method is `==`):
+  /// a timeline's rows are lent across builds only to one that reports the
+  /// same way.
+  void _report(Problem p) => _cut[p.path] = p;
 
   /// What building the shown model had to say: a series cut short there.
   List<Problem> get viewProblems => List.unmodifiable(_cut.values);
@@ -1146,12 +1309,19 @@ final class CalendarKernel {
 
   /// Its model; [timeGrid] / [dayGrid] laid over the settings in force (a
   /// print lifts the "+N" caps). Not memoized.
-  ViewModel? modelAt(String type, PlainDate at, {TimeGridSettings? timeGrid, DayGridSettings? dayGrid}) {
+  ViewModel? modelAt(
+    String type,
+    PlainDate at, {
+    TimeGridSettings? timeGrid,
+    DayGridSettings? dayGrid,
+    TimelineSettings? timeline,
+  }) {
     final raw = _views[type];
     if (raw == null || !kernelFamilies.contains(raw.family)) return null;
     final spec = _effectiveOf(raw);
     final range = _computeState(at, spec).range;
-    final o = _options.copyWith(timeGrid: timeGrid, dayGrid: dayGrid);
+    timeline?.check();
+    final o = _options.copyWith(timeGrid: timeGrid, dayGrid: dayGrid, timeline: timeline);
     return _build(range, spec, o, null);
   }
 
