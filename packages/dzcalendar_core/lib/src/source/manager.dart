@@ -15,7 +15,7 @@ import 'source.dart';
 
 /// What the manager tells its owner. Not sealed (owner's decision 26):
 /// keep a default branch.
-abstract class SourceNotice {
+abstract final class SourceNotice {
   const SourceNotice();
 }
 

@@ -48,7 +48,7 @@ enum HijriReckoning {
   final String id;
 }
 
-/// The month of a Hijri year an application corrects: [month] 1–12.
+/// The month of a Hijri year an application corrects: `month` 1–12.
 typedef HijriMonth = ({int year, int month});
 
 /// The Hijri calendar, Umm al-Qura or civil, with the months' first days an

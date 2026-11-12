@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 /// ThemeData(extensions: [DzCalendarTheme(hourHeight: 64, eventColor: Colors.teal)])
 /// ```
 @immutable
-class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
+final class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
   const DzCalendarTheme({
     this.eventColor,
     this.onEventColor,
@@ -271,7 +271,7 @@ class DzCalendarTheme extends ThemeExtension<DzCalendarTheme> {
 
 /// [DzCalendarTheme] resolved: every value the widgets draw with.
 @immutable
-class DzCalendarStyle {
+final class DzCalendarStyle {
   const DzCalendarStyle({
     required this.eventColor,
     required this.onEventColor,

@@ -89,43 +89,8 @@ export 'src/interaction/actions.dart'
         GrabKind,
         SlotTarget,
         actionsFor;
-export 'src/interaction/hit.dart' show allDayHitAt, dayHitAt, slotHitAt, slotTargetAt;
-export 'src/interaction/keymap.dart'
-    show
-        AcrossKeyIntent,
-        KeyIntent,
-        ItemKeyIntent,
-        KeyGrid,
-        KeyLike,
-        KeyMode,
-        LineKeyIntent,
-        MoveKeyIntent,
-        PeriodKeyIntent,
-        ResizeKeyIntent,
-        CommandKeyIntent,
-        KeyCommand,
-        KeyStep,
-        eventHit,
-        grabStep,
-        heldEvent,
-        intentFor,
-        stepHit;
 export 'src/interaction/propose.dart'
-    show
-        Ambiguity,
-        DayHit,
-        DaySelection,
-        Hit,
-        InteractionContext,
-        Proposal,
-        CalendarSelection,
-        SlotHit,
-        TimeSelection,
-        commandFor,
-        isUnchanged,
-        proposeMove,
-        proposeResize,
-        selectionBetween;
+    show CalendarSelection, DayHit, DaySelection, Hit, InteractionContext, SlotHit, TimeSelection;
 export 'src/kernel.dart'
     show
         CalendarKernel,
@@ -154,20 +119,9 @@ export 'src/kernel.dart'
         TimelineViewModel,
         ViewModel;
 export 'src/project/segment.dart' show AllDaySegment, Segment, TimedSegment;
-export 'src/project/time_axis.dart'
-    show AxisBand, AxisMode, AxisPrefer, AxisTick, ColumnAxis, FromPosition, buildColumnAxis;
-export 'src/recurrence/series.dart'
-    show
-        Series,
-        SeriesWindow,
-        SplitFrom,
-        escapeId,
-        expandSeries,
-        materialize,
-        occurrenceKey,
-        occurrenceLength,
-        parseInstanceKey;
-export 'src/rrule/expand.dart' show ExpandResult, expandDates, expandZoned;
+export 'src/project/time_axis.dart' show AxisBand, AxisMode, AxisPrefer, AxisTick, ColumnAxis, FromPosition;
+export 'src/recurrence/series.dart' show Series, SeriesWindow, SplitFrom;
+export 'src/rrule/edit.dart' show Start;
 export 'src/rrule/rule.dart'
     show
         ByDay,
@@ -184,17 +138,7 @@ export 'src/rrule/rule.dart'
         RZoned,
         parseRRule,
         serializeRRule;
-export 'src/resource/rows.dart'
-    show
-        ColumnResources,
-        GroupRow,
-        ResourceItemRow,
-        ResourceRow,
-        RowState,
-        columnResources,
-        flattenRows,
-        groupValue,
-        instancesOf;
+export 'src/resource/rows.dart' show GroupRow, ResourceItemRow, ResourceRow, RowState;
 export 'src/resource/tree.dart'
     show
         CompareOrder,
@@ -204,16 +148,12 @@ export 'src/resource/tree.dart'
         ResourceNode,
         ResourceOrder,
         ResourceTree,
-        buildResourceTree,
-        ResourceTreeResult,
-        buildResourceTreeFromJson,
         unassignedId,
         unassignedResource;
-export 'src/rules/business_hours.dart' show BusinessHours, BusinessHoursRule, businessIntervals;
+export 'src/rules/business_hours.dart' show BusinessHours, BusinessHoursRule;
 export 'src/rules/constraint.dart' show BusinessHoursConstraint, ConstraintSpec, GroupConstraint, SpansConstraint;
-export 'src/rules/validate.dart'
-    show OverlapFn, Placement, RulesContext, ValidRange, Violation, ViolationCode, validateProposal;
-export 'src/source/chunks.dart' show Chunk, ChunkPolicy, ChunkUnit, chunkAt, chunksCovering;
+export 'src/rules/validate.dart' show OverlapFn, Placement, RulesContext, ValidRange, Violation, ViolationCode;
+export 'src/source/chunks.dart' show Chunk, ChunkPolicy, ChunkUnit;
 export 'src/source/json_source.dart' show JsonRequester, SourceHttpRequest, jsonSource, readEventList;
 export 'src/source/live.dart' show LiveCreate, LiveMessage, LiveRemove, LiveReset, LiveUpdate, liveSource;
 export 'src/source/manager.dart'
@@ -258,17 +198,8 @@ export 'src/time/duration.dart' show IsoDuration;
 export 'src/time/instant.dart' show Instant;
 export 'src/time/plain.dart' show PlainDate, PlainDateTime, PlainTime;
 export 'src/views/daygrid.dart'
-    show
-        DayGridBar,
-        DayGridModel,
-        DayGridOptions,
-        DayGridWeek,
-        MultiMonthModel,
-        ResourceGroupHead,
-        ResourceHead,
-        buildDayGridModel,
-        buildMultiMonthModel;
-export 'src/views/list.dart' show ListDay, ListEntry, ListModel, ListOptions, buildListModel;
+    show DayGridBar, DayGridModel, DayGridOptions, DayGridWeek, MultiMonthModel, ResourceGroupHead, ResourceHead;
+export 'src/views/list.dart' show ListDay, ListEntry, ListModel;
 export 'src/views/timegrid.dart'
     show
         AllDayBar,
@@ -280,21 +211,8 @@ export 'src/views/timegrid.dart'
         TimeGridAllDay,
         TimeGridColumn,
         TimeGridModel,
-        TimeGridOptions,
-        buildTimeGridModel,
-        locateNow;
-export 'src/views/views.dart'
-    show
-        NavContext,
-        NavDirection,
-        ViewAlignment,
-        ViewRange,
-        ViewSpec,
-        VisibleRange,
-        assertViewSpec,
-        builtinViews,
-        computeViewRange,
-        navigate;
+        TimeGridOptions;
+export 'src/views/views.dart' show NavDirection, ViewAlignment, ViewRange, ViewSpec, VisibleRange, builtinViews;
 export 'src/time/wall_time.dart' show WallTime;
 export 'src/zone/day_info.dart'
     show

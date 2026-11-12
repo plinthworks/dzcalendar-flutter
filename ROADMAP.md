@@ -2,6 +2,9 @@
 
 ## Resume here (if a session is lost)
 
+- **Phase 19k in progress (2026-11-11)**: usable and published (decisions
+  65–71). Everything done but the commit and the first publication (by
+  the owner): see its section below.
 - **Phase 19j-3 done (2026-11-11)**: editing on the timeline — 19j (the
   timeline, decisions 61–64) is complete. See its section below. **Next:
   to decide with the owner** (decision 64's later items — pinch to zoom,
@@ -352,6 +355,49 @@
       web, to propose there), following the present (`timeline.follow`),
       the ruler's ticks (`timeline.ticks`). Not offered as options until
       built.
+  65. **On pub.dev at 1.0.0 (owner, 2026-11-11)**: both packages are
+      published on pub.dev, the first version 1.0.0; afterwards every fix
+      raises the version as on npm (semver: a fix the patch, an addition
+      the minor, a break the major). A version on pub.dev can never be
+      deleted, so the public API is reviewed before 1.0.0.
+  66. **One version for both (owner, 2026-11-11)**: `dzcalendar_core` and
+      `dzcalendar` always carry the same number and are released together;
+      `dzcalendar` X.Y.Z asks for exactly `dzcalendar_core: X.Y.Z` (19k
+      architect review: the widgets use the core's `internal.dart`, outside
+      semver, so a widgets version works with its own core only).
+  67. **Published by a git tag, from the owner's account (owner,
+      2026-11-11)**: pushing `vX.Y.Z` publishes through GitHub Actions
+      (pub.dev's automated publishing, OIDC — no secret): the core first,
+      then the widgets. The very first publication is by hand from the
+      owner's personal Google account, which then turns automated
+      publishing on in each package's admin page. A verified publisher
+      later, if wanted (packages can be moved to one).
+  68. **A narrow core API at 1.0.0 (owner, 2026-11-11, 19k review)**: the
+      engine's parts (model and axis builders, rrule internals, occurrence
+      keys, normalization's machinery…) move from `dzcalendar_core.dart`
+      to `internal.dart`. Public: what an app uses — time types, events,
+      store, commands, history, kernel, resources, rules, sources, slots,
+      Hijri, iCal. Re-exporting one later is an addition, not a break.
+  69. **Closed classes and the version policy (owner, 2026-11-11)**:
+      `final class` for `CalendarController`, `DzCalendarTheme`,
+      `DzCalendarStyle`; `abstract final` for `SourceNotice`, `KernelEvent`
+      and `ViewModel` (only the library makes their kinds; not sealed, so
+      decision 26's default branch stays and a new kind is minor). Every
+      public library gives only types a public library names
+      (`tool/check_api.dart`, in CI) — so the widgets' barrel names the
+      view models, `EventStore`, `ViewRange`… (about 90 names more). A new enum value, a new sealed case or a new word of
+      `DzCalendarLocalizations` (with a default text) is a minor version —
+      said in the README.
+  70. **One rename (owner, 2026-11-11)**: `EditScope.this_` becomes
+      `EditScope.single`. Short names (`Slot`, `Window`, `Busy`…) stay (an
+      app hides what clashes); view names stay strings, typed constants
+      may be added later.
+  71. **Sealed stays closed (owner, 2026-11-12, 19k review)**: the public
+      `sealed` hierarchies (`Command`, `Mutation`, `SourceEdit`, `Hit`,
+      `CalEvent`… 24 of them) gain a case only in a major version, so an
+      app's `switch` on them can be exhaustive (an app saving `SourceEdit`s
+      cannot miss a new kind). Only `KernelEvent`, `ViewModel`,
+      `SourceNotice` (`abstract final`) and enums grow in a minor.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No
@@ -365,6 +411,7 @@
   - 19e — Flutter widgets: month, week, day, mini-month (iOS simulator and
     Android emulator screenshots).
   - 19f — the showcase app, in the spirit of macOS Calendar.
+  - 19k — usable and published: pub.dev at 1.0.0 (decisions 65–67).
 - **Open for 19e**: Dart's `intl` has no Hijri calendar — the web's secondary
   calendar (`-u-ca-islamic`) has no direct equivalent.
 
@@ -722,6 +769,73 @@
   range patterns, thin spaces: "Oct 18–24, 2026" vs "Oct 18 – 24, 2026");
   `ar` written with the data loaded first (Flutter's writes Arabic-Indic
   digits).
+
+## 19k — usable and published (in progress, 2026-11-11)
+
+Decisions 65–67. Found before starting: `pub publish --dry-run` refuses
+both packages only for a missing `LICENSE` (README and CHANGELOG are
+warnings); pana scores the core 130/160 (no README, CHANGELOG, licence,
+example) and cannot score the widgets until the core is on pub.dev (it
+resolves `dzcalendar_core` there). Outside the workspace a git dependency
+on `dzcalendar` alone does not resolve: `dzcalendar_core` is looked up on
+pub.dev — publication fixes that.
+
+- **Done** (before the reviews):
+  - The API reviewed (architect) and narrowed (decision 68): the engine's
+    parts in `internal.dart`; the widgets' sources import it. Kept public
+    what a public type gives (the view models' data: `ColumnAxis`,
+    `TimeGridOptions`, `SeriesWindow`…). `Start` made public
+    (`Series.start`).
+  - `tool/check_api.dart` (the analyzer, in CI and before publishing):
+    every type a public library gives — fields, getters, parameters,
+    returns, supertypes, type arguments, aliases — is named by a public
+    library (the core's four together; the widgets' barrel by itself).
+    The barrel took about 90 names more to close (decision 69).
+  - `final class` `CalendarController`, `DzCalendarTheme`,
+    `DzCalendarStyle`; `abstract final` `KernelEvent`, `ViewModel`,
+    `SourceNotice`; `EditScope.single` (decision 70); the localizations'
+    rule written on the class.
+  - Each package: `LICENSE`, `README.md` (its code compiled and run),
+    `CHANGELOG.md`, version 1.0.0, topics, issue tracker; the core's
+    `example/example.dart`; `dartdoc_options.yaml` leaves `internal` out.
+    `dart doc`: 0 warnings for both. pana: the core 160/160; the widgets
+    cannot be scored before the core is on pub.dev (pana drops overrides).
+  - `.github/workflows/publish.yml` (tag `vX.Y.Z`: checks the tag against
+    both versions and changelogs, analyzes, tests, publishes the core,
+    waits for it on pub.dev, publishes the widgets); `tool/release.dart`
+    (tried in a scratch repository: refusals, the commit and the tag).
+  - The repository's README: install, the release steps.
+- **Reviews** (architect, code), fixed:
+  - the widgets pin the core exactly (decision 66 amended): they use its
+    `internal.dart`, and a later core could break a published widgets
+    version forever;
+  - the semver policy in the READMEs said a new `Command` was minor while
+    `Command` is sealed: decision 71;
+  - publishing skips a version already on pub.dev (a run started again
+    after a half-failed release; the hand-made 1.0.0), and the tag must be
+    on main;
+  - `tool/release.dart` sets the example's and the showcase's constraints
+    too (a major version would not resolve), refuses a line it cannot set
+    once (a comment after it), and fails cleanly without a version;
+  - `tool/api.txt`, a snapshot of every public name and member, checked by
+    `tool/check_api.dart` (a name gone is a break; `--update` for an
+    addition) — closure alone did not stop a removal;
+  - the keyboard's types, `Proposal` and `Ambiguity` moved to
+    `internal.dart` (no public type gives them); `Hit`, `DayHit`,
+    `SlotHit` and `InteractionContext` stay (`onDateTap`, the kernel);
+  - `CalendarController`'s doc was on `timelineSliders` (since 19j-2).
+  - Not done: a `.pubignore` (tests and the example's platform folders
+    are uploaded, as usual); a member's signature change is not in the
+    snapshot (names only).
+- **The first publication (the owner, by hand)**, once 19k is committed:
+  1. `dart pub login`, then `dart pub publish` in `packages/dzcalendar_core`
+     and `flutter pub publish` in `packages/dzcalendar` (in that order).
+  2. On pub.dev, each package's Admin → Automated publishing: enable
+     GitHub Actions, repository `plinthworks/dzcalendar-flutter`, tag
+     pattern `v{{version}}` (and the environment `pub.dev` if required).
+  3. `git tag -a v1.0.0 -m "Release 1.0.0"` and push it: the workflow
+     tests and skips both publications (already on pub.dev) — a dry run of
+     the automation. Later versions go through `tool/release.dart`.
 
 ## 19j-3 — the timeline, editing ✅ (2026-11-11)
 

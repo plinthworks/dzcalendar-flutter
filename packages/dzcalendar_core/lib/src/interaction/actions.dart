@@ -257,7 +257,7 @@ ActionItem _deleteEntry(EventInstance instance, ActionLabels labels, void Functi
     label: labels.deleteEvent,
     icon: 'delete',
     children: [
-      scoped(EditScope.this_, 'this', labels.scopeThis),
+      scoped(EditScope.single, 'this', labels.scopeThis),
       scoped(EditScope.following, 'following', labels.scopeFollowing),
       scoped(EditScope.all, 'all', labels.scopeAll),
     ],

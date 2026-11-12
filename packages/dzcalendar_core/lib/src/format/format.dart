@@ -51,7 +51,7 @@ String _verified(String locale) => formatLocale(locale).used;
 final _cachedLocales = <String, ({String used, bool exact})>{};
 
 /// Which of `intl`'s locales formats [locale], and whether it is the tag or
-/// its language ([exact]: false when nothing of it is known and English is
+/// its language (`exact`: false when nothing of it is known and English is
 /// used — a guess the kernel reports).
 ({String used, bool exact}) formatLocale(String locale) => _cachedLocales[locale] ??= () {
   final parts = locale.replaceAll('-', '_').split('_');

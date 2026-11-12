@@ -1,0 +1,71 @@
+name: Publish
+
+# Pushing a tag vX.Y.Z publishes dzcalendar_core X.Y.Z, then dzcalendar X.Y.Z, on
+# pub.dev (owner's decisions 65–67). No secret: pub.dev trusts this repository's
+# GitHub Actions token for tags `v{{version}}` (each package's admin page,
+# "Automated publishing"). `dart run tool/release.dart X.Y.Z` makes the tag.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    permissions:
+      id-token: write # pub.dev's OIDC token
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # to see that the tag is on main
+      # Sets up the pub.dev token from GitHub's OIDC; the Flutter SDK's dart uses it.
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.9.2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.7
+          channel: stable
+      - name: The tag is on main, and is both packages' version
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "the tag is not on main"; exit 1; }
+          tag="${GITHUB_REF_NAME#v}"
+          for p in packages/dzcalendar_core packages/dzcalendar; do
+            v=$(sed -n 's/^version: //p' "$p/pubspec.yaml")
+            [ "$v" = "$tag" ] || { echo "$p is $v, the tag says $tag"; exit 1; }
+            grep -q "^## $tag\$" "$p/CHANGELOG.md" || { echo "$p/CHANGELOG.md has no '## $tag'"; exit 1; }
+          done
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze --fatal-infos
+      - run: dart run tool/check_api.dart
+      - run: dart test
+        working-directory: packages/dzcalendar_core
+      - run: flutter test
+        working-directory: packages/dzcalendar
+      # A version already on pub.dev is skipped: the first, published by hand,
+      # and a run started again after the widgets failed.
+      - name: Publish dzcalendar_core
+        working-directory: packages/dzcalendar_core
+        run: |
+          if curl -sf "https://pub.dev/api/packages/dzcalendar_core/versions/${GITHUB_REF_NAME#v}" > /dev/null; then
+            echo "dzcalendar_core ${GITHUB_REF_NAME#v} is already on pub.dev"
+          else
+            dart pub publish --force
+          fi
+      - name: Wait for dzcalendar_core on pub.dev
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          for i in $(seq 1 30); do
+            curl -sf "https://pub.dev/api/packages/dzcalendar_core/versions/$tag" > /dev/null && exit 0
+            sleep 10
+          done
+          echo "dzcalendar_core $tag is not on pub.dev after 5 minutes"; exit 1
+      - name: Publish dzcalendar
+        working-directory: packages/dzcalendar
+        run: |
+          if curl -sf "https://pub.dev/api/packages/dzcalendar/versions/${GITHUB_REF_NAME#v}" > /dev/null; then
+            echo "dzcalendar ${GITHUB_REF_NAME#v} is already on pub.dev"
+          else
+            flutter pub publish --force
+          fi

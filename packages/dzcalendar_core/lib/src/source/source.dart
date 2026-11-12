@@ -139,7 +139,7 @@ final class LiveContext {
   /// The calendar's clock (what a message dates by itself).
   final Instant Function() now;
 
-  /// The feed failed ([closed]: it ended — no more messages will come):
+  /// The feed failed (`closed`: it ended — no more messages will come):
   /// told to the application (`SourceLiveFailed`), never as a crash.
   final void Function(Object error, StackTrace? stack, {bool closed}) failed;
 }

@@ -140,8 +140,8 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
     if (ev != null) {
       // An override stands for its occurrence: deleting it, or reaching past it, goes through the series.
       final ref = ev.ref;
-      if (ref != null && (deleting || (reach.scope != null && reach.scope != EditScope.this_))) {
-        return _OccurrenceTarget(ref, reach.scope ?? EditScope.this_);
+      if (ref != null && (deleting || (reach.scope != null && reach.scope != EditScope.single))) {
+        return _OccurrenceTarget(ref, reach.scope ?? EditScope.single);
       }
       return _EventTarget(ev);
     }
@@ -151,12 +151,12 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
       final key = reach.key;
       return _OccurrenceTarget(
         EventRef(id, key != null ? _keyIn(sr, key) : firstKey(sr)),
-        reach.scope ?? (key == null ? EditScope.all : EditScope.this_),
+        reach.scope ?? (key == null ? EditScope.all : EditScope.single),
       );
     }
     final k = parseInstanceKey(id);
     final of = k.seriesId == null ? null : current.getSeries(k.seriesId!);
-    if (of != null) return _OccurrenceTarget(EventRef(of.id, _keyIn(of, k.key!)), reach.scope ?? EditScope.this_);
+    if (of != null) return _OccurrenceTarget(EventRef(of.id, _keyIn(of, k.key!)), reach.scope ?? EditScope.single);
     fail(ProblemCode.unknownEvent, '$path.id', id);
     return null;
   }
@@ -207,7 +207,7 @@ CommandResult applyCommand(StoreSnapshot snap, Command cmd, CommandContext ctx) 
     return check(
       pair.before,
       pair.after,
-      movingSeries: t is _OccurrenceTarget && t.scope != EditScope.this_ ? t.ref.seriesId : null,
+      movingSeries: t is _OccurrenceTarget && t.scope != EditScope.single ? t.ref.seriesId : null,
     );
   }
 

@@ -41,7 +41,6 @@ export 'src/recurrence/series.dart'
 export 'src/rrule/edit.dart'
     show
         ImplicitPart,
-        Start,
         countBefore,
         explicitRule,
         implicitRule,
@@ -57,3 +56,43 @@ export 'src/rrule/iterate.dart' show IterationState, iterateDates, iterateZoned,
 export 'src/store/persistent.dart' show PersistentIntervalTree, PersistentOrderedMap;
 export 'src/store/store.dart' show sourceOf, spanOf, stamp;
 export 'src/zone/zone_rules.dart' show FixedOffset, TzdbRules, ZoneRules;
+
+// Moved out of the public libraries before 1.0.0 (owner's decision 68).
+export 'src/interaction/hit.dart' show allDayHitAt, dayHitAt, slotHitAt, slotTargetAt;
+export 'src/interaction/keymap.dart'
+    show
+        eventHit,
+        grabStep,
+        heldEvent,
+        intentFor,
+        stepHit,
+        AcrossKeyIntent,
+        KeyIntent,
+        ItemKeyIntent,
+        KeyGrid,
+        KeyLike,
+        KeyMode,
+        LineKeyIntent,
+        MoveKeyIntent,
+        PeriodKeyIntent,
+        ResizeKeyIntent,
+        CommandKeyIntent,
+        KeyCommand,
+        KeyStep;
+export 'src/interaction/propose.dart'
+    show Ambiguity, Proposal, commandFor, isUnchanged, proposeMove, proposeResize, selectionBetween;
+export 'src/project/time_axis.dart' show buildColumnAxis;
+export 'src/recurrence/series.dart'
+    show escapeId, expandSeries, materialize, occurrenceKey, occurrenceLength, parseInstanceKey;
+export 'src/rrule/expand.dart' show ExpandResult, expandDates, expandZoned;
+export 'src/resource/rows.dart' show ColumnResources, columnResources, flattenRows, groupValue, instancesOf;
+export 'src/resource/tree.dart' show buildResourceTree, ResourceTreeResult, buildResourceTreeFromJson;
+export 'src/rules/business_hours.dart' show businessIntervals;
+export 'src/rules/validate.dart' show validateProposal;
+export 'src/source/chunks.dart' show chunkAt, chunksCovering;
+export 'src/views/daygrid.dart' show buildDayGridModel, buildMultiMonthModel;
+export 'src/views/list.dart' show ListOptions, buildListModel;
+export 'src/views/timegrid.dart' show buildTimeGridModel, locateNow;
+export 'src/views/views.dart' show NavContext, assertViewSpec, computeViewRange, navigate;
+export 'src/timeline/axis.dart' show buildTimelineAxis, defaultScale;
+export 'src/timeline/model.dart' show buildTimelineModel, timelineHitAt, timelineNow, updateTimelineModel;

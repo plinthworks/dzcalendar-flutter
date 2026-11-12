@@ -5,10 +5,10 @@ import '../rules/validate.dart';
 import '../store/changes.dart';
 
 /// How far an edit of one occurrence reaches.
-enum EditScope { this_, following, all }
+enum EditScope { single, following, all }
 
 EditScope? _scope(Object? v) => switch (v) {
-  'this' => EditScope.this_,
+  'this' => EditScope.single,
   'following' => EditScope.following,
   'all' => EditScope.all,
   _ => null,
@@ -173,7 +173,7 @@ final class EventPatch {
       clear.isEmpty;
 }
 
-/// Which occurrence of a series a command is about. [key]: the occurrence's
+/// Which occurrence of a series a command is about. `key`: the occurrence's
 /// original start, when `id` is the series': as the series writes it, the
 /// wall time without its offset, or an instant.
 sealed class Command {

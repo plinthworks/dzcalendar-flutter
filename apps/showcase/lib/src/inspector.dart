@@ -170,7 +170,7 @@ class _EventInspectorState extends State<EventInspector> {
   Future<void> _delete() async {
     final instance = widget.instance;
     if (instance == null) return;
-    var scope = EditScope.this_;
+    var scope = EditScope.single;
     if (_occurrence) {
       final chosen = await _askScope(S.of(context).delete);
       if (chosen == null || !mounted) return;
@@ -190,7 +190,7 @@ class _EventInspectorState extends State<EventInspector> {
         title: Text(header),
         children: [
           for (final (scope, label) in [
-            (EditScope.this_, s.scopeThis),
+            (EditScope.single, s.scopeThis),
             (EditScope.following, s.scopeFollowing),
             (EditScope.all, s.scopeAll),
           ])

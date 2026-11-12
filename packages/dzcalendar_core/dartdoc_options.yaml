@@ -1,0 +1,5 @@
+# The engine's working parts (lib/internal.dart) are outside semver: not documented
+# on pub.dev (owner's decisions 12 and 68).
+dartdoc:
+  exclude:
+    - internal

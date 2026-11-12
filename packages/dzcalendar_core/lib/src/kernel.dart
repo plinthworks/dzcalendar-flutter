@@ -481,7 +481,7 @@ enum StateDirection { prev, next, other }
 
 /// What the kernel tells its subscribers. Not sealed (owner's decision 26):
 /// sources and the timeline will add kinds — keep a default branch.
-abstract class KernelEvent {
+abstract final class KernelEvent {
   const KernelEvent();
 }
 
@@ -517,7 +517,7 @@ final class KernelStoreEvent extends KernelEvent {
 /// The model of the current view, by family. Not sealed (owner's decision
 /// 26): the timeline and custom families will add kinds — keep a default
 /// branch.
-abstract class ViewModel {
+abstract final class ViewModel {
   const ViewModel();
   String get family;
 }

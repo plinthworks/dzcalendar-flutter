@@ -19,7 +19,7 @@ ZoneId normalizedZone(ZoneId zone) =>
 final class ZonedDateTime implements Comparable<ZonedDateTime> {
   ZonedDateTime._(this.instant, this.zone, this.offsetMs);
 
-  /// "2026-10-25T02:30:00+02:00[Europe/Paris]" (an occurrence's key, as
+  /// `2026-10-25T02:30:00+02:00[Europe/Paris]` (an occurrence's key, as
   /// Temporal writes a ZonedDateTime), or a wall time with its zone; the
   /// offset picks the reading of a repeated time. Null for anything else.
   static ZonedDateTime? tryParse(String text) => parseZonedDateTime(text);
@@ -151,7 +151,7 @@ final class ZonedDateTime implements Comparable<ZonedDateTime> {
   @override
   int get hashCode => Object.hash(instant, ZoneRules.canonical(zone));
 
-  /// "2026-03-29T03:00:00+02:00[Europe/Paris]", as Temporal writes it.
+  /// `2026-03-29T03:00:00+02:00[Europe/Paris]`, as Temporal writes it.
   @override
   String toString() => '$plainDateTime${offsetTextToMinute(offsetMs)}[$zone]';
 }

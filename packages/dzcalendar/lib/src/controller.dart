@@ -1,7 +1,12 @@
 import 'dart:async';
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:flutter/foundation.dart';
+
+/// The timeline on screen slides by its step (direction -1 or 1): true when
+/// it moved, false at the period's edge (the period changes then). Set by
+/// the calendar's timeline while it is shown, per controller; not exported.
+final timelineSliders = Expando<bool Function(int direction)>('timeline slider');
 
 /// A calendar as Flutter listens to it: a [ChangeNotifier] over a
 /// [CalendarKernel] (owner's decisions 22 and 30, 2026-11-09). One
@@ -16,12 +21,8 @@ import 'package:flutter/foundation.dart';
 ///
 /// Configuration errors (an unknown zone or view) throw an [ArgumentError]
 /// when given, as the kernel's; data never does.
-/// The timeline on screen slides by its step (direction -1 or 1): true when
-/// it moved, false at the period's edge (the period changes then). Set by
-/// the calendar's timeline while it is shown, per controller; not exported.
-final timelineSliders = Expando<bool Function(int direction)>('timeline slider');
 
-class CalendarController extends ChangeNotifier {
+final class CalendarController extends ChangeNotifier {
   CalendarController(KernelOptions options, {this.followAppLocale = true, this.onEventChange, this.onCommandRefused})
     : kernel = CalendarKernel(_withErrors(options)),
       _ownsKernel = true {
@@ -45,7 +46,7 @@ class CalendarController extends ChangeNotifier {
   ///
   /// A source's events with a `save` are written back by the source
   /// (owner's decision 60): it puts them back itself when the server
-  /// refuses. They are still told here, to inform (a message); a [revert]
+  /// refuses. They are still told here, to inform (a message); a `revert`
   /// asked for one of them is an undo, saved in turn. Here is where the
   /// events of no source (the kernel's `events`) are persisted.
   void Function(EventChange change)? onEventChange;

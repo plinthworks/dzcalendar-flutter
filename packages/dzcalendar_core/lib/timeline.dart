@@ -3,17 +3,7 @@
 library;
 
 export 'src/timeline/axis.dart'
-    show
-        DayScale,
-        MinuteScale,
-        TimelineAxis,
-        TimelineGroup,
-        TimelineScale,
-        TimelineSlot,
-        TimelineUnit,
-        buildTimelineAxis,
-        defaultScale,
-        timelineViews;
+    show DayScale, MinuteScale, TimelineAxis, TimelineGroup, TimelineScale, TimelineSlot, TimelineUnit, timelineViews;
 export 'src/kernel.dart' show TimelineSettings, TimelineViewModel;
 export 'src/timeline/model.dart'
     show
@@ -26,8 +16,4 @@ export 'src/timeline/model.dart'
         TimelineResourceRow,
         TimelineRow,
         TimelineRowBody,
-        TimelineSpan,
-        buildTimelineModel,
-        timelineHitAt,
-        timelineNow,
-        updateTimelineModel;
+        TimelineSpan;

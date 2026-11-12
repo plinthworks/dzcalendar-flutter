@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
-import 'package:dzcalendar_core/timeline.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';

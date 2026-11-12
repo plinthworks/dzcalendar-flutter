@@ -1,5 +1,4 @@
-import 'package:dzcalendar_core/dzcalendar_core.dart';
-import 'package:dzcalendar_core/slots.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:flutter/material.dart';
 
 import 'l10n/localizations.dart';

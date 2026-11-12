@@ -98,7 +98,7 @@ void main() {
   group('this', () {
     test('moves one occurrence; the override is found at its new place, even in another week', () {
       final (:store, :h, c: _) = weekly();
-      final r = h.run(MoveEvent('w', '2026-10-28T14:00$P', key: K('2026-10-19'), scope: EditScope.this_));
+      final r = h.run(MoveEvent('w', '2026-10-28T14:00$P', key: K('2026-10-19'), scope: EditScope.single));
       expect(r.ok, isTrue);
       expect(shownIn(store, '2026-10-19', '2026-10-26'), isEmpty);
       expect(shownIn(store, '2026-10-26', '2026-11-02'), [
@@ -121,7 +121,7 @@ void main() {
 
     test('deleting one occurrence is an EXDATE; COUNT still counts it', () {
       final (:store, :h, c: _) = weekly();
-      h.run(DeleteEvent('w', key: K('2026-10-12'), scope: EditScope.this_));
+      h.run(DeleteEvent('w', key: K('2026-10-12'), scope: EditScope.single));
       expect(all(store), hasLength(5));
       expect([for (final e in store.snapshot.getSeries('w')!.set.exdates) '$e'], ['2026-10-12T07:00:00Z']);
     });
@@ -133,7 +133,7 @@ void main() {
           'w',
           const EventPatch(title: 'x'),
           key: K('2026-10-12'),
-          scope: EditScope.this_,
+          scope: EditScope.single,
         ),
       );
       final ovId = store.snapshot.getSeries('w')!.overrides[K('2026-10-12')]!;
@@ -152,7 +152,7 @@ void main() {
           'w',
           const EventPatch(title: 'x'),
           key: K('2026-10-13'),
-          scope: EditScope.this_,
+          scope: EditScope.single,
         ),
         c,
       );
@@ -171,7 +171,7 @@ void main() {
             'w',
             const EventPatch(title: 'x'),
             key: K('2026-10-12'),
-            scope: EditScope.this_,
+            scope: EditScope.single,
           ),
         );
         expect(
@@ -221,10 +221,10 @@ void main() {
           'w',
           const EventPatch(title: 'Special'),
           key: K('2026-10-12'),
-          scope: EditScope.this_,
+          scope: EditScope.single,
         ),
       );
-      h.run(DeleteEvent('w', key: K('2026-11-02', '+01:00'), scope: EditScope.this_));
+      h.run(DeleteEvent('w', key: K('2026-11-02', '+01:00'), scope: EditScope.single));
       h.run(MoveEvent('w', '2026-10-05T11:00$P', key: K('2026-10-05'), scope: EditScope.all));
       final sr = store.snapshot.getSeries('w')!;
       expect(sr.overrides.keys.toList(), ['2026-10-12T11:00:00+02:00$P']);
@@ -297,13 +297,13 @@ void main() {
 
     test('EXDATEs and overrides after the cut go to the new series, moved with it', () {
       final (:store, :h, c: _) = weekly();
-      h.run(DeleteEvent('w', key: K('2026-11-02', '+01:00'), scope: EditScope.this_));
+      h.run(DeleteEvent('w', key: K('2026-11-02', '+01:00'), scope: EditScope.single));
       h.run(
         UpdateEvent(
           'w',
           const EventPatch(title: 'Last'),
           key: K('2026-11-09', '+01:00'),
-          scope: EditScope.this_,
+          scope: EditScope.single,
         ),
       );
       h.run(MoveEvent('w', '2026-10-26T11:00$P', key: K('2026-10-26', '+01:00'), scope: EditScope.following));
@@ -323,7 +323,7 @@ void main() {
           'w',
           const EventPatch(title: 'Last'),
           key: K('2026-11-09', '+01:00'),
-          scope: EditScope.this_,
+          scope: EditScope.single,
         ),
       );
       final before = dump(store.snapshot);
@@ -342,7 +342,7 @@ void main() {
           'w',
           const EventPatch(title: 'Last'),
           key: K('2026-11-09', '+01:00'),
-          scope: EditScope.this_,
+          scope: EditScope.single,
         ),
       );
       h.run(DeleteEvent('w', key: K('2026-10-26', '+01:00'), scope: EditScope.following));
@@ -369,7 +369,7 @@ void main() {
           'w',
           const EventPatch(title: 'x'),
           key: K('2026-10-12'),
-          scope: EditScope.this_,
+          scope: EditScope.single,
         ),
       );
       final before = dump(store.snapshot);
@@ -489,7 +489,7 @@ void main() {
           'w',
           const EventPatch(title: 'Local'),
           key: K('2026-10-12'),
-          scope: EditScope.this_,
+          scope: EditScope.single,
         ),
       );
       h.run(MoveEvent('w', '2026-10-26T11:00$P', key: K('2026-10-26', '+01:00'), scope: EditScope.following));
@@ -634,7 +634,7 @@ void main() {
           'w',
           const EventPatch(title: 'Apr'),
           key: '2026-04-14T09:00:00+02:00$P',
-          scope: EditScope.this_,
+          scope: EditScope.single,
         ),
       );
       h.run(MoveEvent('w', '2026-01-14T09:00', key: '2026-01-13T09:00:00+01:00$P', scope: EditScope.all));
@@ -645,7 +645,7 @@ void main() {
 
     test('a series id without key works when the first start is excluded or off the rule', () {
       final a = series(start: '2026-10-05T09:00$P', rrule: 'FREQ=WEEKLY;COUNT=4');
-      a.h.run(DeleteEvent('w', key: K('2026-10-05'), scope: EditScope.this_));
+      a.h.run(DeleteEvent('w', key: K('2026-10-05'), scope: EditScope.single));
       expect(a.h.run(UpdateEvent('w', const EventPatch(title: 'New'))).ok, isTrue);
       expect(dates(a.store, '2026-10-01', '2026-11-30'), ['New:2026-10-12', 'New:2026-10-19', 'New:2026-10-26']);
       expect(a.h.run(const DeleteEvent('w')).ok, isTrue);
@@ -805,7 +805,7 @@ void main() {
             'w',
             const EventPatch(title: 'Moved'),
             key: '2026-10-12T09:00:00+02:00$P',
-            scope: EditScope.this_,
+            scope: EditScope.single,
           ),
         );
         expect(h.run(const ChangeRule('w', null)).ok, isTrue);

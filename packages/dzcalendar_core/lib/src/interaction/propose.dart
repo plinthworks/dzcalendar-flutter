@@ -376,7 +376,7 @@ CalendarSelection selectionBetween(InteractionContext ctx, Hit a, Hit b) {
 /// The command that carries a proposal out. An occurrence is addressed
 /// through its series ([scope] says how far — the widgets ask). A change
 /// between timed and all-day is an update; the rest is a move.
-Command commandFor(EventInstance instance, Proposal p, [EditScope scope = EditScope.this_]) {
+Command commandFor(EventInstance instance, Proposal p, [EditScope scope = EditScope.single]) {
   final ev = instance.event;
   final ref = ev.ref;
   final id = ref?.seriesId ?? ev.id;

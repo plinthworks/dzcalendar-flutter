@@ -19,6 +19,11 @@ import 'package:intl/intl.dart';
 /// To change a word, extend the language's class and hand it to a
 /// [DzCalendarLocalizationsDelegate]'s `customize`. Another language: extend
 /// [DzCalendarLocalizations] (or the English one) the same way.
+///
+/// A word added in a later minor version comes with a body (its English
+/// text), so a class extending this one keeps compiling (owner's decision
+/// 69); extending [DzCalendarLocalizationsEn] gets every new word in English
+/// until it is translated.
 abstract class DzCalendarLocalizations {
   const DzCalendarLocalizations(this.localeName);
 

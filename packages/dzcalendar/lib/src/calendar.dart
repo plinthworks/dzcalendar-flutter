@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -56,7 +56,7 @@ class DzCalendar extends StatefulWidget {
   final int scrollHour;
 
   /// An event tapped (and the menu's "Open", Enter on a focused event, a
-  /// screen reader's tap). [rect] is where it is drawn, in global
+  /// screen reader's tap). `rect` is where it is drawn, in global
   /// coordinates — the piece tapped, for an event over several days — to
   /// anchor a popover; the calendar's own box when it is not drawn.
   final EventTapCallback? onEventTap;
@@ -66,11 +66,11 @@ class DzCalendar extends StatefulWidget {
   final void Function(Hit hit)? onDateTap;
 
   /// The selection a tap, a drag or the keyboard made (also on the
-  /// controller), and [rect]: where it is drawn (global; the part in view).
+  /// controller), and `rect`: where it is drawn (global; the part in view).
   final SelectCallback? onSelect;
 
   /// The menu's "New event here": the app opens its own form, anchored on
-  /// [rect], the slot or the day (global).
+  /// `rect`, the slot or the day (global).
   final CreateRequestCallback? onCreateRequest;
 
   /// A bookable slot (`ModelOptions.availableSlots`) tapped.

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:dzcalendar_core/dzcalendar_core.dart';
+import 'package:dzcalendar_core/internal.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -415,7 +415,7 @@ class CalendarInteraction {
   /// then it runs through the history — told to `onEventChange` — is said,
   /// and lands. True when the calendar changed.
   Future<bool> commit(EventInstance i, Proposal p, {required bool resize, required Offset at}) async {
-    var scope = EditScope.this_;
+    var scope = EditScope.single;
     if (!p.valid) say(refusalWords(p));
     // Switching between timed and all-day is for one occurrence only (a series keeps one kind).
     if (i.event.ref != null && p.valid && p.allDay == i.event.allDay) {
@@ -656,7 +656,7 @@ class CalendarInteraction {
       semanticLabel: header,
       items: [
         PopupMenuItem<EditScope>(enabled: false, height: 32, child: Text(header)),
-        PopupMenuItem(value: EditScope.this_, child: Text(l10n.scopeThis)),
+        PopupMenuItem(value: EditScope.single, child: Text(l10n.scopeThis)),
         PopupMenuItem(value: EditScope.following, child: Text(l10n.scopeFollowing)),
         PopupMenuItem(value: EditScope.all, child: Text(l10n.scopeAll)),
       ],

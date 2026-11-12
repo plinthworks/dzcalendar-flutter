@@ -19,6 +19,8 @@ jobs:
       - run: flutter pub get
       - run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze --fatal-infos
+      # The public libraries name every type they give (owner's decisions 68–69).
+      - run: dart run tool/check_api.dart
       - run: dart test
         working-directory: packages/dzcalendar_core
       - run: flutter test

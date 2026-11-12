@@ -227,10 +227,10 @@ Command? editCommand(EventInstance instance, Draft before, Draft after, Calendar
     final reach = ref == null
         ? null
         : before.allDay != after.allDay
-        ? EditScope.this_
+        ? EditScope.single
         : repeatChanged || before.calendarId != after.calendarId
         ? EditScope.all
-        : scope ?? EditScope.this_;
+        : scope ?? EditScope.single;
     commands.add(UpdateEvent(id, patch, scope: reach, key: reach == null ? null : key));
   }
 
@@ -248,7 +248,7 @@ Command? editCommand(EventInstance instance, Draft before, Draft after, Calendar
 }
 
 /// Deletes [instance]: an occurrence as far as [scope] says.
-Command deleteCommand(EventInstance instance, {EditScope scope = EditScope.this_}) {
+Command deleteCommand(EventInstance instance, {EditScope scope = EditScope.single}) {
   final e = instance.event;
   final ref = e.ref;
   return ref == null ? DeleteEvent(e.id) : DeleteEvent(ref.seriesId, scope: scope, key: ref.key);

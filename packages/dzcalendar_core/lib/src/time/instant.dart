@@ -8,7 +8,7 @@ final class Instant implements Comparable<Instant> {
   const Instant.fromEpochMilliseconds(this.epochMilliseconds);
 
   /// "2026-03-29T01:00:00Z", "2026-03-29T03:00:00+02:00", with or without a
-  /// trailing "[Europe/Paris]" (an annotation: the offset decides). An instant
+  /// trailing `[Europe/Paris]` (an annotation: the offset decides). An instant
   /// needs its offset; a bare date-time is no instant.
   static Instant? tryParse(String text) {
     var body = text;

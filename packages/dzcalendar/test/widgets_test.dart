@@ -1,5 +1,4 @@
 import 'package:dzcalendar/dzcalendar.dart';
-import 'package:dzcalendar_core/dzcalendar_core.dart' show NavDirection;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';

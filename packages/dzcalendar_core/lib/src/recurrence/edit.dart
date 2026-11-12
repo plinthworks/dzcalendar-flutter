@@ -311,7 +311,7 @@ Map<int, Start> _startsAt(Start start, RRuleSet set, List<int> positions) {
   final sr = snap.getSeries(ref.seriesId);
   final at = sr == null ? null : startOfKey(sr, ref.key);
   if (sr == null || at == null) return null;
-  final before = scope == EditScope.this_ ? _current(snap, sr, ref.key) : materialize(sr, at);
+  final before = scope == EditScope.single ? _current(snap, sr, ref.key) : materialize(sr, at);
   if (before == null) return null;
   final after = patchEvent(before, patch, ctx, 'check', []);
   return after == null ? null : (before: before, after: after);
@@ -351,7 +351,7 @@ EditResult editOccurrence(
   // `this` edits the occurrence as it is now (its override, if any); the
   // others edit what the series itself makes there, so an override's own
   // move is not spread to every occurrence.
-  final target = scope == EditScope.this_ ? _current(snap, sr, ref.key) : materialize(sr, at);
+  final target = scope == EditScope.single ? _current(snap, sr, ref.key) : materialize(sr, at);
   if (target == null) {
     problems.add(Problem(ProblemCode.unknownEvent, Severity.error, '$path.key', ref.key));
     return null;
@@ -359,7 +359,7 @@ EditResult editOccurrence(
   final edited = patchEvent(target, patch, ctx, path, problems);
   if (edited == null) return null;
   if (identical(edited, target) && !(forceSplit && scope == EditScope.following)) return const [];
-  if (scope != EditScope.this_ && edited.allDay != sr.allDay) {
+  if (scope != EditScope.single && edited.allDay != sr.allDay) {
     // A whole series switching between days and times needs its rules rewritten: one occurrence only.
     problems.add(
       Problem(
@@ -371,7 +371,7 @@ EditResult editOccurrence(
     );
     return null;
   }
-  if (scope == EditScope.this_) return _editThis(sr, ref.key, target, edited, ctx);
+  if (scope == EditScope.single) return _editThis(sr, ref.key, target, edited, ctx);
 
   // A start-only move keeps the series' own length, not the moved occurrence's.
   final length = patch.hasEnd || patch.hasDuration ? occurrenceLength(edited) : occurrenceLength(sr.base);
@@ -608,7 +608,7 @@ EditResult deleteOccurrence(
   }
   if (scope == EditScope.following && indexOfStart(sr.start, sr.set, at) == 0) return deleteSeries(snap, sr);
   final mutations = <Mutation>[];
-  if (scope == EditScope.this_) {
+  if (scope == EditScope.single) {
     final own = sr.overrides[ref.key];
     final overrides = {...sr.overrides};
     if (own != null) {

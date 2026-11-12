@@ -89,7 +89,7 @@ void main() {
       ..title = 'Consultations (remplacement)'
       ..startTime = PlainTime(9);
     expect(asksScope(monday, before, after), isTrue);
-    expect(c.run(editCommand(monday, before, after, b, scope: EditScope.this_)!, validate: true).ok, isTrue);
+    expect(c.run(editCommand(monday, before, after, b, scope: EditScope.single)!, validate: true).ok, isTrue);
 
     for (final id in ['home', 'work']) {
       b.setVisible(b.byId(id)!, false);
@@ -156,7 +156,7 @@ void main() {
     final tuesday = find(b, 'Footing', PlainDate(2026, 11, 10));
     final before = Draft.of(tuesday, b, 'Africa/Algiers');
     b.controller.run(
-      editCommand(tuesday, before, before.copy()..title = 'Fractionné', b, scope: EditScope.this_)!,
+      editCommand(tuesday, before, before.copy()..title = 'Fractionné', b, scope: EditScope.single)!,
       validate: true,
     );
     expect(b.calendarOf(find(b, 'Fractionné').event)?.id, 'sport');

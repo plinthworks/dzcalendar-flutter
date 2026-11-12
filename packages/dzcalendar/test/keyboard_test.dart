@@ -4,7 +4,7 @@
 import 'package:dzcalendar/dzcalendar.dart';
 import 'package:dzcalendar/src/keyboard.dart' show keyLikeOf;
 import 'package:dzcalendar/src/views/common.dart' show CursorBox;
-import 'package:dzcalendar_core/dzcalendar_core.dart' show KeyLike;
+import 'package:dzcalendar_core/internal.dart' show KeyLike;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';

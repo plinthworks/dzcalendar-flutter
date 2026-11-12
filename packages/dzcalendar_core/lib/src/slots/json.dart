@@ -16,7 +16,7 @@ import 'types.dart';
 /// `Temporal.ZonedDateTime.from` when it names a zone): an [Instant], a
 /// [ZonedDateTime], or ISO text with its offset (`2026-10-21T08:00Z`,
 /// `…+03:00[Asia/Riyadh]`). An offset the zone does not have there is
-/// refused, as Temporal's default `offset: 'reject'`. [exact]: false when
+/// refused, as Temporal's default `offset: 'reject'`. `exact`: false when
 /// the text is written below the millisecond (kept to it).
 ({Instant at, bool exact})? readMomentExact(Object? m) {
   switch (m) {

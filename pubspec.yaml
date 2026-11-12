@@ -8,6 +8,8 @@ workspace:
   - packages/dzcalendar/example
   - apps/showcase
 dev_dependencies:
+  # tool/check_api.dart: the public API names every type it gives.
+  analyzer: ^7.7.1
   lints: ^5.0.0
 # What Flutter 3.35's flutter_localizations pins: the tests run on the intl an
 # app gets (19e-1 review), not the newest the constraint allows.
