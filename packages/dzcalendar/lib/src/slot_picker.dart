@@ -11,6 +11,9 @@ import 'theme.dart';
 ///
 /// Days and times are read in [displayZone]; two slots at the same clock
 /// time on a fall-back day are told apart by their offset.
+///
+/// In a scrolling parent it is as tall as its content; given a bounded height,
+/// the days stay on top and the times scroll under them.
 class SlotPicker<T> extends StatefulWidget {
   const SlotPicker({
     super.key,
@@ -121,70 +124,94 @@ class _SlotPickerState<T> extends State<SlotPicker<T>> {
     }
     final scheme = Theme.of(context).colorScheme;
 
+    Widget dayChip(PlainDate d) {
+      final chosen = d == day;
+      final count = byDay[d]!.length;
+      final fg = chosen ? scheme.onPrimary : scheme.onSurface;
+      return Padding(
+        padding: const EdgeInsetsDirectional.only(end: 8),
+        child: Semantics(
+          button: true,
+          selected: chosen,
+          label: '${l10n.dayLabel(formatTemporal(d, 'yMMMMEEEEd', locale), 0)}, ${l10n.slotCount(count)}',
+          // `excludeSemantics` drops the InkWell's tap with its words: the action is
+          // given back here, or a screen reader reads the day and cannot choose it.
+          onTap: () => setState(() => _day = d),
+          excludeSemantics: true,
+          child: Material(
+            color: chosen ? scheme.primary : scheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => setState(() => _day = d),
+              // A minimum width, not a fixed one: "14 créneaux" or an Arabic count
+              // does not fit 64 points once the text is enlarged.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 64),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        weekdayNames(locale, NameWidth.short, 1)[d.dayOfWeek - 1],
+                        style: style.headerStyle.copyWith(color: fg),
+                      ),
+                      Text(
+                        formatTemporal(d, 'd', locale),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleLarge?.copyWith(color: fg, fontWeight: FontWeight.w700, height: 1.1),
+                      ),
+                      Text(l10n.slotCount(count), style: style.timeLabelStyle.copyWith(color: fg, fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // No fixed height: a strip of 88 overflowed from a text ×1.35 on, and Arabic
+    // lines are taller too. The strip takes its content's height; IntrinsicHeight
+    // makes every day as tall as the tallest. Built at once rather than lazily: a
+    // few weeks of days cost nothing.
+    final strip = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [for (final d in days) dayChip(d)]),
+      ),
+    );
+    final chosenDay = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Text(formatTemporal(day, 'yMMMMEEEEd', locale), style: style.titleStyle),
+    );
+    final grid = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Wrap(spacing: 8, runSpacing: 8, children: [for (final s in times) _button(s, seen, clock, l10n, style)]),
+    );
+    // In a scrolling parent, as tall as its content: a loose Flexible in a
+    // Column of unbounded height takes its child's height. Given a bounded
+    // height (a screen's body, a sheet), the days stay on top and the times
+    // scroll under them, rather than overflowing at a large text or with many
+    // times (owner's decision 72). No LayoutBuilder: a dialog asks its content
+    // for an intrinsic width.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          height: 88,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            itemCount: days.length,
-            itemBuilder: (context, i) {
-              final d = days[i];
-              final chosen = d == day;
-              final count = byDay[d]!.length;
-              final fg = chosen ? scheme.onPrimary : scheme.onSurface;
-              return Padding(
-                padding: const EdgeInsetsDirectional.only(end: 8),
-                child: Semantics(
-                  button: true,
-                  selected: chosen,
-                  label: '${l10n.dayLabel(formatTemporal(d, 'yMMMMEEEEd', locale), 0)}, ${l10n.slotCount(count)}',
-                  excludeSemantics: true,
-                  child: Material(
-                    color: chosen ? scheme.primary : scheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(14),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () => setState(() => _day = d),
-                      child: SizedBox(
-                        width: 64,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              weekdayNames(locale, NameWidth.short, 1)[d.dayOfWeek - 1],
-                              style: style.headerStyle.copyWith(color: fg),
-                            ),
-                            Text(
-                              formatTemporal(d, 'd', locale),
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleLarge?.copyWith(color: fg, fontWeight: FontWeight.w700, height: 1.1),
-                            ),
-                            Text(l10n.slotCount(count), style: style.timeLabelStyle.copyWith(color: fg, fontSize: 10)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Text(formatTemporal(day, 'yMMMMEEEEd', locale), style: style.titleStyle),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [for (final s in times) _button(s, seen, clock, l10n, style)],
+        strip,
+        Flexible(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [chosenDay, grid],
+            ),
           ),
         ),
       ],
@@ -213,6 +240,9 @@ class _SlotPickerState<T> extends State<SlotPicker<T>> {
       enabled: on,
       label:
           '${l10n.freeSlot(l10n.range(time, clock(w.endOf(s))))}${seats == null ? '' : ', ${l10n.seatsLeft(seats)}'}',
+      // Same as a day: the button's own tap is excluded with its label. Null while
+      // disabled, so a screen reader cannot book what a finger cannot.
+      onTap: tap,
       excludeSemantics: true,
       child: chosen
           ? FilledButton(onPressed: tap, child: Text(label))

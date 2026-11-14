@@ -19,7 +19,7 @@ class DayGridView extends StatefulWidget {
   final CalendarEnv env;
   final DayGridModel model;
 
-  static const _numberHeight = 24.0;
+  static const _minNumberHeight = 24.0;
   static const _gap = 2.0;
 
   @override
@@ -51,6 +51,13 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface, KeySu
     }
     final cells = weeks.first.dates.length;
     final style = env.style;
+    // As drawn: a larger text takes a taller day number and taller bars, so the
+    // bars start lower and fewer fit — never drawn over the number (2026-11-14).
+    final scaler = MediaQuery.textScalerOf(context);
+    _numberHeight = scaler.scale(1) <= 1
+        ? DayGridView._minNumberHeight
+        : math.max(DayGridView._minNumberHeight, scaler.scale(style.dayNumberStyle.fontSize ?? 12) * 1.2 + 6);
+    _barHeight = barHeightOf(context, env);
     final names = weekdayNames(env.locale, NameWidth.short, env.state.firstDay);
     final resourceView = model.resourceHeads.isNotEmpty;
     final days = resourceView ? cells ~/ math.max(1, model.resourceHeads.length) : cells;
@@ -60,24 +67,49 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface, KeySu
           ResourceGroupRow(env: env, groups: model.groupHeads, heads: model.resourceHeads),
         if (resourceView) ResourceHeadRow(env: env, heads: model.resourceHeads, cells: cells),
         // Weekday names: one row of a month's dates says which day each column is.
-        Row(
-          children: [
-            for (var c = 0; c < cells; c++)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    weeks.length > 1
-                        ? names[(weeks.first.dates[c].dayOfWeek - env.state.firstDay + 7) % 7]
-                        : dayHead(env, weeks.first.dates[c], days),
-                    textAlign: TextAlign.center,
-                    style: style.headerStyle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        LayoutBuilder(
+          builder: (context, box) {
+            // Short names ("mar.", cut with an ellipsis), unless a column would say
+            // nothing: at a large text even "m…" did not fit a seventh of a phone
+            // (2026-11-14). Then narrow ones ("M").
+            var shown = names;
+            if (weeks.length > 1 && box.maxWidth.isFinite) {
+              final room = box.maxWidth / cells;
+              final direction = Directionality.of(context);
+              bool fits(String name) {
+                final p = TextPainter(
+                  text: TextSpan(text: '${name.characters.first}…', style: style.headerStyle),
+                  textDirection: direction,
+                  textScaler: scaler,
+                  maxLines: 1,
+                )..layout();
+                final ok = p.width <= room - 2;
+                p.dispose();
+                return ok;
+              }
+
+              if (!names.every(fits)) shown = weekdayNames(env.locale, NameWidth.narrow, env.state.firstDay);
+            }
+            return Row(
+              children: [
+                for (var c = 0; c < cells; c++)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text(
+                        weeks.length > 1
+                            ? shown[(weeks.first.dates[c].dayOfWeek - env.state.firstDay + 7) % 7]
+                            : dayHead(env, weeks.first.dates[c], days),
+                        textAlign: TextAlign.center,
+                        style: style.headerStyle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         ),
         Divider(height: 1, color: style.gridLineColor),
         Expanded(
@@ -92,7 +124,13 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface, KeySu
                     SizedBox(
                       key: _rowKeys[w],
                       height: rowHeight,
-                      child: _WeekRow(env: env, model: cut, index: w, numberHeight: DayGridView._numberHeight),
+                      child: _WeekRow(
+                        env: env,
+                        model: cut,
+                        index: w,
+                        numberHeight: _numberHeight,
+                        barHeight: _barHeight,
+                      ),
                     ),
                 ],
               );
@@ -103,9 +141,12 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface, KeySu
     );
   }
 
+  /// The room above the bars and a bar's height, at the text's size (set by [build]).
+  double _numberHeight = DayGridView._minNumberHeight;
+  double _barHeight = 18;
+
   /// Lanes a row holds, the "+N" link's included (it takes the last one where something spills); at least one.
-  int _fit(double rowHeight) =>
-      math.max(1, ((rowHeight - DayGridView._numberHeight) / (env.style.barHeight + DayGridView._gap)).floor());
+  int _fit(double rowHeight) => math.max(1, ((rowHeight - _numberHeight) / (_barHeight + DayGridView._gap)).floor());
 
   // ——— the gestures' surface ———
 
@@ -166,10 +207,7 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface, KeySu
         final ltr = env.textDirection == TextDirection.ltr;
         final left = ltr ? from! * cw : width - (last + 1) * cw;
         out.add((
-          rect: _global(
-            row,
-            Rect.fromLTWH(left + 2, DayGridView._numberHeight, (last - from! + 1) * cw - 4, env.style.barHeight),
-          ),
+          rect: _global(row, Rect.fromLTWH(left + 2, _numberHeight, (last - from! + 1) * cw - 4, _barHeight)),
           clip: clip,
         ));
         from = null;
@@ -357,18 +395,24 @@ class _DayGridViewState extends State<DayGridView> implements DragSurface, KeySu
 }
 
 class _WeekRow extends StatelessWidget {
-  const _WeekRow({required this.env, required this.model, required this.index, required this.numberHeight});
+  const _WeekRow({
+    required this.env,
+    required this.model,
+    required this.index,
+    required this.numberHeight,
+    required this.barHeight,
+  });
   final CalendarEnv env;
   final DayGridModel model;
   final int index;
   final double numberHeight;
+  final double barHeight;
 
   @override
   Widget build(BuildContext context) {
     final week = model.weeks[index];
-    final style = env.style;
     final cells = week.dates.length;
-    final lane = style.barHeight + DayGridView._gap;
+    final lane = barHeight + DayGridView._gap;
     final shown = model.maxLanes ?? week.laneCount;
     return LayoutBuilder(
       builder: (context, box) {
@@ -400,7 +444,7 @@ class _WeekRow extends StatelessWidget {
                     start: piece.from * cw + 2,
                     width: (piece.to - piece.from) * cw - 4,
                     top: numberHeight + bar.lane * lane,
-                    height: style.barHeight,
+                    height: barHeight,
                     child: EventBar(env: env, segment: bar.segment),
                   ),
             for (var c = 0; c < cells; c++)
@@ -409,7 +453,7 @@ class _WeekRow extends StatelessWidget {
                   start: c * cw,
                   width: cw,
                   top: numberHeight + (shown - 1) * lane,
-                  height: style.barHeight,
+                  height: barHeight,
                   child: _MoreLink(env: env, week: week, cell: c),
                 ),
           ],
@@ -444,19 +488,25 @@ class _Cell extends StatelessWidget {
             !date.isBefore(start) && date.isBefore(end) && (resourceId == null || resourceId == resource?.id),
           _ => false,
         };
+        void press(Offset at) {
+          final hit = dayHitAt(model, week, cell);
+          if (hit == null) return;
+          env.interaction.pressEmpty(hit, DayTarget(date: date, resourceId: resource?.id), at);
+        }
+
+        // The gestures' actions given back to a screen reader, which the
+        // excluded GestureDetector would not expose.
         return Semantics(
           button: true,
           label: resource != null ? env.l10n.ofResource(resource.title, label) : label,
           selected: selected,
+          onTap: _tap,
+          onLongPress: () => press(centerOnScreen(context)),
           excludeSemantics: true,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _tap(),
-            onLongPressStart: (d) {
-              final hit = dayHitAt(model, week, cell);
-              if (hit == null) return;
-              env.interaction.pressEmpty(hit, DayTarget(date: date, resourceId: resource?.id), d.globalPosition);
-            },
+            onLongPressStart: (d) => press(d.globalPosition),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: selected
@@ -543,7 +593,7 @@ class DayNumber extends StatelessWidget {
         : style.secondaryDateStyle;
     // Gregorian alone: the number, nothing to measure.
     if (second == null && env.state.displayCalendar == null) {
-      return UnconstrainedBox(child: _circle(marked, numberStyle));
+      return _shrunk(_circle(marked, numberStyle));
     }
     return LayoutBuilder(
       builder: (context, box) {
@@ -560,9 +610,9 @@ class DayNumber extends StatelessWidget {
           beside = plain != null && numberWidth(text) + 2 + _width(context, plain, secondStyle) <= room ? plain : null;
         }
         final number = _circle(text, numberStyle);
-        if (beside == null) return UnconstrainedBox(child: number);
-        return UnconstrainedBox(
-          child: Row(
+        if (beside == null) return _shrunk(number);
+        return _shrunk(
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               number,
@@ -574,6 +624,10 @@ class DayNumber extends StatelessWidget {
       },
     );
   }
+
+  /// Its own size where it fits; shrunk where it does not (a large text in a
+  /// seventh of a phone), rather than drawn over the next day.
+  static Widget _shrunk(Widget child) => FittedBox(fit: BoxFit.scaleDown, child: child);
 
   /// Sized to the number (a circle on today), never stretched by the cell.
   Widget _circle(String text, TextStyle numberStyle) => Container(
@@ -607,12 +661,14 @@ class _MoreLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final keys = week.hiddenKeysPerDay[cell];
     final date = week.dates[cell];
+    void open() => showDaySheet(context, env, date, segmentsOn(week, cell));
     return Semantics(
       button: true,
       label: env.l10n.moreLabel(keys.length, env.dateLong(date)),
+      onTap: open,
       excludeSemantics: true,
       child: InkWell(
-        onTap: () => showDaySheet(context, env, date, segmentsOn(week, cell)),
+        onTap: open,
         child: Center(
           child: Text(
             env.l10n.moreLink(keys.length),

@@ -2,9 +2,15 @@
 
 ## Resume here (if a session is lost)
 
-- **Phase 19k in progress (2026-11-11)**: usable and published (decisions
-  65–71). Everything done but the commit and the first publication (by
-  the owner): see its section below.
+- **1.0.1 (2026-11-14)**: accessibility and large-text fixes found by
+  sehhaty-mobile (the SlotPicker) and the audit that followed: buttons a
+  screen reader read but could not activate, the header, the month and
+  the all-day bars at a large text, 15-minute events (decisions 72–73;
+  `packages/dzcalendar/test/accessibility_test.dart`). Released when the
+  owner says so (`dart run tool/release.dart 1.0.1`, push main and the tag).
+- **Phase 19k done (2026-11-12)**: usable and published (decisions 65–71).
+  1.0.0 is on pub.dev (published by hand, tag v1.0.0); later versions by
+  tag through `.github/workflows/publish.yml`.
 - **Phase 19j-3 done (2026-11-11)**: editing on the timeline — 19j (the
   timeline, decisions 61–64) is complete. See its section below. **Next:
   to decide with the owner** (decision 64's later items — pinch to zoom,
@@ -398,6 +404,15 @@
       app's `switch` on them can be exhaustive (an app saving `SourceEdit`s
       cannot miss a new kind). Only `KernelEvent`, `ViewModel`,
       `SourceNotice` (`abstract final`) and enums grow in a minor.
+  72. **A bounded SlotPicker scrolls its times (owner, 2026-11-14)**: in
+      a scrolling parent it is as tall as its content; given a bounded
+      height (a screen's body, a sheet), the days stay on top and the
+      times scroll under them, rather than overflowing.
+  73. **Wordless backgrounds are hidden from screen readers (owner,
+      2026-11-14)**: a time-grid column, an all-day cell and a timeline
+      row are `excludeFromSemantics` — their double tap created at a time
+      nobody chose. Readers go by the free slots, the events and the
+      keyboard cursor.
   - Not a question (Dart): recurrence will be part of the core — Dart's tree
     shaking makes the TS's separate entry (`@dzcalendar/core/recurrence`,
     size) pointless, so `recurrence-not-loaded` has no equivalent. No

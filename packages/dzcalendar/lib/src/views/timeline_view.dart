@@ -1467,8 +1467,11 @@ class _RowBody extends StatelessWidget {
           builder: (context, w, _) => Stack(
             children: [
               Positioned.fill(
+                // Hidden from screen readers (owner, 2026-11-14): a node with no words whose tap
+                // creates at a time not chosen. Readers go by the slots, events and the cursor.
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
+                  excludeFromSemantics: true,
                   onTapUp: (d) => onTap(along(d.localPosition)),
                   onLongPressStart: (d) => onPress(along(d.localPosition), d.globalPosition),
                   child: ValueListenableBuilder<CalendarSelection?>(
@@ -1775,16 +1778,18 @@ class _More extends StatelessWidget {
   Widget build(BuildContext context) {
     final date = ZonedDateTime(axis.fromPosition(more.from), env.zone).date;
     final n = more.events.length;
+    void open() => showDaySheet(context, env, date, [for (final e in more.events) e.segment]);
     return Semantics(
       button: true,
       label: env.l10n.moreLabel(n, env.dateLong(date)),
+      onTap: open,
       excludeSemantics: true,
       child: Material(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(env.style.eventRadius),
         child: InkWell(
           borderRadius: BorderRadius.circular(env.style.eventRadius),
-          onTap: () => showDaySheet(context, env, date, [for (final e in more.events) e.segment]),
+          onTap: open,
           child: Align(
             alignment: AlignmentDirectional.centerStart,
             child: Padding(

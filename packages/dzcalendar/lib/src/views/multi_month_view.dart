@@ -58,6 +58,7 @@ class MultiMonthView extends StatelessWidget {
             header: true,
             button: canGo,
             label: canGo ? '$title, ${env.l10n.goToMonth}' : title,
+            onTap: canGo ? () => env.controller.setView(monthView, m.month) : null,
             excludeSemantics: true,
             child: InkWell(
               onTap: canGo ? () => env.controller.setView(monthView, m.month) : null,
@@ -106,15 +107,18 @@ class _MonthWeek extends StatelessWidget {
   Widget _day(BuildContext context, DayGridWeek w, int c) {
     final date = w.dates[c];
     final count = segmentsOn(w, c).length;
+    void tap() {
+      final hit = dayHitAt(model, week, c);
+      if (hit != null) env.onDateTap?.call(hit);
+    }
+
     return Semantics(
-      button: true,
+      button: env.onDateTap != null,
       label: env.l10n.dayLabel(env.dateLong(date), count),
+      onTap: env.onDateTap == null ? null : tap,
       excludeSemantics: true,
       child: InkWell(
-        onTap: () {
-          final hit = dayHitAt(model, week, c);
-          if (hit != null) env.onDateTap?.call(hit);
-        },
+        onTap: tap,
         child: SizedBox(
           height: height,
           child: Column(

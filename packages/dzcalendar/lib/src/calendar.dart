@@ -316,7 +316,9 @@ class _DzCalendarState extends State<DzCalendar> with WidgetsBindingObserver, Ti
 }
 
 /// Previous, next, today, the title, the views: what [DzCalendar] shows on
-/// top, usable alone (in an `AppBar`, over a [MiniMonth]).
+/// top, usable alone (in an `AppBar`, over a [MiniMonth]). It takes the width
+/// it is given, to choose between the view's name and an icon: not inside an
+/// `IntrinsicWidth`.
 class CalendarHeader extends StatelessWidget {
   const CalendarHeader({
     super.key,
@@ -341,36 +343,67 @@ class CalendarHeader extends StatelessWidget {
       for (final v in views)
         if (c.kernel.viewSpec(v) != null) v,
     ];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Row(
-        children: [
-          IconButton(tooltip: l10n.previous, icon: const Icon(Icons.chevron_left), onPressed: c.previous),
-          IconButton(tooltip: l10n.next, icon: const Icon(Icons.chevron_right), onPressed: c.next),
-          Expanded(
-            child: Semantics(
-              header: true,
-              liveRegion: true,
-              child: Text(state.title, style: style.titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-          ),
-          IconButton(tooltip: l10n.today, icon: const Icon(Icons.today), onPressed: c.today),
-          if (known.length > 1)
-            PopupMenuButton<String>(
-              tooltip: l10n.viewSwitcher,
-              initialValue: state.view.type,
-              onSelected: c.setView,
-              itemBuilder: (_) => [for (final v in known) PopupMenuItem(value: v, child: Text(l10n.viewName(v)))],
-              child: Padding(
-                padding: const EdgeInsetsDirectional.only(start: 4, end: 8, top: 8, bottom: 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [Text(l10n.viewName(state.view.type)), const Icon(Icons.arrow_drop_down)],
+    final label = l10n.viewName(state.view.type);
+    return LayoutBuilder(
+      builder: (context, box) {
+        // The title comes first: when it and the switcher's words do not both fit
+        // (a phone, a large text), the switcher shows an icon only. Its words
+        // pushed the title to nothing from a text ×1.35 on (2026-11-14).
+        final scaler = MediaQuery.textScalerOf(context);
+        final direction = Directionality.of(context);
+        double widthOf(String text, TextStyle? style) {
+          final p = TextPainter(
+            text: TextSpan(text: text, style: style),
+            textDirection: direction,
+            textScaler: scaler,
+            maxLines: 1,
+          )..layout();
+          final w = p.width;
+          p.dispose();
+          return w;
+        }
+
+        // Three icon buttons, the padding, the switcher's arrow and padding.
+        const chrome = 3 * kMinInteractiveDimension + 8 + 24 + 12;
+        final worded =
+            !box.maxWidth.isFinite ||
+            widthOf(state.title, style.titleStyle) + widthOf(label, DefaultTextStyle.of(context).style) + chrome <=
+                box.maxWidth;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            children: [
+              IconButton(tooltip: l10n.previous, icon: const Icon(Icons.chevron_left), onPressed: c.previous),
+              IconButton(tooltip: l10n.next, icon: const Icon(Icons.chevron_right), onPressed: c.next),
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  liveRegion: true,
+                  child: Text(state.title, style: style.titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
               ),
-            ),
-        ],
-      ),
+              IconButton(tooltip: l10n.today, icon: const Icon(Icons.today), onPressed: c.today),
+              if (known.length > 1)
+                PopupMenuButton<String>(
+                  tooltip: l10n.viewSwitcher,
+                  initialValue: state.view.type,
+                  onSelected: c.setView,
+                  itemBuilder: (_) => [for (final v in known) PopupMenuItem(value: v, child: Text(l10n.viewName(v)))],
+                  icon: worded ? null : const Icon(Icons.view_agenda_outlined),
+                  child: !worded
+                      ? null
+                      : Padding(
+                          padding: const EdgeInsetsDirectional.only(start: 4, end: 8, top: 8, bottom: 8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [Text(label), const Icon(Icons.arrow_drop_down)],
+                          ),
+                        ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

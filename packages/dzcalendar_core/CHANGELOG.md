@@ -3,6 +3,11 @@
 Versions follow [semantic versioning](https://semver.org). `dzcalendar_core`
 and `dzcalendar` are released together under the same number.
 
+## 1.0.1
+
+No change in the core: released with `dzcalendar` 1.0.1 (both packages
+carry the same number).
+
 ## 1.0.0
 
 First release: the Dart port of [DzCalendar](https://github.com/plinthworks/dzcalendar)'s

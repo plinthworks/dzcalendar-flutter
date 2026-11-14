@@ -203,6 +203,8 @@ class EventGestures extends StatelessWidget {
         label: label,
         excludeSemantics: true,
         onTap: () => x.tapEvent(instance, _center(context)),
+        // A finger's long press opens the event's menu here too (in a list, a sheet).
+        onLongPress: () => env.showActions(context, EventTarget(instance), _center(context)),
         child: gestures,
       );
     }
@@ -261,11 +263,7 @@ class EventGestures extends StatelessWidget {
     );
   }
 
-  /// The middle of this event on screen (where a menu opens for a reader).
-  static Offset _center(BuildContext context) {
-    final box = context.findRenderObject();
-    return box is RenderBox && box.hasSize ? box.localToGlobal(box.size.center(Offset.zero)) : Offset.zero;
-  }
+  static Offset _center(BuildContext context) => centerOnScreen(context);
 }
 
 /// Tells the gestures where an event's widget is, while it is (for the
@@ -546,3 +544,21 @@ Future<void> showDaySheet(BuildContext context, CalendarEnv env, PlainDate date,
         ),
       ),
     );
+
+/// The middle of [context]'s widget on screen: where a screen reader's tap or
+/// long press lands, since it has no finger position.
+Offset centerOnScreen(BuildContext context) {
+  final box = context.findRenderObject();
+  return box is RenderBox && box.hasSize ? box.localToGlobal(box.size.center(Offset.zero)) : Offset.zero;
+}
+
+/// A bar's height (all-day, a month's events) at the text's size: the theme's,
+/// or taller when a larger text needs it, so its words are not cut in half.
+/// At the app's text size it is the theme's, whatever that is.
+double barHeightOf(BuildContext context, CalendarEnv env) {
+  final style = env.style;
+  final scaler = MediaQuery.textScalerOf(context);
+  if (scaler.scale(1) <= 1) return style.barHeight;
+  final line = scaler.scale(style.eventStyle.fontSize ?? 11) * 1.25 + 2;
+  return line > style.barHeight ? line : style.barHeight;
+}

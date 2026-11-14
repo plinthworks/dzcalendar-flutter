@@ -300,7 +300,7 @@ class _TimeGridViewState extends State<TimeGridView> implements DragSurface, Key
           final b = _columnX(last, width);
           final left = math.min(a, b);
           out.add((
-            rect: _global(row, Rect.fromLTWH(left + 1, 2, (last - first! + 1) * w - 2, env.style.barHeight)),
+            rect: _global(row, Rect.fromLTWH(left + 1, 2, (last - first! + 1) * w - 2, barHeightOf(context, env))),
             clip: clip,
           ));
           first = null;
@@ -755,7 +755,8 @@ class _AllDayRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = env.style;
-    final lane = style.barHeight + 2;
+    final bar = barHeightOf(context, env);
+    final lane = bar + 2;
     final n = model.columns.length;
     return LayoutBuilder(
       builder: (context, box) {
@@ -768,8 +769,11 @@ class _AllDayRow extends StatelessWidget {
                 children: [
                   for (var i = 0; i < n; i++)
                     Expanded(
+                      // Hidden from screen readers (owner, 2026-11-14): a node with no words whose tap
+                      // creates at a time not chosen. Readers go by the slots, events and the cursor.
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
+                        excludeFromSemantics: true,
                         onTap: () => _tap(i),
                         onLongPressStart: (d) {
                           final c = model.columns[i];
@@ -813,7 +817,7 @@ class _AllDayRow extends StatelessWidget {
                   start: b.column * cw + 1,
                   width: b.segment.dayCount * cw - 2,
                   top: 2 + b.lane * lane,
-                  height: style.barHeight,
+                  height: bar,
                   child: EventBar(env: env, segment: b.segment),
                 ),
             ],
@@ -891,8 +895,11 @@ class _Column extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, box) {
         final w = box.maxWidth;
+        // Hidden from screen readers (owner, 2026-11-14): a node with no words whose tap
+        // creates at a time not chosen. Readers go by the slots, events and the cursor.
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
+          excludeFromSemantics: true,
           onTapUp: (d) => _tap(d.localPosition.dy / ppm, snap),
           onLongPressStart: (d) {
             final minutes = d.localPosition.dy / ppm;
@@ -1181,7 +1188,8 @@ class _TimedBox extends StatelessWidget {
     final when = env.l10n.range(start, end);
     final tall = placed.visualHeight * ppm;
     final text = style.eventStyle.copyWith(color: colors.on, height: 1.2);
-    final lineHeight = (text.fontSize ?? 11) * 1.2;
+    // As drawn: a larger text takes taller lines, so fewer of them fit.
+    final lineHeight = MediaQuery.textScalerOf(context).scale(text.fontSize ?? 11) * 1.2;
     return EventGestures(
       env: env,
       instance: i,
@@ -1224,20 +1232,28 @@ class _TimedBox extends StatelessWidget {
                 borderRadius: BorderRadius.circular(style.eventRadius),
                 border: Border.all(color: Theme.of(context).colorScheme.surface, width: 0.5),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    maxLines: narrow ? 1 : titleLines,
-                    softWrap: !narrow,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  for (final e in extra)
-                    Text(e, maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis, style: text),
-                ],
+              // A block shorter than a line (15 minutes at 48 an hour) still shows the
+              // top of its title, cut by the clip above, rather than an overflow error
+              // (found by sehhaty-mobile, 2026-11-14). A reader hears the whole label.
+              child: OverflowBox(
+                alignment: AlignmentDirectional.topStart,
+                minHeight: 0,
+                maxHeight: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: narrow ? 1 : titleLines,
+                      softWrap: !narrow,
+                      overflow: TextOverflow.ellipsis,
+                      style: text.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    for (final e in extra)
+                      Text(e, maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis, style: text),
+                  ],
+                ),
               ),
             );
           },
@@ -1270,16 +1286,20 @@ class _SlotBox extends StatelessWidget {
     final s = placed.slot;
     final when = env.l10n.range(env.time(s.start), env.time(s.end));
     final seats = s.seats;
+    final tap = env.onSlotTap == null ? null : () => env.onSlotTap!(s);
+    // The InkWell's tap, excluded with its words, given back: a free slot is
+    // where a person books.
     return Semantics(
-      button: true,
+      button: tap != null,
       label: env.l10n.freeSlot(when) + (seats != null ? ', ${env.l10n.seatsLeft(seats)}' : ''),
+      onTap: tap,
       excludeSemantics: true,
       child: Material(
         color: style.slotColor,
         borderRadius: BorderRadius.circular(style.eventRadius),
         child: InkWell(
           borderRadius: BorderRadius.circular(style.eventRadius),
-          onTap: env.onSlotTap == null ? null : () => env.onSlotTap!(s),
+          onTap: tap,
           child: Padding(
             padding: const EdgeInsetsDirectional.only(start: 4, top: 1),
             child: Text(
@@ -1304,15 +1324,17 @@ class _MoreBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = more.events.length;
+    void open() => showDaySheet(context, env, date, [for (final p in more.events) p.segment]);
     return Semantics(
       button: true,
       label: env.l10n.moreLabel(count, env.dateLong(date)),
+      onTap: open,
       excludeSemantics: true,
       child: Material(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(env.style.eventRadius),
         child: InkWell(
-          onTap: () => showDaySheet(context, env, date, [for (final p in more.events) p.segment]),
+          onTap: open,
           child: Center(
             child: Text(
               env.l10n.moreLink(count),

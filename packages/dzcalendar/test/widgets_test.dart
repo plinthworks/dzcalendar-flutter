@@ -1,5 +1,6 @@
 import 'package:dzcalendar/dzcalendar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsAction;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -474,10 +475,75 @@ void main() {
       expect(find.text('mardi 10 novembre 2026'), findsOneWidget);
     });
 
+    // A screen reader activates what it reads. `excludeSemantics` around an InkWell or
+    // a button drops the child's tap action with its label: VoiceOver and TalkBack said
+    // "Monday 9 November, 6 slots, button", and a double tap did nothing — neither a
+    // day nor a time could be chosen without sight (found 2026-11-14).
+    testWidgets('a screen reader can choose a day and a time', (t) async {
+      final handle = t.ensureSemantics();
+      Slot? picked;
+      await _pump(
+        t,
+        SlotPicker.fromSlots(slots: slots(PlainDate(2026, 11, 9), 2, _zone), onSelected: (s) => picked = s),
+      );
+      final day = find.bySemanticsLabel(RegExp(r'^mardi 10 novembre 2026, '));
+      expect(t.getSemantics(day), containsSemantics(isButton: true, hasTapAction: true));
+      t.getSemantics(day).owner!.performAction(t.getSemantics(day).id, SemanticsAction.tap);
+      await t.pump();
+      expect(find.text('mardi 10 novembre 2026'), findsOneWidget);
+
+      final time = find.bySemanticsLabel(RegExp(r'^Créneau libre, de 01:00 à 01:30'));
+      expect(t.getSemantics(time), containsSemantics(isButton: true, hasTapAction: true));
+      t.getSemantics(time).owner!.performAction(t.getSemantics(time).id, SemanticsAction.tap);
+      await t.pump();
+      expect(picked, isNotNull);
+      handle.dispose();
+    });
+
+    // A dialog asks its content for an intrinsic width: no LayoutBuilder in the way.
+    testWidgets('in a dialog', (t) async {
+      await _pump(t, AlertDialog(content: SlotPicker.fromSlots(slots: slots(PlainDate(2026, 11, 9), 2, _zone))));
+      expect(t.takeException(), isNull);
+      expect(find.text('lundi 9 novembre 2026'), findsOneWidget);
+    });
+
     testWidgets('no slot: says so', (t) async {
       await _pump(t, SlotPicker.fromSlots(slots: const []));
       expect(find.text('Aucun créneau libre'), findsOneWidget);
     });
+
+    // The largest accessibility text (iOS goes to about ×3.1) on the narrowest phone
+    // shipped (320 points): a day strip of fixed height overflowed from ×1.35 on — found
+    // by the first app to use the picker (2026-11-14). Arabic has taller lines too.
+    // Both in a scrolling parent and as a screen's body: there the times scroll under
+    // the days (owner, 2026-11-14), and the last one can be reached.
+    for (final scrolled in const [true, false]) {
+      for (final locale in const ['fr', 'ar']) {
+        for (final scale in const [1.35, 2.0, 3.0]) {
+          final where = scrolled ? 'in a scroll view' : 'as a body';
+          testWidgets('a large text at 320 points does not overflow ($where, $locale, ×$scale)', (t) async {
+            final picker = SlotPicker.fromSlots(slots: slots(PlainDate(2026, 11, 9), 3, _zone));
+            await _pump(
+              t,
+              Builder(
+                builder: (context) => MediaQuery(
+                  data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+                  child: scrolled ? SingleChildScrollView(child: picker) : picker,
+                ),
+              ),
+              size: const Size(320, 640),
+              locale: locale,
+            );
+            expect(t.takeException(), isNull);
+            if (!scrolled) {
+              final times = find.byType(OutlinedButton);
+              await t.scrollUntilVisible(times.last, 100, scrollable: find.byType(Scrollable).last);
+              expect(t.takeException(), isNull);
+            }
+          });
+        }
+      }
+    }
   });
 
   group('MiniMonth', () {

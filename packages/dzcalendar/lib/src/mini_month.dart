@@ -195,21 +195,25 @@ class _MiniMonthState extends State<MiniMonth> {
         : !enabled || outside
         ? style.outsideDayColor
         : null;
+    final VoidCallback? tap = !enabled
+        ? null
+        : () {
+            setState(() => _shown = null);
+            widget.controller?.goTo(d);
+            widget.onDateSelected?.call(d);
+          };
+    // `excludeSemantics` drops the InkWell's tap with its words: given back here,
+    // or a screen reader reads the day and cannot choose it.
     return Semantics(
       button: enabled,
       selected: isSel,
       enabled: enabled,
       label: l10n.dayLabel(longSecond == null ? long : '$long ($longSecond)', 0),
+      onTap: tap,
       excludeSemantics: true,
       child: InkWell(
         customBorder: const CircleBorder(),
-        onTap: !enabled
-            ? null
-            : () {
-                setState(() => _shown = null);
-                widget.controller?.goTo(d);
-                widget.onDateSelected?.call(d);
-              },
+        onTap: tap,
         child: Container(
           height: 40,
           margin: const EdgeInsets.all(1),
