@@ -3,7 +3,7 @@
 Versions follow [semantic versioning](https://semver.org). `dzcalendar` and
 `dzcalendar_core` are released together under the same number.
 
-## 1.0.1
+## 1.1.0
 
 Screen readers and large text, found by the first app on the widgets.
 

@@ -2,12 +2,13 @@
 
 ## Resume here (if a session is lost)
 
-- **1.0.1 (2026-11-14)**: accessibility and large-text fixes found by
+- **1.1.0 (2026-11-14)**: accessibility and large-text fixes found by
   sehhaty-mobile (the SlotPicker) and the audit that followed: buttons a
   screen reader read but could not activate, the header, the month and
   the all-day bars at a large text, 15-minute events (decisions 72–73;
-  `packages/dzcalendar/test/accessibility_test.dart`). Released when the
-  owner says so (`dart run tool/release.dart 1.0.1`, push main and the tag).
+  `packages/dzcalendar/test/accessibility_test.dart`). A minor version
+  rather than a patch (owner, 2026-11-14): the widgets behave differently
+  (a bounded SlotPicker scrolls, the header's icon switcher).
 - **Phase 19k done (2026-11-12)**: usable and published (decisions 65–71).
   1.0.0 is on pub.dev (published by hand, tag v1.0.0); later versions by
   tag through `.github/workflows/publish.yml`.
