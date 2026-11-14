@@ -6,8 +6,8 @@ environment:
   sdk: ^3.9.0
 resolution: workspace
 dependencies:
-  dzcalendar: ^1.0.0
-  dzcalendar_core: ^1.0.0
+  dzcalendar: ^1.1.0
+  dzcalendar_core: ^1.1.0
   file_selector: ^1.0.3
   intl: ^0.20.2
   flutter:
